@@ -21,9 +21,30 @@
 --   * Effects are zero-argument closures (thunks).
 --   * Functions are curried unary closures; application is @(f)(x)(y)@.
 --
+-- Tail-call optimization (the trampoline):
+--
+-- Julia does not guarantee TCO, so - mirroring what purs itself does for
+-- JS in CoreImp.Optimizer.TCO - bindings whose self-references are ALL
+-- fully-saturated tail calls are compiled to a dispatch loop:
+--
+-- > f = (function ();
+-- >       function _tco_loop(x1, x2); ... end;   # (1, newargs) | (0, result)
+-- >       (x1) -> (x2) -> (begin; _tco_r = (1, (x1, x2,));
+-- >           while _tco_r[1] == 1; _tco_r = _tco_loop(_tco_r[2]...); end;
+-- >           _tco_r[2]; end);
+-- >     end)()
+--
+-- The function-call-per-iteration shape (rather than rebinding loop
+-- variables in place) is deliberate, again following purs: closures
+-- created in the loop body must capture per-iteration bindings, and a
+-- mutated-in-place loop variable would be boxed and shared across
+-- iterations. Applies to top-level Rec groups (self-recursion arrives as
+-- singleton Rec) and let-bound Rec groups (the ubiquitous local @go@).
+--
 -- Known v1 limitations:
 --
---   * No trampoline: deep non-self-call recursion can blow Julia's stack.
+--   * Mutual recursion is not trampolined (matches the JS backend, where
+--     MonadRec is the idiom for unbounded non-self recursion).
 --   * A pattern binding can shadow a name used by a later alternative
 --     evaluated inside the same binding IIFE (inherited from the Python
 --     backend's structure; rare in practice).
@@ -60,14 +81,26 @@ generateModuleJl cfModule = T.unlines $ map (generateBinding []) (CoreFn.moduleD
     generateBinding _ (CoreFn.NonRec _ ident expr) =
       identName ident <> " = " <> generateExpr [] expr
     generateBinding _ (CoreFn.Rec bindings) =
-      -- Smart Rec handling: only bindings that actually reference other
-      -- bindings in the group go through the lazy-thunk runtime; the rest
-      -- are plain assignments.
-      let allNames = Set.fromList [identName ident | ((_, ident), _) <- bindings]
+      -- Rec handling, in order of preference per binding:
+      --   1. TCO: all self-refs are saturated tail calls -> dispatch loop,
+      --      plain assignment, no thunk (other-member refs resolve at call
+      --      time, or through _lazy_X() for thunked members).
+      --   2. Smart thunk partition: only bindings that reference remaining
+      --      group members go through the lazy-thunk runtime.
+      let tcoAnnotated = [ (b, tryTco (identName ident) expr)
+                         | b@((_, ident), expr) <- bindings ]
+          tcoBindings = [ (ident, ps, body)
+                        | (((_, ident), _), Just (ps, body)) <- tcoAnnotated ]
+          plainBindings = [ b | (b, Nothing) <- tcoAnnotated ]
+          allNames = Set.fromList [identName ident | ((_, ident), _) <- plainBindings]
           needsThunk ((_, _ident), expr) =
             not $ Set.null $ Set.intersection (collectLocalRefs currentModule expr) allNames
-          (recursive, nonRecursive) = partition needsThunk bindings
+          (recursive, nonRecursive) = partition needsThunk plainBindings
           recNames = [identName ident | ((_, ident), _) <- recursive]
+          tcoDefs = [ identName ident <> " = "
+                      <> generateTcoExpr recNames (identName ident) ps body
+                    | (ident, ps, body) <- tcoBindings
+                    ]
           nonRecDefs = [ identName ident <> " = " <> generateExpr [] expr
                        | ((_, ident), expr) <- nonRecursive
                        ]
@@ -80,7 +113,7 @@ generateModuleJl cfModule = T.unlines $ map (generateBinding []) (CoreFn.moduleD
           valueDefs = [ identName ident <> " = _lazy_" <> identName ident <> "()"
                       | ((_, ident), _) <- recursive
                       ]
-      in T.unlines (nonRecDefs ++ lazyDefs ++ valueDefs)
+      in T.unlines (tcoDefs ++ nonRecDefs ++ lazyDefs ++ valueDefs)
 
     identName :: P.Ident -> T.Text
     identName = identToJlName
@@ -157,8 +190,14 @@ generateModuleJl cfModule = T.unlines $ map (generateBinding []) (CoreFn.moduleD
     generateLetBind recNames (CoreFn.NonRec _ ident expr) =
       [identName ident <> " = " <> generateExpr recNames expr]
     generateLetBind recNames (CoreFn.Rec bindings) =
+      -- Self-tail-recursive local bindings (the classic `go`) get the
+      -- trampoline; the rest rely on closure capture of boxed locals.
       ("local " <> T.intercalate ", " [identName ident | ((_, ident), _) <- bindings])
-      : [ identName ident <> " = " <> generateExpr recNames expr
+      : [ case tryTco (identName ident) expr of
+            Just (ps, body) ->
+              identName ident <> " = " <> generateTcoExpr recNames (identName ident) ps body
+            Nothing ->
+              identName ident <> " = " <> generateExpr recNames expr
         | ((_, ident), expr) <- bindings
         ]
 
@@ -262,6 +301,161 @@ generateModuleJl cfModule = T.unlines $ map (generateBinding []) (CoreFn.moduleD
       let (innerCond, innerBindings) = generatePattern recNames scrutinee inner
           binding = identName ident <> " = " <> scrutinee
       in (innerCond, binding : innerBindings)
+
+    -- ---------------------------------------------------------------
+    -- Tail-call optimization
+    -- ---------------------------------------------------------------
+
+    unApp :: CoreFn.Expr CoreFn.Ann -> (CoreFn.Expr CoreFn.Ann, [CoreFn.Expr CoreFn.Ann])
+    unApp = go []
+      where
+        go args (CoreFn.App _ fn arg) = go (arg : args) fn
+        go args other = (other, args)
+
+    peelAbs :: CoreFn.Expr CoreFn.Ann -> ([P.Ident], CoreFn.Expr CoreFn.Ann)
+    peelAbs (CoreFn.Abs _ arg body) =
+      let (ps, b) = peelAbs body in (arg : ps, b)
+    peelAbs other = ([], other)
+
+    -- | Is this expression a Var referring to the named local binding?
+    isSelfVar :: T.Text -> CoreFn.Expr CoreFn.Ann -> Bool
+    isSelfVar self (CoreFn.Var _ (P.Qualified qb ident)) =
+      identName ident == self && case qb of
+        P.ByModuleName mn -> mn == currentModule
+        P.BySourcePos _ -> True
+    isSelfVar _ _ = False
+
+    -- | TCO applicability: the binding must be a lambda chain whose body
+    -- references itself ONLY as fully-saturated tail calls (and at least
+    -- once). Returns the peeled params and body when applicable.
+    tryTco :: T.Text -> CoreFn.Expr CoreFn.Ann -> Maybe ([P.Ident], CoreFn.Expr CoreFn.Ann)
+    tryTco self expr =
+      let (params, body) = peelAbs expr
+          n = length params
+      in if n > 0 && hasSelfTailCall self n body && tcoOk self n True body
+           then Just (params, body)
+           else Nothing
+
+    -- | Does any tail position contain a saturated self call?
+    hasSelfTailCall :: T.Text -> Int -> CoreFn.Expr CoreFn.Ann -> Bool
+    hasSelfTailCall self n = go
+      where
+        go expr = case expr of
+          e@(CoreFn.App {}) ->
+            let (fn, args) = unApp e
+            in isSelfVar self fn && length args == n
+          CoreFn.Case _ _ alts ->
+            let altHas (CoreFn.CaseAlternative _ result) = case result of
+                  Right b -> go b
+                  Left guards -> any (go . snd) guards
+            in any altHas alts
+          CoreFn.Let _ _ body -> go body
+          _ -> False
+
+    -- | Walk with a tail-position flag; False means disqualified. Self
+    -- references are only allowed as exact-arity applications in tail
+    -- position; a self reference inside a nested lambda, an argument, a
+    -- scrutinee, a guard condition, or a let RHS disqualifies.
+    tcoOk :: T.Text -> Int -> Bool -> CoreFn.Expr CoreFn.Ann -> Bool
+    tcoOk self n = go
+      where
+        noSelf e = not (Set.member self (collectLocalRefs currentModule e))
+        go tailPos expr = case expr of
+          e@(CoreFn.App {}) ->
+            let (fn, args) = unApp e
+            in if isSelfVar self fn
+                 then tailPos && length args == n && all (go False) args
+                 else go False fn && all (go False) args
+          v@(CoreFn.Var {}) -> not (isSelfVar self v)
+          CoreFn.Abs _ _ body -> noSelf body
+          CoreFn.Case _ scruts alts ->
+            let altOk (CoreFn.CaseAlternative _ result) = case result of
+                  Right b -> go tailPos b
+                  Left guards -> all (\(g, b) -> go False g && go tailPos b) guards
+            in all (go False) scruts && all altOk alts
+          CoreFn.Let _ binds body ->
+            let bindOk (CoreFn.NonRec _ _ e) = go False e
+                bindOk (CoreFn.Rec bs) = all (go False . snd) bs
+            in all bindOk binds && go tailPos body
+          CoreFn.Accessor _ _ e -> go False e
+          CoreFn.ObjectUpdate _ e _ updates ->
+            go False e && all (go False . snd) updates
+          CoreFn.Literal _ lit -> case lit of
+            CoreFn.ArrayLiteral es -> all (go False) es
+            CoreFn.ObjectLiteral fs -> all (go False . snd) fs
+            _ -> True
+          CoreFn.Constructor {} -> True
+
+    -- | Rename earlier duplicates in a param list (shadowed/unused
+    -- params); the body only ever sees the last occurrence.
+    uniquifyParams :: [T.Text] -> [T.Text]
+    uniquifyParams = go (0 :: Int)
+      where
+        go _ [] = []
+        go i (name : rest)
+          | name `elem` rest = (name <> "__" <> T.pack (show i)) : go (i + 1) rest
+          | otherwise = name : go (i + 1) rest
+
+    -- | Emit the trampolined form (a single expression, one line).
+    generateTcoExpr :: [T.Text] -> T.Text -> [P.Ident] -> CoreFn.Expr CoreFn.Ann -> T.Text
+    generateTcoExpr recNames self params body =
+      let names = uniquifyParams (map identName params)
+          n = length names
+          stmts = tailStmts recNames self n 1 body
+          loopFn = "function _tco_loop(" <> T.intercalate ", " names <> "); "
+                   <> T.intercalate "; " stmts <> "; end"
+          wrapperBody = "(begin; _tco_r = (1, (" <> T.intercalate ", " names <> ",));"
+                        <> " while _tco_r[1] == 1; _tco_r = _tco_loop(_tco_r[2]...); end;"
+                        <> " _tco_r[2]; end)"
+          wrapper = foldr (\p acc -> "((" <> p <> ") -> " <> acc <> ")") wrapperBody names
+      in "(function (); " <> loopFn <> "; " <> wrapper <> "; end)()"
+
+    -- | Compile an expression in tail position of a TCO loop function.
+    -- Every control path ends in @return (1, (args...,))@ (loop again),
+    -- @return (0, value)@ (done), or a raised pattern-match error.
+    tailStmts :: [T.Text] -> T.Text -> Int -> Int -> CoreFn.Expr CoreFn.Ann -> [T.Text]
+    tailStmts recNames self n depth expr = case expr of
+      e@(CoreFn.App {})
+        | (fn, args) <- unApp e
+        , isSelfVar self fn
+        , length args == n ->
+          [ "return (1, (" <> T.intercalate ", " (map (generateExpr recNames) args) <> ",))" ]
+      CoreFn.Let _ binds body ->
+        concatMap (generateLetBind recNames) binds
+        ++ tailStmts recNames self n depth body
+      CoreFn.Case _ scruts alts ->
+        let v = "__v_t" <> T.pack (show depth) <> "__"
+            (scrutCode, roots) = case scruts of
+              [e] -> (generateExpr recNames e, [v])
+              es -> ( "(" <> T.intercalate ", " (map (generateExpr recNames) es) <> ")"
+                    , [ v <> "[" <> T.pack (show i) <> "]" | i <- [1 .. length es] ]
+                    )
+            -- Alternatives are sequential if-blocks: every body exits via
+            -- return/error, so falling out of an if means "try the next
+            -- alternative" - which is exactly PS guard fall-through.
+            altStmts (CoreFn.CaseAlternative binders result) =
+              let patResults = zipWith (generatePattern recNames) roots binders
+                  conds = filter (/= "true") (map fst patResults)
+                  bindings = concatMap snd patResults
+                  cond = case conds of
+                    [] -> "true"
+                    _ -> T.intercalate " && " conds
+                  inner = case result of
+                    Right b -> tailStmts recNames self n (depth + 1) b
+                    Left guards ->
+                      [ "if " <> generateExpr recNames g <> "; "
+                        <> T.intercalate "; " (tailStmts recNames self n (depth + 1) b)
+                        <> "; end"
+                      | (g, b) <- guards
+                      ]
+              in "if " <> cond <> "; "
+                 <> T.intercalate "; " (bindings ++ inner)
+                 <> "; end"
+        in (v <> " = " <> scrutCode)
+           : map altStmts alts
+           ++ [ "Base.error(\"Pattern match failed in module "
+                <> escapeStringJl currentModuleText <> "\")" ]
+      other -> [ "return (0, " <> generateExpr recNames other <> ")" ]
 
     generateLiteral :: [T.Text] -> CoreFn.Literal (CoreFn.Expr CoreFn.Ann) -> T.Text
     generateLiteral recNames = \case

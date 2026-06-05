@@ -32,11 +32,30 @@ compile and run.
 Top-level mutually-recursive value bindings go through a lazy-thunk runtime
 (`purejl_runtime.jl`); local recursion just uses Julia's closure capture.
 
+### Tail-call optimization
+
+Julia does not guarantee TCO, so — mirroring purs's own JS optimizer —
+bindings whose self-references are all fully-saturated tail calls compile
+to a dispatch loop:
+
+```julia
+sumTo = (function ();
+    function _tco_loop(acc, n); ...; end;     # (1, newargs) | (0, result)
+    (acc) -> (n) -> (begin; _tco_r = (1, (acc, n,));
+        while _tco_r[1] == 1; _tco_r = _tco_loop(_tco_r[2]...); end;
+        _tco_r[2]; end));
+end)()
+```
+
+The function-call-per-iteration shape is deliberate: closures created in
+the loop body capture per-iteration bindings (in-place param mutation
+would box and share them). Applies at top level and to local `go` loops;
+verified to 10⁸ iterations.
+
 ### Known v1 limitations
 
-- **No trampoline yet**: Julia does not guarantee TCO, so deep
-  mutual/non-self recursion can blow the stack. (Self-tail-calls are fine in
-  many shapes; the trampoline is the next interesting piece of work.)
+- Mutual recursion is not trampolined (matches the JS backend, where
+  `MonadRec` is the idiom for unbounded non-self recursion).
 - Int is `Int64`, not wrapped to 32-bit JS semantics.
 - Pattern-binding shadowing across fall-through alternatives (inherited
   from the Python backend's structure; rare).

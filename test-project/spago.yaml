@@ -1,0 +1,11 @@
+package:
+  name: purejl-test
+  dependencies:
+    - console
+    - effect
+    - prelude
+workspace:
+  packageSet:
+    registry: 57.1.0
+  backend:
+    cmd: "true"

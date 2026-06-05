@@ -1,0 +1,66 @@
+name: purescript-julia
+version: "0.0.1"
+synopsis: PureScript Programming Language Julia Back-end
+description:
+  Julia backend for PureScript. Consumes CoreFn JSON (purs --codegen corefn)
+  and emits Julia source - one Julia module per PureScript module, a
+  topologically-ordered loader, and a small runtime. Sibling of
+  purescript-python-new, part of the Julia-numerics-for-Hylograph effort.
+category: Language
+author: Andrew Condon
+copyright: (c) 2026 Andrew Condon
+license: BSD3
+github: afcondon/purescript-julia
+extra-source-files:
+  - stack.yaml
+  - README.md
+dependencies:
+  - aeson
+  - base
+  - containers
+  - directory
+  - filepath
+  - Glob
+  - mtl
+  - purescript
+  - text
+  - transformers
+build-tools:
+  - happy:happy ==1.20.0
+
+library:
+  source-dirs: src
+  ghc-options: -Wall -O2
+
+executables:
+  purejl:
+    main: Main.hs
+    source-dirs: app
+    ghc-options: -Wall -O2 -fno-warn-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
+    dependencies:
+      - purescript-julia
+
+default-extensions:
+  - ConstraintKinds
+  - DataKinds
+  - DeriveFunctor
+  - DeriveFoldable
+  - DeriveTraversable
+  - DeriveGeneric
+  - DerivingStrategies
+  - EmptyDataDecls
+  - FlexibleContexts
+  - KindSignatures
+  - LambdaCase
+  - MultiParamTypeClasses
+  - NoImplicitPrelude
+  - PatternGuards
+  - PatternSynonyms
+  - RankNTypes
+  - RecordWildCards
+  - OverloadedStrings
+  - ScopedTypeVariables
+  - TupleSections
+  - ViewPatterns
+
+stability: experimental

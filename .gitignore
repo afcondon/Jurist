@@ -1,0 +1,13 @@
+# Haskell / stack
+.stack-work/
+*.hi
+*.o
+
+# PureScript / spago (test project)
+test-project/output/
+test-project/output-jl/
+test-project/.spago/
+test-project/node_modules/
+
+# OS
+.DS_Store

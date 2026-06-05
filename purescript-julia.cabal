@@ -1,0 +1,120 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.38.1.
+--
+-- see: https://github.com/sol/hpack
+
+name:           purescript-julia
+version:        0.0.1
+synopsis:       PureScript Programming Language Julia Back-end
+description:    Julia backend for PureScript. Consumes CoreFn JSON (purs --codegen corefn) and emits Julia source - one Julia module per PureScript module, a topologically-ordered loader, and a small runtime. Sibling of purescript-python-new, part of the Julia-numerics-for-Hylograph effort.
+category:       Language
+stability:      experimental
+homepage:       https://github.com/afcondon/purescript-julia#readme
+bug-reports:    https://github.com/afcondon/purescript-julia/issues
+author:         Andrew Condon
+maintainer:     Andrew Condon
+copyright:      (c) 2026 Andrew Condon
+license:        BSD3
+build-type:     Simple
+extra-source-files:
+    stack.yaml
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/afcondon/purescript-julia
+
+library
+  exposed-modules:
+      Language.PureScript.Julia
+      Language.PureScript.Julia.CodeGen
+      Language.PureScript.Julia.CodeGen.Common
+      Language.PureScript.Julia.Foreigns
+      Language.PureScript.Julia.Make
+  other-modules:
+      Paths_purescript_julia
+  hs-source-dirs:
+      src
+  default-extensions:
+      ConstraintKinds
+      DataKinds
+      DeriveFunctor
+      DeriveFoldable
+      DeriveTraversable
+      DeriveGeneric
+      DerivingStrategies
+      EmptyDataDecls
+      FlexibleContexts
+      KindSignatures
+      LambdaCase
+      MultiParamTypeClasses
+      NoImplicitPrelude
+      PatternGuards
+      PatternSynonyms
+      RankNTypes
+      RecordWildCards
+      OverloadedStrings
+      ScopedTypeVariables
+      TupleSections
+      ViewPatterns
+  ghc-options: -Wall -O2
+  build-tools:
+      happy ==1.20.0
+  build-depends:
+      Glob
+    , aeson
+    , base
+    , containers
+    , directory
+    , filepath
+    , mtl
+    , purescript
+    , text
+    , transformers
+  default-language: Haskell2010
+
+executable purejl
+  main-is: Main.hs
+  other-modules:
+      Paths_purescript_julia
+  hs-source-dirs:
+      app
+  default-extensions:
+      ConstraintKinds
+      DataKinds
+      DeriveFunctor
+      DeriveFoldable
+      DeriveTraversable
+      DeriveGeneric
+      DerivingStrategies
+      EmptyDataDecls
+      FlexibleContexts
+      KindSignatures
+      LambdaCase
+      MultiParamTypeClasses
+      NoImplicitPrelude
+      PatternGuards
+      PatternSynonyms
+      RankNTypes
+      RecordWildCards
+      OverloadedStrings
+      ScopedTypeVariables
+      TupleSections
+      ViewPatterns
+  ghc-options: -Wall -O2 -fno-warn-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
+  build-tools:
+      happy ==1.20.0
+  build-depends:
+      Glob
+    , aeson
+    , base
+    , containers
+    , directory
+    , filepath
+    , mtl
+    , purescript
+    , purescript-julia
+    , text
+    , transformers
+  default-language: Haskell2010

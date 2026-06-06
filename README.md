@@ -9,6 +9,9 @@ PureScript-defined contract at the boundary. This repo is the "thin skin"
 realisation of that seam — a from-scratch CoreFn → Julia code generator,
 sibling of `purescript-python-new`.
 
+See [docs/backend-comparison.md](docs/backend-comparison.md) for how this
+backend sits among the PureScript backend family (JS, purerl, …).
+
 ## Status
 
 **Working** — Hello World and the core libraries compile and run. Built-in

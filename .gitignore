@@ -11,3 +11,8 @@ test-project/node_modules/
 
 # OS
 .DS_Store
+
+# examples
+examples/*/output/
+examples/*/output-jl/
+examples/*/.spago/

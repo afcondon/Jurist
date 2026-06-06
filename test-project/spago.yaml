@@ -1,9 +1,16 @@
 package:
   name: purejl-test
   dependencies:
+    - arrays
     - console
     - effect
+    - foldable-traversable
+    - integers
+    - maybe
     - prelude
+    - st
+    - strings
+    - tuples
 workspace:
   packageSet:
     registry: 57.1.0

@@ -11,8 +11,13 @@ sibling of `purescript-python-new`.
 
 ## Status
 
-**Working** — Hello World and the core libraries (prelude, effect, console)
-compile and run.
+**Working** — Hello World and the core libraries compile and run. Built-in
+FFI shims cover: prelude, effect, console, refs, partial, unsafe-coerce,
+functions, **arrays** (incl. `Data.Array.ST`), **st**, **strings**
+(CodeUnits / CodePoints / Common / Unsafe), **foldable-traversable**,
+**integers** (incl. `Data.Int.Bits`), **numbers**, **unfoldable**,
+**enums**, and **control** (`Control.Extend`). Not yet shimmed:
+`Data.String.Regex`, `Data.Number.Format`.
 
 ### Representation choices
 
@@ -56,7 +61,15 @@ verified to 10⁸ iterations.
 
 - Mutual recursion is not trampolined (matches the JS backend, where
   `MonadRec` is the idiom for unbounded non-self recursion).
-- Int is `Int64`, not wrapped to 32-bit JS semantics.
+- Int is `Int64`, not wrapped to 32-bit JS semantics (`Data.Int.Bits`
+  and `Data.Int.pow` do apply JS `ToInt32` wrapping).
+- `Data.String.CodeUnits` treats "code units" as codepoints (Julia
+  `Char`s), not UTF-16 units — identical for BMP text, diverges on
+  astral-plane characters.
+- `localeCompare` is codepoint order, not locale-aware collation.
+- `Data.Number.fromString` / `Data.Int.fromString` use Julia's
+  `tryparse` rather than JS `parseFloat`/`parseInt` prefix-parsing
+  (e.g. `"3.5abc"` is `Nothing` here, `Just 3.5` in JS).
 - Pattern-binding shadowing across fall-through alternatives (inherited
   from the Python backend's structure; rare).
 

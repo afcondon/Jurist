@@ -9,8 +9,9 @@ PureScript-defined contract at the boundary. This repo is the "thin skin"
 realisation of that seam — a from-scratch CoreFn → Julia code generator,
 sibling of `purescript-python-new`.
 
-See [docs/backend-comparison.md](docs/backend-comparison.md) for how this
-backend sits among the PureScript backend family (JS, purerl, …).
+Family-level docs (the backend comparison table, instructions for adding
+purerl/purepy/psgo columns to the differential matrix) live in the
+polyglot site repo: `purescript-polyglot/docs/backends/`.
 
 ## Status
 

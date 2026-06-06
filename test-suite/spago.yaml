@@ -1,0 +1,32 @@
+# Cross-backend differential test suite.
+#
+# No `backend:` section — this workspace builds the normal JS output, and
+# the runner passes `--purs-args "--codegen corefn,js"` so the same build
+# also emits CoreFn for purejl. Both backends then run the same modules.
+package:
+  name: jurist-tests
+  dependencies:
+    - arrays
+    - console
+    - control
+    - effect
+    - either
+    - enums
+    - foldable-traversable
+    - functions
+    - integers
+    - lists
+    - maybe
+    - newtype
+    - numbers
+    - partial
+    - prelude
+    - refs
+    - st
+    - strings
+    - tailrec
+    - tuples
+    - unfoldable
+workspace:
+  packageSet:
+    registry: 57.1.0

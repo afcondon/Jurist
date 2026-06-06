@@ -111,9 +111,47 @@ log(s) = () -> (Base.println(s); nothing)
 Qualify `Base.` for anything your shim *calls* if the module shadows it
 (e.g. `log`, `error`, `read`, `write` are all PS foreign names).
 
-## Test project
+## Testing
 
-`test-project/` is the smallest end-to-end check:
+### Cross-backend differential suite — `test-suite/`
+
+The headline claim: **the Julia backend produces byte-identical output to
+the reference JS backend** across 400+ differential tests, modulo four
+deliberate, documented divergences.
+
+The suite compiles ten `Test.*` modules once with
+`purs --codegen corefn,js`, runs each module on Node **and** on Julia
+(via purejl), and diffs every `TEST <name>: <value>` line:
+
+```bash
+cd test-suite
+python3 run_tests.py            # build both backends + compare
+# 422/426 identical, 4 known divergences, 0 failures, 0 module errors
+```
+
+Coverage: ADTs and pattern matching (literal/array/record/nested
+patterns, guards with fall-through, multi-scrutinee), the full
+`Data.Array` surface including the ST-backed functions and sort
+*stability*, strings (CodeUnits/CodePoints/Common incl. edge cases like
+empty patterns and out-of-range indices), Int and Number semantics
+(division families, bit ops with JS `ToInt32` wrapping, **JS
+`Number.prototype.toString` formatting** including the 1e21 and 1e-7
+notation boundaries), typeclass dictionary dispatch, Effect and ST
+combinators, `Data.Function.Uncurried` round-trips, and recursion
+(trampolined TCO at 10⁶ depth, closure capture inside loops, MonadRec).
+
+The four known divergences are the documented representation choices:
+two `ASTRAL-` tests (UTF-16 code units vs codepoints) and two `INT64-`
+tests (JS wraps Int arithmetic to int32 — the JS values there are the
+*overflowed* ones).
+
+The suite has already paid for itself: it caught an inverted
+length-tiebreak in `ordArrayImpl` (prefix-equal arrays compared
+backwards — the PS caller re-inverts the foreign's sign convention).
+
+### Smoke test — `test-project/`
+
+The smallest end-to-end check (60 outputs):
 
 ```bash
 cd test-project
@@ -122,3 +160,8 @@ stack exec purejl -- output output-jl   # (or the purejl binary on PATH)
 julia output-jl/main.jl
 # Hello from PureScript, via Julia!
 ```
+
+### Compute-leaf example — `examples/lorenz-leaf/`
+
+The thin-skin seam demo: PS contract + Julia RK4 numerics in a user
+`ffi-jl/` shim + JSON at the boundary.

@@ -16,3 +16,8 @@ test-project/node_modules/
 examples/*/output/
 examples/*/output-jl/
 examples/*/.spago/
+
+# test-suite
+test-suite/output/
+test-suite/output-jl/
+test-suite/.spago/

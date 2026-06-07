@@ -155,3 +155,38 @@ units).
 Suggested order: Tier 1 (proves typed handles), then the Tier-2
 `NumExpr`/`SystemSpec` core with the Lorenz keystone, then
 DynamicalSystems, then Catlab when the appetite arrives.
+
+## Future: sizes and refinements (Liquid-Haskell-flavored)
+
+**Sizes are nearly free, and they're performance facts.** PS has
+type-level `Int` arithmetic (`Prim.Int.Add`/`Mul`/`Compare`, 0.15+) and
+prior art in `purescript-fast-vect`. Sized `Vec n` / `Matrix m n` over
+the Tier-1 handles is library work, not research. The deep alignment:
+StaticArrays.jl gets its speed from sizes as *type parameters* — a PS
+type-level `n` doesn't erase at the seam, it becomes the `N` in
+`SMatrix{M,N,Float64}` and Julia specializes per size. On JS, sized
+types are safety; on this backend they are **transmitted performance
+information**.
+
+**Refinements: proof-carrying handles.** No SMT pass in purs, so
+LH-style predicates can't be discharged statically — but the seam
+offers a different mechanism: Julia computes the certificate once at
+the boundary, PS records it in a phantom and never re-checks:
+
+```purescript
+cholesky :: forall h n. Matrix h n n -> JuliaST h (Maybe (Checked PosDef (Matrix h n n)))
+solveSPD :: forall h n. Checked PosDef (Matrix h n n) -> Vec h n -> JuliaST h (Vec h n)
+```
+
+A successful factorization *is* the positive-definiteness evidence;
+sortedness, simplex membership, non-singularity follow the same shape.
+IntervalArithmetic.jl upgrades "checked numerically" to "rigorously
+enclosed" (`Certified a`). Where LH discharges obligations with Z3 at
+compile time, this discharges them with Julia at the seam, once, with
+the type system preventing any path that skips the check.
+
+**Speculative rung**: because Tier-2 programs are `NumExpr` ASTs, a
+refinement *checker* can itself be a leaf service — interval
+arithmetic over the AST proving e.g. "this RHS preserves positivity on
+this domain" before the solver runs. Static-ish checking, outsourced
+to the runtime that is good at arithmetic.

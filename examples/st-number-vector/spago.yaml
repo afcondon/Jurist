@@ -1,0 +1,13 @@
+package:
+  name: st-number-vector
+  dependencies:
+    - prelude
+    - effect
+    - console
+    - st
+    - arrays
+workspace:
+  packageSet:
+    registry: 57.1.0
+  backend:
+    cmd: "true"

@@ -8,6 +8,7 @@
             "arrays",
             "console",
             "effect",
+            "maybe",
             "prelude",
             "st"
           ]

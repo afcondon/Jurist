@@ -6,6 +6,7 @@ package:
     - console
     - st
     - arrays
+    - maybe
 workspace:
   packageSet:
     registry: 57.1.0

@@ -1,0 +1,12 @@
+package:
+  name: repr-canary
+  dependencies:
+    - prelude
+    - effect
+    - console
+    - maybe
+workspace:
+  packageSet:
+    registry: 57.1.0
+  backend:
+    cmd: "true"

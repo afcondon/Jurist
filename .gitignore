@@ -21,3 +21,6 @@ examples/*/.spago/
 test-suite/output/
 test-suite/output-jl/
 test-suite/.spago/
+
+# generated PDFs (print workflow)
+*.pdf

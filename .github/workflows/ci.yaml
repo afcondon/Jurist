@@ -60,7 +60,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # next-gen spago imports node:sqlite, usable without a flag only on
+          # Node 24+ (Node 20 throws ERR_UNKNOWN_BUILTIN_MODULE).
+          node-version: "24"
 
       - name: Setup PureScript (purs + spago)
         # purs pinned to the repo's compiler; spago is the next-gen (YAML)

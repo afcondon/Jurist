@@ -47,14 +47,18 @@ jobs:
           enable-stack: true
           stack-version: latest
 
-      - name: Cache stack (snapshot + work dir)
-        uses: actions/cache@v4
+      # Restore + (later) always-save, rather than actions/cache's combined
+      # form: the combined form only saves in a post-step that is skipped when
+      # the job fails, so a failing run never warms the cache and every run
+      # pays the full cold build. Keyed on the lock file: stack.yaml.lock
+      # controls snapshot reuse, so a hit avoids the ~25-min toolchain rebuild.
+      - name: Restore stack cache (snapshot + work dir)
+        id: stackcache
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.stack
             .stack-work
-          # Keyed on the lock file: stack.yaml.lock controls snapshot reuse, so
-          # a cache hit avoids the ~25-min PureScript-toolchain snapshot rebuild.
           key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock', 'package.yaml') }}
           restore-keys: ${{ runner.os }}-stack-
 
@@ -79,6 +83,19 @@ jobs:
 
       - name: Conformance lane
         run: bin/conformance.sh
+
+      # Save even when the lane fails: the expensive part (the cold stack build
+      # of purs-as-library + purejl) has already populated the cache dirs by
+      # this point, and warming them is what makes later runs fast. Skipped on
+      # an exact-key hit (nothing new to save).
+      - name: Save stack cache
+        if: always() && steps.stackcache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.stack
+            .stack-work
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock', 'package.yaml') }}
 
   # The single required status check. Always runs; green when `ci` passed OR was
   # skipped (docs-only), red when it failed or was cancelled. Point branch

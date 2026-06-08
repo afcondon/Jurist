@@ -63,9 +63,18 @@ def sh(cmd, **kw):
 
 
 def build():
+    # Ensure dependency sources are materialized under .spago/p. On a fresh
+    # checkout `spago sources` only prints globs; `spago build` is what fetches
+    # and unpacks the packages those globs point at. (Its JS output is unused —
+    # the corefn,js compile below regenerates everything.) Locally this is a
+    # no-op once deps are present; on CI it is what makes the globs resolve.
+    print("• materializing deps (spago build)...", file=sys.stderr)
+    r = sh(["spago", "build"])
+    if r.returncode != 0:
+        sys.stderr.write(r.stdout + r.stderr)
+        sys.exit(f"spago build failed ({r.returncode})")
     # spago won't forward --codegen, so resolve the source globs through
-    # `spago sources` (which also fetches dependencies) and drive purs
-    # directly with both codegen targets.
+    # `spago sources` and drive purs directly with both codegen targets.
     print("• resolving sources (spago)...", file=sys.stderr)
     r = sh(["spago", "sources"])
     if r.returncode != 0:

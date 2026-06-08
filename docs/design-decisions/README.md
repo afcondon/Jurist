@@ -52,6 +52,12 @@ place:
 | - | - | - |
 | 0001 | [Runtime representation of PureScript values in Julia](0001-runtime-representation.md) | Accepted |
 | 0002 | [FFI shim doctrine: real-JS foreigns and representation independence](0002-ffi-shim-doctrine.md) | Accepted |
+| 0003 | [Tail-call optimization via self-tail-call dispatch loops](0003-tco-trampoline.md) | Accepted |
+| 0004 | [The differential suite as conformance mechanism](0004-differential-conformance.md) | Accepted |
+| 0005 | [Reproducing JS `Number.prototype.toString` formatting](0005-js-number-formatting.md) | Accepted |
+| 0006 | [Module-per-module layout, topological loader, lazy-thunk runtime](0006-module-layout-loader.md) | Accepted |
+| 0007 | [Julia-shaped libraries: descriptions across, handles back](0007-julia-shaped-libraries.md) | Proposed |
+| 0008 | [Same-seed differential fuzzing](0008-differential-fuzzing.md) | Proposed |
 
 ## Scope
 

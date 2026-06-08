@@ -20,9 +20,17 @@ function pointers. At 10⁸ derivative evaluations this is seconds vs
 hours. Any design where the hot loop crosses the seam is dead on
 arrival.
 
-**Pattern: staging.** PureScript's own superpower is building
-well-typed ASTs (tagless final, free structures, row types — the HATS
-sensibility). So:
+**Pattern: staging.** PureScript's own superpower starts one level
+below the AST: **algebraic data types** themselves are the precision
+instrument — they make illegal states unrepresentable, so a description
+is *correct by construction* before any interpretation runs on it. The
+AST-building idioms (tagless final, free structures, row types — the
+HATS sensibility) are what you get when you point that precision at
+*computations*; the same exactness that rules out a malformed `Maybe`
+rules out a malformed `NumExpr`. (PureScript's Prelude typeclasses give
+that data a principled algebra to be manipulated through — less central
+to the backend story, where dictionaries are just `Dict{String,Any}`,
+but part of why authoring the descriptions is pleasant.) So:
 
 1. PS builds a typed *description* of the computation (an eDSL term);
 2. the seam is crossed **once**, carrying the description;
@@ -101,9 +109,10 @@ Extensions that fall out of the same shape:
 - **DynamicalSystems.jl**: basins of attraction, Lyapunov spectra —
   `basins :: SystemSpec s p -> Grid -> Leaf (Matrix Int)` (the
   Marginalia 219 north star).
-- **Units**: phantom units on `NumExpr` map onto Unitful.jl's
-  type-level dimensions — the same invariant encoded in both type
-  systems, checked twice, erased nowhere.
+- **Units**: phantom units on `NumExpr` map onto Julia's dimension
+  types — the same invariant encoded in both type systems, checked
+  twice, erased nowhere. Rich enough to be its own library; see
+  "Units: dimension-aware PureScript across the seam" below.
 - **Autodiff**: `gradient :: NumExpr -> NumExpr` via
   Symbolics/ForwardDiff — PS types say *what* was differentiated.
 - **Turing.jl**: a free-monad PPL in PS, interpreted by NUTS on the
@@ -155,6 +164,127 @@ units).
 Suggested order: Tier 1 (proves typed handles), then the Tier-2
 `NumExpr`/`SystemSpec` core with the Lorenz keystone, then
 DynamicalSystems, then Catlab when the appetite arrives.
+
+## Units: dimension-aware PureScript across the seam
+
+The most self-contained of these ideas, and a genuine *extension of
+PureScript's domain* rather than a numeric convenience: a unit-aware
+`Quantity` whose dimensions live in phantom types, staged across the
+seam onto Julia's mature units stack. PureScript has no units ecosystem
+of its own worth the name; Julia's is one of the best anywhere, and the
+reason it's good is the reason the seam works — units there are
+*type-level and erase at compile time*, not a runtime tax.
+
+The Julia side offers a revealing fork, and it's the **same fork as the
+sizes section below**:
+
+- **[Unitful.jl](https://painterqubits.github.io/Unitful.jl/)** encodes
+  dimensions in the *type parameters* of a `Quantity`. `1.0u"m"` and
+  `1.0u"s"` are distinct types; `2.0u"m" + 3.0u"m"` compiles to the
+  identical machine code as `2.0 + 3.0` (the unit bookkeeping erases
+  entirely under specialization), while `2.0u"m" + 3.0u"s"` fails to
+  find a method — dimensional analysis as type unification. It also
+  models *affine* quantities correctly (°C/°F have offsets: `20°C + 5K`
+  is fine, `20°C + 5°C` is not), the case most units libraries botch.
+  Companions stack: **Measurements.jl** carries linear-propagated
+  uncertainty (`(5.0 ± 0.1)u"m"`).
+- **[DynamicQuantities.jl](https://github.com/SymbolicML/DynamicQuantities.jl)**
+  stores dimensions as *values* in a fixed struct. It exists because
+  Unitful's type-parameter approach causes compile-time blowup and
+  type-instability in large symbolic/ML pipelines (it's a SciML/
+  SymbolicML project). Cheaper, more flexible, weaker static guarantee.
+
+That is exactly the static-vs-dynamic axis of the sizes work: push the
+invariant into the type system (max safety, max specialization,
+compile cost, instability if the value isn't statically known) or keep
+it as runtime data. The PS-face design inherits the fork cleanly:
+
+```purescript
+foreign import data Quantity :: Dimension -> Type -> Type
+-- Dimension is a type-level encoding (length·time⁻¹, …) built from
+-- Prim type-level naturals — the L^a M^b T^c… exponent vector.
+
+(.+.) :: forall d a. Semiring a => Quantity d a -> Quantity d a -> Quantity d a
+(.*.) :: forall d e a. Semiring a => Quantity d a -> Quantity e a -> Quantity (Mul d e) a
+```
+
+Two landing targets across the seam, chosen by what PS knows
+statically:
+
+- **Static dimensions** (the common case — you wrote `m/s` in the
+  eDSL): the PS phantom *becomes* Unitful's type parameter. Two type
+  systems shaking hands; the invariant is checked on the PS side, again
+  on the Julia side, and erased on both. This is the strongest version
+  of the doc's whole thesis at the smallest scale.
+- **Dynamic dimensions** (units read from data, where PS can't know
+  them either): lower to DynamicQuantities, where dimensions are
+  runtime values on both sides.
+
+The dimension algebra is real PureScript work, not research: type-level
+`Int` arithmetic (`Prim.Int.Add`/`Mul` for composing exponent vectors
+on `.*.`/`./.`, `Compare` for nothing here but present) already ships,
+and the encoding is a short row or seven-slot nat tuple (the SI base
+dimensions). It's the same type-level-naturals machinery the sizes
+section leans on — which is why the two belong side by side.
+
+Where it pays off beyond safety: **SciML already checks dimensional
+consistency on the equations of a ModelingToolkit system.** So a
+unit-typed Tier-2 `SystemSpec` doesn't just annotate — its units flow
+into MTK and are validated against the model MTK builds, then carried
+through the solve and into the `SolutionHandle`. The PS types say what
+the axes of the phase space *mean*; Julia confirms the dynamics respect
+that meaning; the visualization can label axes from the same source of
+truth. Units are the cheapest rung of the "descriptions across" ladder
+and a good first library to actually write.
+
+### Is uncertainty a monad? (and why it rides the eDSL path)
+
+The neighbouring Julia idea — **Measurements.jl**, `5.0 ± 0.1` with
+correlation-aware propagation — tempts you to reach for a monad. It's
+worth being precise about why that instinct is half right, because the
+answer says *which* path the library takes.
+
+Two different things get conflated:
+
+- **Full probability distributions are a monad** — the Giry/distribution
+  monad: `pure` is a point mass, `bind` is "sample the first, feed it to
+  the second, marginalize." This is the foundation of every PPL, and in
+  this doc it's the **Turing.jl** bullet — a free-monad PPL built in PS,
+  sampled by NUTS on the leaf. *That* is where the monad lives, and where
+  a free monad in PureScript genuinely fits.
+- **Measurements.jl is not that monad.** It is *first-order linear error
+  propagation*: `f(x ± σ) ≈ f(x) ± |f'(x)|·σ`, with tagged independent
+  sources so `a - a = 0 ± 0`. Structurally that's dual numbers /
+  forward-mode AD carrying a covariance — a commutative *ring*, and a
+  lossy first-order shadow of the distribution monad.
+
+The obstruction is sharp and instructive. To be even a `Functor` you'd
+need `map :: (a -> b) -> Uncertain a -> Uncertain b`, but propagation
+needs `f'`, not `f` — an **opaque** `a -> b` doesn't expose the
+derivative. Measurements.jl only works because it propagates through the
+*registered primitives whose derivatives it knows*, never through a
+black-box function. That is precisely the **callback anti-pattern**
+restated in type-class terms: you can't push an arbitrary closure
+through an uncertain value for the same reason you can't hand Julia a
+per-evaluation PS closure — the host needs the *structure* (the
+derivative, the symbolic form), not a function pointer.
+
+So uncertainty is not something you thread as a monad in PS-land; it is
+a **property the `NumExpr` eDSL preserves on the Julia side**, because
+the AST exposes the structure AD needs. It composes with units exactly
+as it does in Julia (`(5.0 ± 0.1)u"m"`) — both are dispatch overlays on
+the numeric tower riding the same staging path. The genuinely monadic
+sibling is the PPL one rung up, of which Measurements is the cheap
+linearization.
+
+This is the unifying observation for the whole section: **units, sizes,
+and uncertainty are the same move** — a type-level invariant whose hot
+propagation happens on the Julia side because the eDSL exposes
+structure. Units and sizes erase to nothing; uncertainty erases to a
+first-order ring computation; the closure-based versions of all three
+hit the same wall. (Prior art: Justin Le's Haskell `uncertain` package
+does this forward propagation and pointedly is *not* a monad; the
+distribution-monad side is `monad-bayes`.)
 
 ## Future: sizes and refinements (Liquid-Haskell-flavored)
 

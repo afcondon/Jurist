@@ -36,6 +36,16 @@ Symbolics/MTK, **3** Catlab / AlgebraicJulia.
 
 Status is **Proposed** because only Tier 1 is built; Tier 2+ will promote it.
 
+> **Progress (2026-06-09):** Tier-2 increment 1 landed — `examples/numexpr-edsl`
+> (`Data.NumExpr`). A numeric-expression ADT with `Ring`/`Semiring` ergonomics
+> crosses the seam once (folded through handed-in Julia builders, ADR-0002),
+> and Julia metaprograms it into a native function via `eval` of a generated
+> lambda. A pure PS interpreter gives the reference semantics; the
+> Julia-compiled function matches it byte-for-byte — the staging is proven
+> faithful. Still Proposed: the `SystemSpec` row-typed surface, the
+> Symbolics/MTK denotation, and dropping the v1 `invokelatest` boundary
+> (RuntimeGeneratedFunctions) are unbuilt.
+
 ## Consequences
 
 - Tier 1 is implemented and verified — `examples/st-number-vector`

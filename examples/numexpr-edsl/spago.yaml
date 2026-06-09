@@ -1,0 +1,14 @@
+package:
+  name: numexpr-edsl
+  dependencies:
+    - prelude
+    - effect
+    - console
+    - arrays
+    - numbers
+    - maybe
+workspace:
+  packageSet:
+    registry: 57.1.0
+  backend:
+    cmd: "true"

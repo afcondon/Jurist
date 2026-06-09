@@ -1,6 +1,6 @@
 # 0007. Julia-shaped libraries: descriptions across, handles back
 
-- Status: Proposed
+- Status: Accepted (2026-06-09)
 - Date: 2026-06-08
 
 ## Context
@@ -72,12 +72,21 @@ Status is **Proposed** because only Tier 1 is built; Tier 2+ will promote it.
 > `mtkcompile` reordering the unknowns. MTK uses RuntimeGeneratedFunctions
 > internally, so increment 3 has no `invokelatest` boundary.
 >
-> Still Proposed: dropping the increment-1/2 `invokelatest` boundary in
-> `Data.NumExpr`/`Data.SystemSpec` (RuntimeGeneratedFunctions), windowed
-> `SolutionHandle` streaming, and Tier-3 (Catlab). With increment 3 landed, the
-> doctrine is demonstrated across all of Tier 1, Tier 2's hand-rolled path, and
-> Tier 2's full symbolic-stack denotation; this ADR can move to **Accepted** once
-> the RGF cleanup lands.
+> With increment 3 landed, the doctrine is demonstrated across all of Tier 1,
+> Tier 2's hand-rolled path, and Tier 2's full symbolic-stack denotation.
+
+> **Progress (2026-06-09): RGF cleanup — status now Accepted.** `Data.NumExpr`
+> and `Data.SystemSpec` now compile their staged lambdas with
+> `RuntimeGeneratedFunctions` (`@RuntimeGeneratedFunction`) instead of
+> `Base.eval` + `Base.invokelatest`: the generated functions are native,
+> specialize on their argument types, and are callable in the current world age,
+> so the per-call `invokelatest` boundary is gone from the hot loops. Results are
+> byte-identical (increment-1 staging faithful; increment-2 Lorenz maxZ 47.834).
+> The doctrine is now realised end-to-end with no interpreter/world-age glue on
+> any tier, so this ADR is **Accepted**.
+>
+> Future extensions (not blockers): windowed `SolutionHandle` streaming, and
+> Tier-3 (Catlab / AlgebraicJulia).
 
 ## Consequences
 

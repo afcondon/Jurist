@@ -13,6 +13,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Opt JS actions into Node 24 ahead of GitHub's 2026-06-16 default switch,
+  # silencing the Node 20 deprecation warnings (checkout, cache, setup-*, …).
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   changes:
     runs-on: ubuntu-latest

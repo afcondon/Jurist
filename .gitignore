@@ -24,3 +24,6 @@ test-suite/.spago/
 
 # generated PDFs (print workflow)
 *.pdf
+
+# python bytecode cache
+__pycache__/

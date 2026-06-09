@@ -10,7 +10,9 @@
             "effect",
             "maybe",
             "numbers",
-            "prelude"
+            "prelude",
+            "record",
+            "tuples"
           ]
         },
         "test": {
@@ -785,6 +787,16 @@
         "newtype",
         "prelude",
         "tuples"
+      ]
+    },
+    "record": {
+      "type": "registry",
+      "version": "4.0.0",
+      "integrity": "sha256-WQ8fqp4X1wTA70J4qUcPW4Z7DCwx6e5KJnT/EuTdWSc=",
+      "dependencies": [
+        "functions",
+        "prelude",
+        "unsafe-coerce"
       ]
     },
     "refs": {

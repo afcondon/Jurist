@@ -7,6 +7,8 @@ package:
     - arrays
     - numbers
     - maybe
+    - record
+    - tuples
 workspace:
   packageSet:
     registry: 57.1.0

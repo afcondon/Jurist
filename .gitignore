@@ -34,3 +34,6 @@ __pycache__/
 
 # Tier-2 increment-4 backend output (reproducible; committed copy lives in viz/public/)
 examples/numexpr-edsl/double-pendulum.json
+
+# LSP ide-server port file
+.psc-ide-port

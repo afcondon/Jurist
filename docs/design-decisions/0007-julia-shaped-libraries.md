@@ -114,6 +114,23 @@ Status is **Proposed** because only Tier 1 is built; Tier 2+ will promote it.
 > integrated — the cross-runtime thesis made visible (one typed description; the
 > Julia runtime computes; a PureScript/JS runtime draws).
 
+> **Progress (2026-06-09): overhead benchmark — the staged abstraction is free.**
+> `examples/numexpr-edsl/bench/overhead.jl` measures the keystone question: does
+> describing a computation in PureScript and crossing the seam once cost anything
+> in the hot loop versus hand-written Julia? It integrates Lorenz with one RK4
+> loop over three RHS variants (min over 80 samples, post-warmup). Result: a
+> single **fused** RuntimeGeneratedFunction over the state/param vectors runs at
+> **1.006× hand-written Julia** — the abstraction is free, because the seam is
+> crossed once at staging and the hot loop is native Julia calling native code.
+> The benchmark also exposed that the *naive* staging shape (N per-equation RGFs
+> in a `Vector{Any}`, called `f(args...)` with a runtime-length splat) was ~**21×**
+> slower — a per-evaluation dynamic dispatch + splat. `compileFieldJ` was changed
+> to emit the fused lambda; Lorenz maxZ is unchanged (47.834). This validates the
+> doctrine quantitatively: the cost is in callbacks-per-element (the rejected
+> anti-pattern), not in a typed description that compiles once. (This isolates
+> FFI/staging overhead, not "Julia vs Python" — that cross-runtime comparison,
+> native specialised RHS vs a per-step `scipy` Python callback, is separate.)
+
 ## Consequences
 
 - Tier 1 is implemented and verified — `examples/st-number-vector`

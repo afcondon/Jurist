@@ -1,0 +1,28 @@
+package:
+  name: jurist-double-pendulum
+  description: >
+    Hylograph (HATS) frontend that renders the double-pendulum trajectory
+    solved by the Jurist Julia backend (Tier-2 increment 4). The physics — an
+    index-1 DAE solved by ModelingToolkit — happened in Julia; this app is a
+    pure player of the resulting frames.
+  dependencies:
+    - aff
+    - arrays
+    - console
+    - effect
+    - foldable-traversable
+    - halogen
+    - hylograph-selection
+    - integers
+    - maybe
+    - numbers
+    - prelude
+    - tuples
+  bundle:
+    module: DoublePendulum.Main
+    outfile: public/bundle.js
+    platform: browser
+
+workspace:
+  packageSet:
+    registry: 77.5.0

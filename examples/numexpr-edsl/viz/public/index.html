@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Double Pendulum — solved in Julia, drawn in PureScript</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page">
+    <header>
+      <p class="kicker">Jurist · Tier-2 increment 4</p>
+      <h1>Double pendulum</h1>
+      <p class="lede">
+        A double pendulum in Cartesian coordinates is an <strong>index-1
+        differential-algebraic system</strong>: the rod tensions are algebraic
+        variables, closed by the rigidity constraints. A typed PureScript
+        description crossed the seam once; <strong>ModelingToolkit</strong>
+        denoted it, derived the constraints, and an implicit stiff solver
+        integrated it on the Julia runtime — holding the rods rigid to ~1e-8
+        through fully chaotic motion. This page is a pure <em>player</em> of the
+        resulting frames: the browser draws what it could never have computed.
+      </p>
+    </header>
+
+    <div id="dp-host" class="stage"></div>
+
+    <footer>
+      <span class="dot dot-rod"></span> rigid rods
+      <span class="dot dot-b1"></span> bob 1
+      <span class="dot dot-b2"></span> bob 2 &amp; its trail
+      <span class="sep">·</span>
+      physics: ModelingToolkit (Julia) — rendering: Hylograph HATS (PureScript/JS)
+    </footer>
+  </main>
+  <script type="module" src="bundle.js"></script>
+</body>
+</html>

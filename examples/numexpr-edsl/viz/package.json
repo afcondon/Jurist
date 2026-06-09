@@ -1,0 +1,16 @@
+{
+  "name": "jurist-double-pendulum",
+  "version": "0.1.0",
+  "description": "Hylograph frontend for the Jurist double-pendulum DAE demo",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "spago build",
+    "bundle": "spago bundle --module DoublePendulum.Main --outfile public/bundle.js",
+    "serve": "npx http-server public -p 4178 -c-1",
+    "dev": "npm run bundle && npm run serve"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}

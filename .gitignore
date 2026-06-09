@@ -31,3 +31,6 @@ test-suite/.spago/
 
 # python bytecode cache
 __pycache__/
+
+# Tier-2 increment-4 backend output (reproducible; committed copy lives in viz/public/)
+examples/numexpr-edsl/double-pendulum.json

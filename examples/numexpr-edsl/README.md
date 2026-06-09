@@ -28,10 +28,39 @@ the last:
    the fixed-step RK4 can't: the derived Jacobian, and a genuinely **stiff**
    system (Robertson) solved cleanly.
 
-The seam is identical across all three (ADR-0007, "descriptions across, handles
+4. **`Data.DAESystem`** — a row-typed **differential-algebraic** system: a double
+   pendulum in Cartesian coordinates. Beyond `state` and `params` it adds an
+   `alg` row of *algebraic variables* (the rod tensions, no time derivative) and
+   one closing *constraint* per algebraic variable — the constraint lambda
+   returns a `Record alg`, so the type system pins exactly one constraint per
+   tension (a well-posed index-1 DAE by construction). MTK denotes it, derives
+   the constraints, and an **implicit stiff solver** (`Rodas5P`) holds the rigid
+   rods to ~1e-8 through fully chaotic motion — something no plain ODE integrator,
+   and no `scipy.solve_ivp` (no DAE/algebraic-variable support), can do. The
+   trajectory is written to JSON and rendered by a Hylograph frontend (see
+   `viz/`).
+
+The seam is identical across all four (ADR-0007, "descriptions across, handles
 back"): PureScript hands over a typed description; Julia owns the computation;
-results return as handles (`Compiled`, `Field`, `MTKField`/`Solution`) and are
-materialised only on demand.
+results return as handles (`Compiled`, `Field`, `MTKField`/`Solution`,
+`DAEField`/`DAESolution`) and are materialised only on demand.
+
+## Frontend (`viz/`)
+
+`viz/` is a standalone Hylograph (HATS) Halogen app — its **own** spago workspace
+(registry package set `77.5.0`, JS backend), independent of the purejl backend
+build and connected only by the JSON the increment-4 run writes. It is a pure
+*player*: it loads `double-pendulum.json`, and each ~16ms tick advances a frame
+index and re-renders the two rods, three joints, and a fading trail of the second
+bob as a declarative SVG tree. The chaotic curve on screen is one the browser
+never integrated — Julia's DAE solve did. Build & view:
+
+```bash
+cd viz
+cp ../double-pendulum.json public/          # the increment-4 output
+spago bundle --module DoublePendulum.Main --outfile public/bundle.js
+npm run serve                                # http://127.0.0.1:4178
+```
 
 ## Build & run
 
@@ -57,7 +86,10 @@ julia --project=julia-env output-jl/main.jl
 Expected: increment 1 `staging faithful: true`; increment 2 Lorenz `maxZ
 47.834`; increment 3 the printed simplified equations + analytic Jacobians, the
 MTK-solved Lorenz `maxZ ≈ 47.69` (chaotic, so envelope-agreeing rather than
-bit-identical with RK4), and the Robertson stiff solve conserving mass (Σy = 1.0).
+bit-identical with RK4), and the Robertson stiff solve conserving mass (Σy = 1.0);
+increment 4 the simplified double-pendulum DAE, `constraints maintained through
+chaos (drift < 1e-6): true` (~2.8e-8 in practice), and `wrote 1200 frames to
+double-pendulum.json`.
 
 > **Note on the MTK API.** The increment-3 FFI is validated against
 > ModelingToolkit v11 / Symbolics v7 / OrdinaryDiffEq v7. That generation

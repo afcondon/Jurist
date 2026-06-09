@@ -88,6 +88,32 @@ Status is **Proposed** because only Tier 1 is built; Tier 2+ will promote it.
 > Future extensions (not blockers): windowed `SolutionHandle` streaming, and
 > Tier-3 (Catlab / AlgebraicJulia).
 
+> **Progress (2026-06-09): Tier-2 increment 4 — DAEs + a Hylograph frontend.**
+> `Data.DAESystem` extends the row-typed surface from ODEs to
+> **differential-algebraic** systems: a third row of *algebraic variables* with
+> no time derivative, plus one closing *constraint* per algebraic variable (the
+> constraint lambda returns a `Record alg`, so the count is pinned by type). The
+> demo is a double pendulum in Cartesian coordinates; MTK denotes it (state and
+> algebraic vars are both functions of `t`, params are not), `mtkcompile`s an
+> index-1 DAE keeping the tensions as algebraic unknowns, and `Rodas5P` — an
+> implicit stiff integrator — holds the rigidity constraints by Newton iteration
+> at every step (rod drift ~2.8e-8 through fully chaotic motion; the result
+> crosses back to PureScript, which computes the drift). This is squarely in
+> Julia-exclusive territory: `scipy.solve_ivp` has no DAE/algebraic-variable
+> support, and the WASM backend has neither a symbolic stack nor an implicit
+> solver. The validated formulation uses the *acceleration-level* constraint
+> (nonsingular, dividing by `Lᵢ² ≠ 0`) rather than full automatic index reduction
+> to an ODE, which introduces a coordinate singularity when a rod is vertical.
+>
+> The trajectory is materialised to JSON (`dumpFramesJSON`, Julia-side) and
+> rendered by **`examples/numexpr-edsl/viz`** — a standalone Hylograph (HATS)
+> Halogen app, its own spago workspace on registry set `77.5.0`, connected to the
+> backend only by that file. It is a pure *player*: per-tick it advances a frame
+> index and re-renders the rods, joints, and bob-2 trail as a declarative SVG
+> tree. The chaotic curve drawn in the browser is one it could never have
+> integrated — the cross-runtime thesis made visible (one typed description; the
+> Julia runtime computes; a PureScript/JS runtime draws).
+
 ## Consequences
 
 - Tier 1 is implemented and verified — `examples/st-number-vector`

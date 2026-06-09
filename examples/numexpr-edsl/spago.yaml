@@ -5,6 +5,7 @@ package:
     - effect
     - console
     - arrays
+    - integers
     - numbers
     - maybe
     - record

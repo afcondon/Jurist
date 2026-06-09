@@ -1,4 +1,4 @@
--- | Tier-2 demo, three increments:
+-- | Tier-2 demo, four increments:
 -- |  1. stage a single `NumExpr` across the seam, compile it to a native Julia
 -- |     function, and check it against the pure PS interpreter (faithful
 -- |     staging — both run on Julia, so any mismatch is a staging bug);
@@ -9,16 +9,25 @@
 -- |     `ODESystem`, analytic Jacobian, stiff-aware adaptive solve — and show
 -- |     two things RK4 can't: the derived Jacobian, and a genuinely stiff system
 -- |     (Robertson) solved cleanly.
+-- |  4. lift again to a `DAESpec` — a double pendulum in Cartesian coordinates,
+-- |     a differential-*algebraic* system (rod tensions are algebraic variables
+-- |     closed by rigidity constraints). MTK produces an index-1 DAE; an
+-- |     implicit stiff solver holds the constraints (rods stay rigid to ~1e-8)
+-- |     through fully chaotic motion — something no plain ODE integrator, and no
+-- |     `scipy.solve_ivp`, can do. The trajectory is written to JSON for the
+-- |     Hylograph frontend.
 module Main where
 
 import Prelude
 
-import Data.Array (elemIndex, index, length, (!!)) as Array
+import Data.Array (elemIndex, index, length, range, (!!)) as Array
 import Data.Foldable (foldl, sum)
+import Data.Int (toNumber)
 import Data.Maybe (fromMaybe)
 import Data.Ord (abs)
+import Data.DAESystem (DAESpec, algVars, buildDAEField, daeSystem, dumpFramesJSON, sampleColumns, simplifiedEquationsSource, solveDAE, stateVars) as DAE
 import Data.MTKSystem (buildField, equationsSource, finalState, jacobianSource, maxComponent, solve) as MTK
-import Data.NumExpr (NumExpr, compile, eval, evalBatch, num, render, sinE, var)
+import Data.NumExpr (NumExpr, compile, divide, eval, evalBatch, num, render, sinE, var)
 import Data.SystemSpec (SystemSpec, compileField, integrate, paramVars, stateVars, system)
 import Effect (Effect)
 import Effect.Console (log)
@@ -71,6 +80,84 @@ robertson = system \s p ->
   , y2: p.a * s.y1 - p.c * s.y2 * s.y3 - p.b * s.y2 * s.y2
   , y3: p.b * s.y2 * s.y2
   }
+
+-- ── Increment 4: a differential-algebraic system (double pendulum) ──────────
+
+-- Differential state: two bob positions and their velocities (Cartesian).
+type DPState =
+  ( x1 :: NumExpr, y1 :: NumExpr, x2 :: NumExpr, y2 :: NumExpr
+  , u1 :: NumExpr, v1 :: NumExpr, u2 :: NumExpr, v2 :: NumExpr
+  )
+
+-- Algebraic variables: the two rod tensions (no time derivative).
+type DPAlg = ( t1 :: NumExpr, t2 :: NumExpr )
+
+type DPParams =
+  ( g :: NumExpr, m1 :: NumExpr, m2 :: NumExpr, l1 :: NumExpr, l2 :: NumExpr )
+
+-- The Cartesian accelerations in terms of the (algebraic) tensions — shared
+-- between the differential RHS and the closing constraints, so they are written
+-- once. Rod 1 pulls bob 1 toward the origin (`-t1·p1`) while rod 2 pulls it
+-- toward bob 2 (`+t2·(p2−p1)`); rod 2 pulls bob 2 toward bob 1. Gravity acts on
+-- the y components.
+accels
+  :: Record DPState
+  -> Record DPAlg
+  -> Record DPParams
+  -> { ax1 :: NumExpr, ay1 :: NumExpr, ax2 :: NumExpr, ay2 :: NumExpr }
+accels s a p =
+  { ax1: (negate a.t1 * s.x1 + a.t2 * (s.x2 - s.x1)) `divide` p.m1
+  , ay1: ((negate a.t1 * s.y1 + a.t2 * (s.y2 - s.y1)) `divide` p.m1) - p.g
+  , ax2: (negate a.t2 * (s.x2 - s.x1)) `divide` p.m2
+  , ay2: ((negate a.t2 * (s.y2 - s.y1)) `divide` p.m2) - p.g
+  }
+
+-- | The double pendulum as an index-1 DAE. The first lambda is the differential
+-- | part (positions integrate the velocities; velocities integrate the
+-- | accelerations). The second gives one *acceleration-level* rigidity
+-- | constraint per tension: differentiating `|pᵢ|² = Lᵢ²` twice yields a
+-- | relation linear in the tensions and nonsingular everywhere (it divides by
+-- | `|pᵢ|² = Lᵢ² ≠ 0`, unlike a single-coordinate chart, which is singular when
+-- | the rod is vertical). MTK solves the 2×2 tension system symbolically.
+doublePendulum :: DAE.DAESpec DPState DPAlg DPParams
+doublePendulum =
+  DAE.daeSystem
+    ( \s a p ->
+        let ac = accels s a p
+        in
+          { x1: s.u1, y1: s.v1, x2: s.u2, y2: s.v2
+          , u1: ac.ax1, v1: ac.ay1, u2: ac.ax2, v2: ac.ay2
+          }
+    )
+    ( \s a p ->
+        let ac = accels s a p
+        in
+          { t1: s.u1 * s.u1 + s.v1 * s.v1 + s.x1 * ac.ax1 + s.y1 * ac.ay1
+          , t2: (s.u2 - s.u1) * (s.u2 - s.u1) + (s.v2 - s.v1) * (s.v2 - s.v1)
+              + (s.x2 - s.x1) * (ac.ax2 - ac.ax1)
+              + (s.y2 - s.y1) * (ac.ay2 - ac.ay1)
+          }
+    )
+
+-- Number of animation frames written to JSON for the Hylograph frontend.
+nFrames :: Int
+nFrames = 1200
+
+trajectoryPath :: String
+trajectoryPath = "double-pendulum.json"
+
+-- |x1²+y1²−L1²| and |(x2−x1)²+(y2−y1)²−L2²| for a sampled [x1,y1,x2,y2] frame
+-- (L1 = L2 = 1) — how far the rigid rods have drifted, computed back in PS.
+rodDrift :: Array Number -> Number
+rodDrift frame = max r1 r2
+  where
+  g i = fromMaybe 0.0 (frame Array.!! i)
+  x1 = g 0
+  y1 = g 1
+  x2 = g 2
+  y2 = g 3
+  r1 = abs (x1 * x1 + y1 * y1 - 1.0)
+  r2 = abs ((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) - 1.0)
 
 main :: Effect Unit
 main = do
@@ -130,3 +217,32 @@ main = do
   log ("final state @ t=1e4: " <> show finalRob)
   log ("mass conserved (Σy ≈ 1.0): " <> show conserved)
   log ("stiff solve sane (|Σy − 1| < 1e-4): " <> show (abs (conserved - 1.0) < 1.0e-4))
+
+  log "\n== increment 4: double pendulum as an index-1 DAE (ModelingToolkit) =="
+  log ("differential state: " <> show (DAE.stateVars doublePendulum))
+  log ("algebraic vars (rod tensions): " <> show (DAE.algVars doublePendulum))
+  dpField <- DAE.buildDAEField doublePendulum
+  dpEqs <- DAE.simplifiedEquationsSource dpField
+  log "simplified DAE (differential eqs + algebraic constraints closing the tensions):"
+  log dpEqs
+  -- Both rods horizontal, at rest — a high-energy, fully chaotic start.
+  dpSol <- DAE.solveDAE dpField
+    { x1: 1.0, y1: 0.0, x2: 2.0, y2: 0.0, u1: 0.0, v1: 0.0, u2: 0.0, v2: 0.0 }
+    { t1: 0.0, t2: 0.0 }
+    { g: 9.81, m1: 1.0, m2: 1.0, l1: 1.0, l2: 1.0 }
+    0.0
+    20.0
+  -- The result crosses back to PS: check the rigid rods stayed rigid.
+  checkFrames <- DAE.sampleColumns dpSol [ "x1", "y1", "x2", "y2" ]
+    [ 0.0, 5.0, 10.0, 15.0, 20.0 ]
+  let drift = foldl max 0.0 (map rodDrift checkFrames)
+  log ("max rod-length drift over the run: " <> show drift)
+  log ("constraints maintained through chaos (drift < 1e-6): " <> show (drift < 1.0e-6))
+  -- Write the full animation trajectory (Julia-side) for the Hylograph frontend.
+  let
+    frameTimes =
+      map (\i -> 20.0 * toNumber i / toNumber (nFrames - 1)) (Array.range 0 (nFrames - 1))
+  DAE.dumpFramesJSON dpSol [ "x1", "y1", "x2", "y2" ] frameTimes
+    "\"l1\":1.0,\"l2\":1.0,\"t0\":0.0,\"t1\":20.0"
+    trajectoryPath
+  log ("wrote " <> show (Array.length frameTimes) <> " frames to " <> trajectoryPath)

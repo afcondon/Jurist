@@ -8,6 +8,7 @@
             "arrays",
             "console",
             "effect",
+            "integers",
             "maybe",
             "numbers",
             "prelude",
@@ -698,6 +699,16 @@
         "control",
         "invariant",
         "newtype",
+        "prelude"
+      ]
+    },
+    "integers": {
+      "type": "registry",
+      "version": "6.0.0",
+      "integrity": "sha256-Y8yozC1uHRLcruobEyv5/bMKzE1BoKJ/olHv6o+bgm8=",
+      "dependencies": [
+        "maybe",
+        "numbers",
         "prelude"
       ]
     },

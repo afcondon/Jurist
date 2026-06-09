@@ -36,15 +36,26 @@ Symbolics/MTK, **3** Catlab / AlgebraicJulia.
 
 Status is **Proposed** because only Tier 1 is built; Tier 2+ will promote it.
 
-> **Progress (2026-06-09):** Tier-2 increment 1 landed — `examples/numexpr-edsl`
-> (`Data.NumExpr`). A numeric-expression ADT with `Ring`/`Semiring` ergonomics
-> crosses the seam once (folded through handed-in Julia builders, ADR-0002),
-> and Julia metaprograms it into a native function via `eval` of a generated
-> lambda. A pure PS interpreter gives the reference semantics; the
-> Julia-compiled function matches it byte-for-byte — the staging is proven
-> faithful. Still Proposed: the `SystemSpec` row-typed surface, the
-> Symbolics/MTK denotation, and dropping the v1 `invokelatest` boundary
-> (RuntimeGeneratedFunctions) are unbuilt.
+> **Progress (2026-06-09):** Tier-2 increments 1 & 2 landed —
+> `examples/numexpr-edsl`.
+> - **Increment 1** (`Data.NumExpr`): a numeric-expression ADT with
+>   `Ring`/`Semiring` ergonomics crosses the seam once (folded through
+>   handed-in Julia builders, ADR-0002) and Julia metaprograms it into a native
+>   function via `eval` of a generated lambda. A pure PS interpreter gives the
+>   reference semantics; the Julia-compiled function matches it byte-for-byte.
+> - **Increment 2** (`Data.SystemSpec`): a row-typed system of ODEs — state
+>   space and params are PureScript rows, RHS accessed by typed field
+>   (`s.x`/`p.sigma`; a misspelt field is a compile error). The vector field is
+>   compiled to native Julia and integrated by a native RK4 loop; the Lorenz
+>   system reproduces the independent `lorenz-leaf` RK4 (maxZ ≈ 47.83). This is
+>   the "Native" evidence-category keystone (Marginalia 220).
+>
+> Still Proposed: the Symbolics/MTK denotation (so MTK compiles the RHS and
+> derives Jacobians/sparsity, rather than the hand-written RK4), dropping the
+> v1 `invokelatest` boundary (RuntimeGeneratedFunctions), and `SolutionHandle`
+> sampling. The `record`-package shims (Record.Builder, Record.Unsafe.Union)
+> the row-typed surface needs are currently per-example; promoting them to
+> built-in shims is a backend follow-up.
 
 ## Consequences
 

@@ -50,12 +50,34 @@ Status is **Proposed** because only Tier 1 is built; Tier 2+ will promote it.
 >   system reproduces the independent `lorenz-leaf` RK4 (maxZ ≈ 47.83). This is
 >   the "Native" evidence-category keystone (Marginalia 220).
 >
-> Still Proposed: the Symbolics/MTK denotation (so MTK compiles the RHS and
-> derives Jacobians/sparsity, rather than the hand-written RK4), dropping the
-> v1 `invokelatest` boundary (RuntimeGeneratedFunctions), and `SolutionHandle`
-> sampling. (The `record`-package shims the row-typed surface needs —
-> Record.Builder, Record.Unsafe.Union — are now built-in `purejl` shims as of
-> 2026-06-09.)
+> (The `record`-package shims the row-typed surface needs — Record.Builder,
+> Record.Unsafe.Union — are now built-in `purejl` shims as of 2026-06-09.)
+
+> **Progress (2026-06-09): Tier-2 increment 3 — ModelingToolkit denotation.**
+> `Data.MTKSystem` denotes the *same* `SystemSpec` into ModelingToolkit instead
+> of the hand-written RK4. The seam is unchanged — PureScript hands across the
+> ordered variable names and one RHS `JExpr` per equation (the increment-1
+> currency); Julia binds them to Symbolics variables, evaluates the Exprs into a
+> symbolic `System`, `mtkcompile`s it, derives the **analytic Jacobian**
+> (`calculate_jacobian` — derivatives never written in PureScript), and solves
+> with SciML's default adaptive polyalgorithm (auto-switching to a stiff method
+> via the Jacobian). The MTK-solved Lorenz matches the increment-2 RK4 /
+> `lorenz-leaf` envelope (maxZ ≈ 47.69 vs 47.83 — chaotic, so envelope-agreeing
+> not bit-identical), and a genuinely **stiff** Robertson system is solved
+> cleanly (mass conserved Σy = 1.0) — something the fixed-step RK4 can't do.
+> This is the first non-stdlib Julia dependency (a dedicated `julia-env/`,
+> ModelingToolkit v11). `MTKField`/`Solution` are opaque handles; the `Solution`
+> samples the dense interpolant lazily (`sampleAt`/`finalState`/`maxComponent`)
+> — the "handles back" half, indexed **symbolically** so it is robust to
+> `mtkcompile` reordering the unknowns. MTK uses RuntimeGeneratedFunctions
+> internally, so increment 3 has no `invokelatest` boundary.
+>
+> Still Proposed: dropping the increment-1/2 `invokelatest` boundary in
+> `Data.NumExpr`/`Data.SystemSpec` (RuntimeGeneratedFunctions), windowed
+> `SolutionHandle` streaming, and Tier-3 (Catlab). With increment 3 landed, the
+> doctrine is demonstrated across all of Tier 1, Tier 2's hand-rolled path, and
+> Tier 2's full symbolic-stack denotation; this ADR can move to **Accepted** once
+> the RGF cleanup lands.
 
 ## Consequences
 

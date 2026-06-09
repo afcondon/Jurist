@@ -4,6 +4,13 @@
 # side) into native functions over (stateVars..., paramVars...), then integrate
 # the resulting vector field with a native RK4 loop. Field == (fns, nstate);
 # the PS phantom rows are erased here.
+#
+# The RHS functions are RuntimeGeneratedFunctions: native and specializing, with
+# no world-age boundary, so the RK4 inner loop calls them directly (no
+# `invokelatest`) — ADR-0007.
+
+import RuntimeGeneratedFunctions
+RuntimeGeneratedFunctions.init(@__MODULE__)
 
 # compileFieldJ stateVars paramVars jexprs : Effect (Field s p)
 compileFieldJ(stateVars) = paramVars -> jexprs -> () -> begin
@@ -12,20 +19,20 @@ compileFieldJ(stateVars) = paramVars -> jexprs -> () -> begin
         Base.push!(allvars, v)
     end
     params = Base.Expr(:tuple, [Base.Symbol(v) for v in allvars]...)
-    fns = Any[Base.eval(@__MODULE__, Base.Expr(:->, params, je)) for je in jexprs]
+    fns = Any[RuntimeGeneratedFunctions.@RuntimeGeneratedFunction(Base.Expr(:->, params, je)) for je in jexprs]
     (fns, Base.length(stateVars))
 end
 
 # integrateJ field s0 ps dt steps : Effect (Array (Array Number))
-# Native RK4. invokelatest crosses the eval world-age boundary; the RHS bodies
-# and the integration arithmetic are native Julia.
+# Native RK4; the RHS functions are RGFs, so they are called directly — both the
+# RHS bodies and the integration arithmetic are native Julia.
 integrateJ(field) = s0 -> ps -> dt -> steps -> () -> begin
     fns = field[1]
     state = Base.Float64[x for x in s0]
     pvals = Base.Float64[x for x in ps]
     rhs = function (st)
         args = Base.vcat(st, pvals)
-        Base.Float64[Base.invokelatest(f, args...) for f in fns]
+        Base.Float64[f(args...) for f in fns]
     end
     out = Any[]
     for _ in 1:steps

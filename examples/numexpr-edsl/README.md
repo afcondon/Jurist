@@ -35,10 +35,11 @@ materialised only on demand.
 
 ## Build & run
 
-Increments 1 & 2 need only the standard toolchain (`purs`, `spago`, `julia`,
-`purejl`). Increment 3 additionally needs ModelingToolkit, which lives in a
-**dedicated Julia environment** under `julia-env/` (kept out of your global
-environment; the `Manifest.toml` is gitignored, so resolve it once):
+All three increments run under a **dedicated Julia environment** in `julia-env/`
+(kept out of your global environment; `Manifest.toml` is gitignored, so resolve
+it once). Increments 1 & 2 use the lightweight `RuntimeGeneratedFunctions`
+(native, specializing RHS functions with no `invokelatest` boundary); increment
+3 adds ModelingToolkit:
 
 ```bash
 # one-time: resolve the MTK environment (heavy — pulls ~220 packages)

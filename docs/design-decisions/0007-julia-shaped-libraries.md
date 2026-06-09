@@ -53,9 +53,9 @@ Status is **Proposed** because only Tier 1 is built; Tier 2+ will promote it.
 > Still Proposed: the Symbolics/MTK denotation (so MTK compiles the RHS and
 > derives Jacobians/sparsity, rather than the hand-written RK4), dropping the
 > v1 `invokelatest` boundary (RuntimeGeneratedFunctions), and `SolutionHandle`
-> sampling. The `record`-package shims (Record.Builder, Record.Unsafe.Union)
-> the row-typed surface needs are currently per-example; promoting them to
-> built-in shims is a backend follow-up.
+> sampling. (The `record`-package shims the row-typed surface needs —
+> Record.Builder, Record.Unsafe.Union — are now built-in `purejl` shims as of
+> 2026-06-09.)
 
 ## Consequences
 

@@ -19,9 +19,10 @@ polyglot site repo: `purescript-polyglot/docs/backends/`.
 FFI shims cover: prelude, effect, console, refs, partial, unsafe-coerce,
 functions, **arrays** (incl. `Data.Array.ST`), **st**, **strings**
 (CodeUnits / CodePoints / Common / Unsafe), **foldable-traversable**,
-**integers** (incl. `Data.Int.Bits`), **numbers**, **unfoldable**,
-**enums**, and **control** (`Control.Extend`). Not yet shimmed:
-`Data.String.Regex`, `Data.Number.Format`.
+**integers** (incl. `Data.Int.Bits`), **numbers** (incl. `Data.Number.Format`),
+**unfoldable**, **enums**, **control** (`Control.Extend`), and **records**
+(`Record.Unsafe`, `Record.Builder`, `Record.Unsafe.Union`). `Data.String.Regex`
+ships as a loud-failure stub (no real PCRE mapping yet).
 
 ### Representation choices
 

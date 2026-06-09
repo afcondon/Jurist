@@ -152,6 +152,25 @@ builtinForeigns =
       , "end"
       , "unsafeHas(label) = rec -> Base.haskey(rec, label)"
       ] )
+  , ( "Record_Builder_foreign.jl", T.unlines
+      [ "# FFI for Record.Builder (records are Dict{String,Any}; copy once,"
+      , "# then mutate the copy, as the JS foreign does)."
+      , "copyRecord(rec) = Base.copy(rec)"
+      , "unsafeInsert(l) = a -> rec -> (rec[l] = a; rec)"
+      , "unsafeModify(l) = f -> rec -> (rec[l] = f(rec[l]); rec)"
+      , "unsafeDelete(l) = rec -> (Base.delete!(rec, l); rec)"
+      , "unsafeRename(l1) = l2 -> rec -> (rec[l2] = rec[l1]; Base.delete!(rec, l1); rec)"
+      ] )
+  , ( "Record_Unsafe_Union_foreign.jl", T.unlines
+      [ "# FFI for Record.Unsafe.Union — unsafeUnionFn is uncurried (runFn2);"
+      , "# the left record wins on key collisions."
+      , "function unsafeUnionFn(r1, r2)"
+      , "    out = Base.Dict{Base.String, Any}()"
+      , "    for (k, v) in r2; out[k] = v; end"
+      , "    for (k, v) in r1; out[k] = v; end"
+      , "    out"
+      , "end"
+      ] )
   , ( "Data_Symbol_foreign.jl", T.unlines
       [ "# FFI for Data.Symbol"
       , "unsafeCoerce(x) = x"

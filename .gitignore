@@ -17,6 +17,10 @@ examples/*/output/
 examples/*/output-jl/
 examples/*/.spago/
 
+# Julia env: commit Project.toml (reproducible deps), ignore the huge,
+# Julia-version-pinned Manifest (resolved by `Pkg.instantiate`)
+examples/*/julia-env/Manifest.toml
+
 # test-suite
 test-suite/output/
 test-suite/output-jl/

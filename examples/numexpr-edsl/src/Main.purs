@@ -20,7 +20,7 @@ module Main where
 
 import Prelude
 
-import Data.Array (elemIndex, index, length, range, (!!)) as Array
+import Data.Array (concat, elemIndex, index, length, range, take, zipWith, (!!)) as Array
 import Data.Foldable (foldl, sum)
 import Data.Int (toNumber)
 import Data.Maybe (fromMaybe)
@@ -28,7 +28,7 @@ import Data.Ord (abs)
 import Data.DAESystem (DAESpec, algVars, buildDAEField, daeSystem, dumpFramesJSON, sampleColumns, simplifiedEquationsSource, solveDAE, stateVars) as DAE
 import Data.MTKSystem (buildField, equationsSource, finalState, jacobianSource, maxComponent, solve) as MTK
 import Data.NumExpr (NumExpr, compile, divide, eval, evalBatch, num, render, sinE, var)
-import Data.SystemSpec (SystemSpec, compileField, integrate, paramVars, stateVars, system)
+import Data.SystemSpec (SystemSpec, compileField, integrate, integratePure, paramVars, stateVars, system)
 import Effect (Effect)
 import Effect.Console (log)
 
@@ -183,6 +183,31 @@ main = do
     maxZrk4 = foldl (\m st -> max m (fromMaybe 0.0 (st Array.!! 2))) 0.0 orbit
   log ("steps:      " <> show (Array.length orbit))
   log ("maxZ (RK4): " <> show maxZrk4)
+
+  log "\n== increment 2 (cross-check): the SAME SystemSpec, a pure-PureScript RK4 =="
+  -- The develop-anywhere denotation: no FFI, runs on any backend. One
+  -- description (`lorenz`), two denotations — Julia `integrate` and pure
+  -- `integratePure` — cross-checked, exactly as increment 1 does for NumExpr.
+  let
+    orbitPure = integratePure lorenz
+      { x: 1.0, y: 1.0, z: 1.0 }
+      { sigma: 10.0, rho: 28.0, beta: 8.0 / 3.0 }
+      0.01
+      5000
+    maxZpure = foldl (\m st -> max m (fromMaybe 0.0 (st Array.!! 2))) 0.0 orbitPure
+    identical = orbit == orbitPure
+    -- Short-horizon numerical agreement: Lorenz is chaotic, so any ULP
+    -- difference amplifies over 5000 steps; the first 200 steps test that the
+    -- two denotations *compute the same thing* before chaos dominates.
+    diffs = Array.concat
+      ( Array.zipWith (\a b -> Array.zipWith (\x y -> abs (x - y)) a b)
+          (Array.take 200 orbit)
+          (Array.take 200 orbitPure)
+      )
+    maxDiff200 = foldl max 0.0 diffs
+  log ("maxZ (pure-PS RK4):                   " <> show maxZpure)
+  log ("byte-identical to Julia over 5000 steps: " <> show identical)
+  log ("max abs diff over first 200 steps:       " <> show maxDiff200)
 
   log "\n== increment 3: same Lorenz, denoted into ModelingToolkit =="
   mtkLorenz <- MTK.buildField lorenz

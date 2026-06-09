@@ -29,6 +29,7 @@ module Data.SystemSpec
   , Field
   , compileField
   , integrate
+  , integratePure
   , class MakeVars
   , makeVarsB
   , class Keys
@@ -42,8 +43,9 @@ module Data.SystemSpec
 
 import Prelude
 
-import Data.Array ((:))
-import Data.NumExpr (JExpr, NumExpr, toJExpr, var)
+import Data.Array (elemIndex, index, range, scanl, zipWith, (:))
+import Data.Maybe (Maybe(..), fromMaybe)
+import Data.NumExpr (JExpr, NumExpr, eval, toJExpr, var)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (Tuple(..), snd)
 import Effect (Effect)
@@ -218,3 +220,63 @@ integrate
   -> Effect (Array (Array Number))
 integrate field s0 ps dt steps =
   integrateJ field (toValues s0) (toValues ps) dt steps
+
+-- | The **develop-anywhere** denotation of the *same* `SystemSpec`: a pure
+-- | PureScript RK4 that reads the system's `NumExpr` equations and evaluates
+-- | them with the reference interpreter (`Data.NumExpr.eval`) — no FFI, so it
+-- | runs on any backend (JS/Node, the BEAM, …), not just Julia. It is the
+-- | dummy/prototyping executor to the Julia `integrate`'s production executor:
+-- | one description, two denotations (ADR-0007). The RK4 step order matches
+-- | `integrateJ` exactly, so on a non-chaotic horizon the two agree to machine
+-- | precision (`Main.purs` cross-checks them).
+-- |
+-- | It is pure (no `Effect`) — the computation has no side effects; only the
+-- | Julia handle-based path needs `Effect`.
+integratePure
+  :: forall state stateRL stateN stateNRL params paramRL paramN paramNRL
+   . RowToList state stateRL
+  => NumberRow stateRL stateN
+  => RowToList stateN stateNRL
+  => ToValues stateNRL stateN
+  => RowToList params paramRL
+  => NumberRow paramRL paramN
+  => RowToList paramN paramNRL
+  => ToValues paramNRL paramN
+  => SystemSpec state params
+  -> Record stateN
+  -> Record paramN
+  -> Number
+  -> Int
+  -> Array (Array Number)
+integratePure (SystemSpec sys) s0 ps dt steps =
+  scanl (\st _ -> rk4Step st) s0arr (range 1 steps)
+  where
+  s0arr = toValuesB (Proxy :: Proxy stateNRL) s0
+  psarr = toValuesB (Proxy :: Proxy paramNRL) ps
+  rhsExprs = map snd sys.eqs
+
+  -- Look a variable up by name: state vars index into the current state, param
+  -- vars into the (constant) parameter vector — the binding the fused Julia RGF
+  -- does positionally, done here by name.
+  envFor st name = case elemIndex name sys.stateVars of
+    Just i -> fromMaybe 0.0 (index st i)
+    Nothing -> case elemIndex name sys.paramVars of
+      Just j -> fromMaybe 0.0 (index psarr j)
+      Nothing -> 0.0
+
+  rhs st = map (\e -> eval (envFor st) e) rhsExprs
+
+  -- One RK4 step; combine ordered exactly as integrateJ's
+  -- `k1 .+ 2 .*k2 .+ 2 .*k3 .+ k4` (left-assoc) so the arithmetic matches.
+  rk4Step st =
+    let
+      k1 = rhs st
+      k2 = rhs (vadd st (vscale (dt / 2.0) k1))
+      k3 = rhs (vadd st (vscale (dt / 2.0) k2))
+      k4 = rhs (vadd st (vscale dt k3))
+      comb = vadd (vadd (vadd k1 (vscale 2.0 k2)) (vscale 2.0 k3)) k4
+    in
+      vadd st (vscale (dt / 6.0) comb)
+
+  vadd = zipWith (+)
+  vscale k = map (k * _)

@@ -1,0 +1,1 @@
+window.OPTIMIZE = {"capacity":10.0,"items":[{"name":"Telescope","weight":6.0,"value":12.0},{"name":"Camera","weight":5.0,"value":9.0},{"name":"Tripod","weight":5.0,"value":9.0},{"name":"Drone","weight":7.0,"value":8.0}],"greedy":{"value":12.0,"mask":[1.0,0.0,0.0,0.0]},"optimal":{"value":18.0,"gap":0.0,"optimal":true,"mask":[0.0,1.0,1.0,0.0]}};

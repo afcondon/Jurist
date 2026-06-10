@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jurist — one description, three runtimes</title>
+<link rel="stylesheet" href="jurist.css" />
+<style>
+  .receipts { font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:12.5px; line-height:1.8; }
+  .receipts .rt { color:var(--muted); display:inline-block; width:5.2em; }
+  .receipts .v { color:var(--ink); font-weight:600; }
+  .receipts .ok { color:var(--good); font-weight:600; }
+  .verdict { margin-top:14px; padding-top:12px; border-top:1px dashed var(--rule); font-size:14px; color:var(--muted); }
+  .verdict strong { color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><a href="index.html">Jurist</a> <span class="sub">a typed PureScript description · computed by Julia's runtime</span><span class="all"><a href="index.html">all demos →</a></span></div>
+  <header>
+    <h1>One description, three runtimes</h1>
+    <p class="why">
+      The Lorenz system, described once as a <strong>row-typed value</strong> — a misspelt
+      field is a compile error. The same description runs through the same pure
+      RK4 (<code>integratePure</code>, no FFI) on <strong>Node, the BEAM, and Julia</strong> —
+      and the orbits agree <strong>byte for byte</strong>. Develop anywhere; deploy to the
+      runtime with the native solvers.
+    </p>
+  </header>
+
+  <div class="panes">
+    <section class="pane left">
+      <h2>The PureScript you write</h2>
+<pre><span class="fn">lorenz</span>
+  :: <span class="kw">SystemSpec</span>
+       ( x :: <span class="kw">NumExpr</span>, y :: <span class="kw">NumExpr</span>, z :: <span class="kw">NumExpr</span> )
+       ( sigma :: <span class="kw">NumExpr</span>, rho :: <span class="kw">NumExpr</span>, beta :: <span class="kw">NumExpr</span> )
+<span class="fn">lorenz</span> = system \s p ->
+  { x: p.sigma * (s.y - s.x)
+  , y: s.x * (p.rho - s.z) - s.y
+  , z: s.x * s.y - p.beta * s.z
+  }
+
+<span class="cm">-- the pure denotation: plain PureScript, no FFI —</span>
+<span class="cm">-- it compiles on ANY backend</span>
+orbit = integratePure lorenz
+  { x: <span class="li">1.0</span>, y: <span class="li">1.0</span>, z: <span class="li">1.0</span> }
+  { sigma: <span class="li">10.0</span>, rho: <span class="li">28.0</span>, beta: <span class="li">8.0</span> / <span class="li">3.0</span> }
+  <span class="li">0.01</span>
+  <span class="li">5000</span>
+</pre>
+      <p class="seam">The lambda's <code>s.x</code> is <code>var "x"</code> — it builds an AST,
+        not a closure. One description, two denotations (<code>ADR-0007</code>): this pure
+        RK4, and Julia's native compiled vector field.</p>
+    </section>
+
+    <section class="pane">
+      <h2>What three runtimes compute</h2>
+      <div class="receipts">
+        <div><span class="rt">Node</span> maxZ = <span class="v">47.8339540885982</span></div>
+        <div><span class="rt">BEAM</span> maxZ = <span class="v">47.8339540885982</span></div>
+        <div><span class="rt">Julia</span> maxZ = <span class="v">47.8339540885982</span></div>
+        <div style="margin-top:8px"><span class="rt">Julia</span> byte-identical to the native RK4 over 5000 steps: <span class="ok">true</span></div>
+        <div><span class="rt"></span> max abs diff, first 200 steps: <span class="ok">0.0</span></div>
+      </div>
+      <div class="cap">The orbit every runtime agrees on (x–z projection)</div>
+      <div id="attractor"></div>
+      <p class="verdict">Lorenz is chaotic — <strong>any</strong> difference in the arithmetic
+        would diverge visibly within a few hundred steps. Bit-identity across three
+        virtual machines is the strongest possible receipt that they ran the
+        <strong>same description</strong>.</p>
+    </section>
+  </div>
+
+  <footer>
+    <code>Data.SystemSpec</code> (backend-agnostic) → Node · BEAM (purerl) · Julia (purejl) ·
+    data plotted here computed by <code>integratePure</code> on Node ·
+    <a href="../examples/numexpr-edsl/">source →</a>
+  </footer>
+</div>
+
+<script src="data/lorenz.js"></script>
+<script>
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const el = (n, a) => { const e = document.createElementNS(SVGNS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+  window.addEventListener("DOMContentLoaded", () => {
+    const pts = window.LORENZ.xz;
+    const xs = pts.map((p) => p[0]), zs = pts.map((p) => p[1]);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs);
+    const W = 440, H = 330, pad = 14;
+    const sx = (x) => pad + (x - x0) / (x1 - x0) * (W - 2 * pad);
+    const sz = (z) => H - pad - (z - z0) / (z1 - z0) * (H - 2 * pad);
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "xMidYMid meet" });
+    const d = pts.map((p, i) => (i ? "L" : "M") + sx(p[0]).toFixed(1) + " " + sz(p[1]).toFixed(1)).join(" ");
+    svg.appendChild(el("path", { d, fill: "none", stroke: "var(--accent)", "stroke-width": 0.7, opacity: 0.8 }));
+    document.getElementById("attractor").appendChild(svg);
+  });
+</script>
+</body>
+</html>

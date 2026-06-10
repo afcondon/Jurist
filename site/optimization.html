@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jurist — provably optimal</title>
+<link rel="stylesheet" href="jurist.css" />
+<style>
+  .solution { padding:0 0 22px; }
+  .solution + .solution { border-top:1px solid var(--rule); padding-top:20px; }
+  .solution h3 { font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin:0 0 12px; display:flex; align-items:center; gap:10px; }
+  .solution.best h3 { color:var(--accent); }
+  .grid2 { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+  .icard { border:1.5px solid var(--rule); border-radius:8px; padding:10px 12px; background:#fff; opacity:0.45; }
+  .icard.sel { opacity:1; border-color:var(--accent); background:var(--accentbg); }
+  .icard .name { font-weight:600; font-size:14px; }
+  .icard .stats { font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:11.5px; color:var(--muted); margin-top:4px; }
+  .summary { margin-top:12px; font-size:14px; display:flex; align-items:baseline; gap:16px; flex-wrap:wrap; }
+  .summary .val { font-size:20px; font-weight:700; }
+  .summary .val .unit { font-size:12px; font-weight:500; color:var(--muted); }
+  .best .summary .val { color:var(--accent); }
+  .wcap { color:var(--muted); font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:12px; }
+  .vbadge { display:inline-block; font-size:10px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#fff; background:var(--accent); border-radius:3px; padding:2px 7px; }
+  .verdict { margin-top:18px; padding-top:14px; border-top:1px dashed var(--rule); font-size:14.5px; }
+  .verdict strong { color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><a href="index.html">Jurist</a> <span class="sub">a typed PureScript description · computed by Julia's runtime</span><span class="all"><a href="index.html">all demos →</a></span></div>
+  <header>
+    <h1>Provably optimal</h1>
+    <p class="why">
+      A 0/1 knapsack described once in PureScript. The obvious <em>greedy</em> heuristic
+      (computed in pure PureScript) grabs the best value-per-weight item and stalls.
+      Julia's <strong>JuMP/HiGHS</strong> mixed-integer solver doesn't guess — branch-and-bound
+      <strong>proves the global optimum</strong>, closing the gap to zero. There is no MILP
+      solver in the JS/WASM world to hand a model to.
+    </p>
+  </header>
+
+  <div class="panes">
+    <section class="pane left">
+      <h2>The PureScript you write</h2>
+<pre><span class="kw">let</span>
+  items =
+    [ { name: <span class="li">"Telescope"</span>, w: <span class="li">6.0</span>, v: <span class="li">12.0</span> }
+    , { name: <span class="li">"Camera"</span>,    w: <span class="li">5.0</span>, v: <span class="li">9.0</span> }
+    , { name: <span class="li">"Tripod"</span>,    w: <span class="li">5.0</span>, v: <span class="li">9.0</span> }
+    , { name: <span class="li">"Drone"</span>,     w: <span class="li">7.0</span>, v: <span class="li">8.0</span> }
+    ]
+  weights = map _.w items
+  values  = map _.v items
+  cap     = <span class="li">10.0</span>
+
+  <span class="cm">-- the myopic baseline, in pure PureScript</span>
+  greedy  = greedyValue weights values cap
+
+<span class="cm">-- the proof, on the Julia runtime</span>
+opt <- knapsack weights values cap
+</pre>
+      <p class="seam">Greedy is the developer's mental model; <code>knapsack</code> builds a
+        JuMP model with binary variables and lets HiGHS close the optimality gap.</p>
+    </section>
+
+    <section class="pane">
+      <h2>What Julia proves</h2>
+      <div id="root"></div>
+    </section>
+  </div>
+
+  <footer>
+    <code>Data.Optimize</code> → Julia <code>JuMP</code> / <code>HiGHS</code> ·
+    <a href="../examples/numexpr-edsl/">source →</a>
+  </footer>
+</div>
+
+<script src="data/optimize.js"></script>
+<script>
+  const num = (v) => (Math.round(v * 100) / 100).toString();
+  function grid(items, mask) {
+    const g = document.createElement("div"); g.className = "grid2";
+    items.forEach((it, i) => {
+      const c = document.createElement("div");
+      c.className = "icard" + (mask[i] === 1 ? " sel" : "");
+      const nm = document.createElement("div"); nm.className = "name"; nm.textContent = it.name;
+      const st = document.createElement("div"); st.className = "stats";
+      st.textContent = `weight ${num(it.weight)} · value ${num(it.value)}`;
+      c.append(nm, st); g.appendChild(c);
+    });
+    return g;
+  }
+  function usedWeight(items, mask) { return items.reduce((s, it, i) => s + (mask[i] === 1 ? it.weight : 0), 0); }
+
+  function solution(title, items, cap, mask, value, opts) {
+    const sec = document.createElement("section");
+    sec.className = "solution" + (opts && opts.best ? " best" : "");
+    const h = document.createElement("h3"); h.textContent = title;
+    if (opts && opts.badge) { const b = document.createElement("span"); b.className = "vbadge"; b.textContent = opts.badge; h.appendChild(b); }
+    sec.appendChild(h);
+    sec.appendChild(grid(items, mask));
+    const sum = document.createElement("div"); sum.className = "summary";
+    const v = document.createElement("div"); v.className = "val";
+    v.innerHTML = `${num(value)} <span class="unit">total value</span>`;
+    const w = document.createElement("div"); w.className = "wcap";
+    w.textContent = `weight ${num(usedWeight(items, mask))} / ${num(cap)} budget`;
+    sum.append(v, w); sec.appendChild(sum);
+    return sec;
+  }
+
+  function render(d) {
+    const root = document.getElementById("root");
+    root.appendChild(solution("Greedy heuristic (pure PureScript)", d.items, d.capacity, d.greedy.mask, d.greedy.value, {}));
+    root.appendChild(solution("Provably optimal (HiGHS MILP)", d.items, d.capacity, d.optimal.mask, d.optimal.value,
+      { best: true, badge: d.optimal.optimal ? "proven · gap 0" : "not proven" }));
+    const gain = d.optimal.value - d.greedy.value;
+    const vd = document.createElement("p"); vd.className = "verdict";
+    vd.innerHTML = `Greedy leaves <strong>${num(gain)}</strong> of value on the table — ` +
+      `it can't know that without searching. HiGHS proved <strong>${num(d.optimal.value)}</strong> is the true maximum.`;
+    root.appendChild(vd);
+  }
+
+  window.addEventListener("DOMContentLoaded", () => {
+    if (window.OPTIMIZE) render(window.OPTIMIZE);
+  });
+</script>
+</body>
+</html>

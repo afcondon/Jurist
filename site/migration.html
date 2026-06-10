@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jurist — functorial data migration</title>
+<link rel="stylesheet" href="jurist.css" />
+<style>
+  .arrow { text-align:center; color:var(--accent); font-size:12.5px; font-weight:600; margin:16px 0 2px; }
+  .arrow .big { font-size:20px; display:block; line-height:1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><a href="index.html">Jurist</a> <span class="sub">a typed PureScript description · computed by Julia's runtime</span><span class="all"><a href="index.html">all demos →</a></span></div>
+  <header>
+    <h1>Functorial data migration</h1>
+    <p class="why">
+      A function-level call graph, migrated <strong>functorially</strong> to its module
+      dependency graph — a Δ migration along the <code>in_mod</code> functor, where every
+      call <code>f → g</code> becomes a module edge <code>in_mod(f) → in_mod(g)</code>. Not a
+      hand-written fold; a migration functor with categorical guarantees. The result
+      is a plain graph — <strong>exactly the shape Hylograph lays out and renders</strong>.
+    </p>
+  </header>
+
+  <div class="panes">
+    <section class="pane left">
+      <h2>The PureScript you write</h2>
+<pre><span class="fn">codeGraph</span> :: <span class="kw">CodeGraph</span>
+<span class="fn">codeGraph</span> =
+  { modules: [ <span class="li">"Auth"</span>, <span class="li">"Db"</span>, <span class="li">"Api"</span>, <span class="li">"Util"</span> ]
+  , funcs:
+      [ fn <span class="li">"login"</span> <span class="li">0</span>, fn <span class="li">"hashPwd"</span> <span class="li">0</span>
+      , fn <span class="li">"query"</span> <span class="li">1</span>, fn <span class="li">"connect"</span> <span class="li">1</span>
+      , fn <span class="li">"handleReq"</span> <span class="li">2</span>, fn <span class="li">"route"</span> <span class="li">2</span>
+      , fn <span class="li">"log"</span> <span class="li">3</span>, fn <span class="li">"validate"</span> <span class="li">3</span>
+      ]
+  , calls:
+      [ edge <span class="li">0 2</span>, edge <span class="li">0 3</span>   <span class="cm">-- Auth → Db   (×2)</span>
+      , edge <span class="li">0 6</span>, edge <span class="li">1 6</span>   <span class="cm">-- Auth → Util (×2)</span>
+      , edge <span class="li">2 6</span>              <span class="cm">-- Db → Util   (×1)</span>
+      , edge <span class="li">4 0</span>, edge <span class="li">5 1</span>   <span class="cm">-- Api → Auth  (×2)</span>
+      , edge <span class="li">5 2</span>, edge <span class="li">4 2</span>
+      , edge <span class="li">4 3</span>              <span class="cm">-- Api → Db    (×3)</span>
+      , edge <span class="li">4 6</span>              <span class="cm">-- Api → Util  (×1)</span>
+      , edge <span class="li">0 1</span>, edge <span class="li">2 3</span>   <span class="cm">-- intra-module</span>
+      ]
+  }
+
+<span class="cm">-- the migration: V ↦ Module, E ↦ Call,</span>
+<span class="cm">-- src ↦ src⨟in_mod, tgt ↦ tgt⨟in_mod</span>
+raw <- moduleGraph codeGraph
+
+<span class="cm">-- PureScript aggregates the migrated multigraph</span>
+<span class="cm">-- into weighted module dependencies</span>
+agg = aggregate raw
+</pre>
+      <p class="seam">Catlab returns one module edge per call; the weights (×2, ×3)
+        are the multiplicities — coupling strength for free.</p>
+    </section>
+
+    <section class="pane">
+      <h2>What Catlab derives</h2>
+      <div class="cap">Function call graph — the typed description</div>
+      <div id="calls"></div>
+      <div class="arrow"><span class="big">↓</span> Δ migrate along <code>in_mod</code></div>
+      <div class="cap">Module dependency graph — derived functorially</div>
+      <div id="modules"></div>
+    </section>
+  </div>
+
+  <footer>
+    <code>Data.Migration</code> → Julia <code>Catlab</code> (<code>migrate</code>, Δ along
+    <code>in_mod</code>) → SVG ·
+    <a href="../examples/catlab-migration/">source →</a>
+  </footer>
+</div>
+
+<script src="data/migration.js"></script>
+<script>
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const el = (n, a) => { const e = document.createElementNS(SVGNS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+  const MCOL = ["#b4341f", "#2b6cb0", "#1f7a4d", "#9a6a00"];
+  let uid = 0;
+
+  function arrowDefs(svg) {
+    const defs = el("defs", {}), u = uid++;
+    for (const [id, col] of [["m", "#cfcfca"], ["a", "var(--accent)"]]) {
+      const mk = el("marker", { id: "mar" + id + u, viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: "auto-start-reverse" });
+      mk.appendChild(el("path", { d: "M0 0 L10 5 L0 10 z", fill: col })); defs.appendChild(mk);
+    }
+    svg.appendChild(defs);
+    return u;
+  }
+
+  function callGraph(d) {
+    const nMod = d.modules.length, colW = 700 / nMod, rowY0 = 64, rowH = 56, r = 6;
+    const rowOf = {}, pos = {};
+    d.funcs.forEach((f, i) => { rowOf[f.inMod] = rowOf[f.inMod] || 0; pos[i] = [colW * f.inMod + colW / 2, rowY0 + rowOf[f.inMod]++ * rowH]; });
+    const maxRow = Math.max(...d.modules.map((_, m) => d.funcs.filter((f) => f.inMod === m).length));
+    const H = rowY0 + maxRow * rowH;
+    const svg = el("svg", { viewBox: `0 0 700 ${H}`, preserveAspectRatio: "xMidYMid meet" });
+    const u = arrowDefs(svg);
+    d.modules.forEach((nm, m) => {
+      svg.appendChild(el("rect", { x: colW * m + 6, y: 6, width: colW - 12, height: H - 12, rx: 8, fill: "var(--band)" }));
+      const t = el("text", { x: colW * m + colW / 2, y: 32, "text-anchor": "middle", "font-size": 12, "font-weight": 600, fill: MCOL[m % 4] }); t.textContent = nm; svg.appendChild(t);
+    });
+    d.calls.forEach(([a, b]) => {
+      const [p, q] = [pos[a], pos[b]], dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1;
+      const p2 = [p[0] + dx / L * r, p[1] + dy / L * r], q2 = [q[0] - dx / L * (r + 3), q[1] - dy / L * (r + 3)];
+      const mx = (p2[0] + q2[0]) / 2 + dy / L * 14, my = (p2[1] + q2[1]) / 2 - dx / L * 14;
+      svg.appendChild(el("path", { d: `M${p2[0].toFixed(1)} ${p2[1].toFixed(1)} Q ${mx.toFixed(1)} ${my.toFixed(1)} ${q2[0].toFixed(1)} ${q2[1].toFixed(1)}`, fill: "none", stroke: "#d3d3ce", "stroke-width": 1.2, "marker-end": `url(#marm${u})` }));
+    });
+    d.funcs.forEach((f, i) => {
+      const [x, y] = pos[i];
+      svg.appendChild(el("circle", { cx: x, cy: y, r, fill: "#fff", stroke: MCOL[f.inMod % 4], "stroke-width": 1.6 }));
+      const t = el("text", { x, y: y + 18, "text-anchor": "middle", "font-size": 10.5, fill: "#7a7a76" }); t.textContent = f.name; svg.appendChild(t);
+    });
+    return svg;
+  }
+
+  function moduleGraph(d) {
+    const W = 700, H = 320, cx = W / 2, cy = H / 2, R = 108, r = 30;
+    const N = d.modules.length, pos = (i) => { const a = -Math.PI / 2 + 2 * Math.PI * i / N; return [cx + R * Math.cos(a), cy + R * Math.sin(a)]; };
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "xMidYMid meet" });
+    const u = arrowDefs(svg);
+    const self = {}; d.selfLoops.forEach((s) => self[s.mod] = s.weight);
+    d.moduleEdges.forEach((e) => {
+      const [p, q] = [pos(e.from), pos(e.to)], dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1;
+      const p2 = [p[0] + dx / L * r, p[1] + dy / L * r], q2 = [q[0] - dx / L * (r + 4), q[1] - dy / L * (r + 4)];
+      const mx = (p2[0] + q2[0]) / 2 + dy / L * 22, my = (p2[1] + q2[1]) / 2 - dx / L * 22;
+      svg.appendChild(el("path", { d: `M${p2[0].toFixed(1)} ${p2[1].toFixed(1)} Q ${mx.toFixed(1)} ${my.toFixed(1)} ${q2[0].toFixed(1)} ${q2[1].toFixed(1)}`, fill: "none", stroke: "var(--accent)", "stroke-width": 1.2 + e.weight, opacity: 0.85, "marker-end": `url(#mara${u})` }));
+      const t = el("text", { x: mx, y: my + 3, "text-anchor": "middle", "font-size": 11, fill: "var(--accent)", "font-family": "SF Mono, monospace" }); t.textContent = "×" + e.weight; svg.appendChild(t);
+    });
+    d.modules.forEach((nm, i) => {
+      const [x, y] = pos(i);
+      svg.appendChild(el("circle", { cx: x, cy: y, r, fill: "#fff", stroke: MCOL[i % 4], "stroke-width": 2.4 }));
+      const t = el("text", { x, y: y + 5, "text-anchor": "middle", "font-size": 14, "font-weight": 600, fill: MCOL[i % 4] }); t.textContent = nm; svg.appendChild(t);
+      if (self[i]) { const b = el("text", { x: x + r - 2, y: y - r + 8, "text-anchor": "middle", "font-size": 11, fill: "#9a9a96", "font-family": "SF Mono, monospace" }); b.textContent = "⟲" + self[i]; svg.appendChild(b); }
+    });
+    return svg;
+  }
+
+  window.addEventListener("DOMContentLoaded", () => {
+    if (!window.MIGRATION) return;
+    document.getElementById("calls").appendChild(callGraph(window.MIGRATION));
+    document.getElementById("modules").appendChild(moduleGraph(window.MIGRATION));
+  });
+</script>
+</body>
+</html>

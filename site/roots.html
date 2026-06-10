@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jurist — rigorous roots</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous" />
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="jurist.css" />
+<style>
+  .item { padding:18px 0 22px; border-bottom:1px solid var(--rule); }
+  .item:last-child { border-bottom:none; }
+  .item h3 { font-size:12px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:var(--accent); margin:0 0 10px; }
+  .eqline { display:flex; align-items:baseline; gap:10px; margin:0 0 10px; }
+  .eqline .lhs { color:var(--muted); font-style:italic; font-size:13px; }
+  .eqline .rhs .katex { font-size:1.2em; }
+  .proof { margin-top:8px; font-size:13.5px; }
+  .proof .verdict { font-weight:600; }
+  .proof .verdict.some { color:var(--accent); }
+  .roots { list-style:none; margin:6px 0 0; padding:0; }
+  .roots li { font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:12px; color:var(--muted); margin:2px 0; }
+  .roots .val { color:var(--ink); }
+  .badge { display:inline-block; font-size:10px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:var(--accent); border:1px solid var(--accent); border-radius:3px; padding:1px 5px; margin-left:8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><a href="index.html">Jurist</a> <span class="sub">a typed PureScript description · computed by Julia's runtime</span><span class="all"><a href="index.html">all demos →</a></span></div>
+  <header>
+    <h1>Rigorous roots — proofs, not guesses</h1>
+    <p class="why">
+      Each function is a typed <code>NumExpr</code> handed to Julia's
+      <strong>IntervalRootFinding</strong>, which doesn't just find roots — it
+      <strong>proves</strong> them: every root bracketed in a guaranteed enclosure,
+      certified unique, with an exhaustive search so <em>no root is missed</em> —
+      and "none" is itself a proof. A scipy/JS solver gives a number and a prayer.
+    </p>
+  </header>
+
+  <div class="panes">
+    <section class="pane left">
+      <h2>The PureScript you write</h2>
+<pre><span class="kw">let</span>
+  x = var <span class="li">"x"</span>
+  rootCases =
+    [ { title: <span class="li">"x³ − 2x − 5"</span>, lo: <span class="li">-3.0</span>, hi: <span class="li">3.0</span>
+      , e: x * x * x - num <span class="li">2.0</span> * x - num <span class="li">5.0</span> }
+    , { title: <span class="li">"sin x − x∕3  (three crossings)"</span>
+      , lo: <span class="li">-6.0</span>, hi: <span class="li">6.0</span>
+      , e: sinE x - divide x (num <span class="li">3.0</span>) }
+    , { title: <span class="li">"x² + 1  — proven to have no real roots"</span>
+      , lo: <span class="li">-3.0</span>, hi: <span class="li">3.0</span>
+      , e: x * x + num <span class="li">1.0</span> }
+    , { title: <span class="li">"x⁴ − 10x² + 9  =  (x²−1)(x²−9)"</span>
+      , lo: <span class="li">-4.0</span>, hi: <span class="li">4.0</span>
+      , e: x * x * x * x - num <span class="li">10.0</span> * (x * x) + num <span class="li">9.0</span> }
+    ]
+
+<span class="cm">-- for each case: proven enclosures, each certified</span>
+<span class="cm">-- unique, none missed</span>
+rs <- provenRoots <span class="li">"x"</span> c.lo c.hi c.e
+</pre>
+      <p class="seam">Powers written as products so interval arithmetic stays valid
+        over negative <code>x</code>. The expression crosses the seam once as a
+        description; the proof comes back as data.</p>
+    </section>
+
+    <section class="pane">
+      <h2>What Julia proves</h2>
+      <div id="items"></div>
+    </section>
+  </div>
+
+  <footer>
+    <code>Data.NumExpr</code> → Julia <code>IntervalArithmetic</code> /
+    <code>IntervalRootFinding</code> → KaTeX + SVG ·
+    <a href="../examples/numexpr-edsl/">source →</a>
+  </footer>
+</div>
+
+<script src="data/roots.js"></script>
+<script>
+  const sub = (s) => (s || "").replace(/~/g, " ");
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const el = (n, attrs) => { const e = document.createElementNS(SVGNS, n); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+  const fmt = (v) => { const a = Math.abs(v); if (a !== 0 && (a < 1e-4 || a >= 1e6)) return v.toExponential(3); return (Math.round(v * 1e6) / 1e6).toString(); };
+
+  function plot(item) {
+    const W = 440, H = 160, pT = 12, pR = 10, pB = 26, pL = 10;
+    const ys = item.samples.map((p) => p[1]);
+    let ymin = Math.min(0, ...ys), ymax = Math.max(0, ...ys);
+    const pad = (ymax - ymin) * 0.08 || 1; ymin -= pad; ymax += pad;
+    const sx = (x) => pL + (x - item.lo) / (item.hi - item.lo) * (W - pL - pR);
+    const sy = (y) => H - pB - (y - ymin) / (ymax - ymin) * (H - pT - pB);
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "xMidYMid meet" });
+    svg.appendChild(el("line", { x1: pL, y1: sy(0), x2: W - pR, y2: sy(0), stroke: "var(--axis)", "stroke-width": 1 }));
+    const d = item.samples.map((p, i) => (i ? "L" : "M") + sx(p[0]).toFixed(2) + " " + sy(p[1]).toFixed(2)).join(" ");
+    svg.appendChild(el("path", { d, fill: "none", stroke: "var(--ink)", "stroke-width": 1.6 }));
+    for (const r of item.roots) {
+      const m = (r[0] + r[1]) / 2, X = sx(m);
+      svg.appendChild(el("line", { x1: X, y1: pT, x2: X, y2: H - pB, stroke: "var(--accent)", "stroke-width": 1, "stroke-dasharray": "3 3", opacity: 0.5 }));
+      svg.appendChild(el("circle", { cx: X, cy: sy(0), r: 4, fill: "var(--accent)" }));
+      const t = el("text", { x: X, y: H - pB + 14, "text-anchor": "middle", "font-size": 10, fill: "var(--accent)", "font-family": "SF Mono, monospace" });
+      t.textContent = fmt(m); svg.appendChild(t);
+    }
+    return svg;
+  }
+
+  function render(data) {
+    const root = document.getElementById("items");
+    for (const item of data.items) {
+      const sec = document.createElement("section"); sec.className = "item";
+      const h = document.createElement("h3"); h.textContent = item.title; sec.appendChild(h);
+      const eq = document.createElement("div"); eq.className = "eqline";
+      const l = document.createElement("span"); l.className = "lhs"; l.textContent = "f(" + item.var + ") =";
+      const r = document.createElement("span"); r.className = "rhs";
+      eq.append(l, r); sec.appendChild(eq);
+      katex.render(sub(item.expr), r, { throwOnError: false });
+      sec.appendChild(plot(item));
+      const n = item.roots.length;
+      const proof = document.createElement("div"); proof.className = "proof";
+      const v = document.createElement("span");
+      v.className = "verdict" + (n ? " some" : "");
+      v.textContent = n === 0
+        ? `Proven: no real roots in [${fmt(item.lo)}, ${fmt(item.hi)}].`
+        : `Proven: exactly ${n} root${n > 1 ? "s" : ""} in [${fmt(item.lo)}, ${fmt(item.hi)}].`;
+      proof.appendChild(v);
+      if (n) {
+        const ul = document.createElement("ul"); ul.className = "roots";
+        for (const rt of item.roots) {
+          const li = document.createElement("li");
+          li.innerHTML = `${item.var} ∈ [<span class="val">${rt[0].toPrecision(8)}</span>, <span class="val">${rt[1].toPrecision(8)}</span>]`;
+          if (rt[2] === 1) { const b = document.createElement("span"); b.className = "badge"; b.textContent = "unique"; li.appendChild(b); }
+          ul.appendChild(li);
+        }
+        proof.appendChild(ul);
+      }
+      sec.appendChild(proof);
+      root.appendChild(sec);
+    }
+  }
+
+  window.addEventListener("DOMContentLoaded", () => {
+    if (window.ROOTS) render(window.ROOTS);
+  });
+</script>
+</body>
+</html>

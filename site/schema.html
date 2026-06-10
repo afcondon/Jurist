@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jurist — motifs over a typed schema</title>
+<link rel="stylesheet" href="jurist.css" />
+<style>
+  .schema { font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:12px; color:var(--muted); background:var(--band); border-radius:8px; padding:10px 14px; margin:16px 0 0; }
+  .mitem { padding:0 0 22px; }
+  .mitem + .mitem { border-top:1px solid var(--rule); padding-top:20px; }
+  .mitem h3 { font-size:12.5px; font-weight:600; letter-spacing:0.03em; color:var(--accent); margin:0 0 2px; }
+  .mitem .shape { font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:12px; color:var(--muted); margin:0 0 10px; }
+  .ms { margin-top:8px; font-size:12.5px; }
+  .ms .m { font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:12px; color:var(--ink); margin:2px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><a href="index.html">Jurist</a> <span class="sub">a typed PureScript description · computed by Julia's runtime</span><span class="all"><a href="index.html">all demos →</a></span></div>
+  <header>
+    <h1>Architectural motifs over a typed schema</h1>
+    <p class="why">
+      A <strong>typed code graph</strong> — modules, functions typed into modules, calls —
+      as an instance of a Catlab <strong>ACSet schema</strong>. Each motif is a small
+      instance of the <em>same schema</em>, and its <strong>type structure encodes the
+      rule</strong>: two distinct pattern-modules match only cross-module structure.
+      The typed-graph analogue of Hylograph's graphs, and the machinery a Minard
+      could use to express architectural rules.
+    </p>
+  </header>
+
+  <div class="panes">
+    <section class="pane left">
+      <h2>The PureScript you write</h2>
+<pre><span class="cm">-- schema: Func —in_mod→ Module · Call —src,tgt→ Func</span>
+<span class="fn">codeGraph</span> :: <span class="kw">CodeGraph</span>
+<span class="fn">codeGraph</span> =
+  { modules: [ <span class="li">"Auth"</span>, <span class="li">"Db"</span>, <span class="li">"Api"</span>, <span class="li">"Util"</span> ]
+  , funcs:
+      [ fn <span class="li">"login"</span> <span class="li">0</span>, fn <span class="li">"hashPwd"</span> <span class="li">0</span>    <span class="cm">-- Auth</span>
+      , fn <span class="li">"query"</span> <span class="li">1</span>, fn <span class="li">"connect"</span> <span class="li">1</span>    <span class="cm">-- Db</span>
+      , fn <span class="li">"handleReq"</span> <span class="li">2</span>, fn <span class="li">"route"</span> <span class="li">2</span>  <span class="cm">-- Api</span>
+      , fn <span class="li">"log"</span> <span class="li">3</span>, fn <span class="li">"validate"</span> <span class="li">3</span>     <span class="cm">-- Util</span>
+      ]
+  , calls:
+      [ edge <span class="li">0 2</span>, edge <span class="li">0 1</span>, edge <span class="li">0 6</span>
+      , edge <span class="li">2 3</span>, edge <span class="li">2 6</span>
+      , edge <span class="li">4 0</span>, edge <span class="li">4 5</span>, edge <span class="li">5 2</span>
+      , edge <span class="li">7 6</span>, edge <span class="li">4 7</span>
+      ]
+  }
+
+<span class="cm">-- two distinct pattern-modules ⇒ only</span>
+<span class="cm">-- cross-module structure can match</span>
+<span class="fn">motifs</span> :: <span class="kw">Array</span> <span class="kw">Motif</span>
+<span class="fn">motifs</span> =
+  [ { name: <span class="li">"Cross-module call"</span>
+    , shape: <span class="li">"f @A → g @B"</span>, nMod: <span class="li">2</span>
+    , fnMod: [ <span class="li">0</span>, <span class="li">1</span> ], calls: [ edge <span class="li">0 1</span> ] }
+  , { name: <span class="li">"Shared dependency"</span>
+    , shape: <span class="li">"f @A, g @B → h @C"</span>, nMod: <span class="li">3</span>
+    , fnMod: [ <span class="li">0</span>, <span class="li">1</span>, <span class="li">2</span> ]
+    , calls: [ edge <span class="li">0 2</span>, edge <span class="li">1 2</span> ] }
+  ]
+
+ms <- matches codeGraph mo   <span class="cm">-- typed search</span>
+</pre>
+      <div class="schema">@present SchCode: &nbsp;Func —in_mod→ Module · Call —src,tgt→ Func</div>
+    </section>
+
+    <section class="pane">
+      <h2>What Catlab finds</h2>
+      <div id="items"></div>
+    </section>
+  </div>
+
+  <footer>
+    <code>Data.CodeGraph</code> → Julia <code>Catlab</code> (typed <code>@acset</code> +
+    <code>homomorphisms</code>) → SVG ·
+    <a href="../examples/catlab-schema/">source →</a>
+  </footer>
+</div>
+
+<script src="data/schema.js"></script>
+<script>
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const el = (n, a) => { const e = document.createElementNS(SVGNS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+  const key = (a, b) => a + "->" + b;
+  let uid = 0;
+
+  function layout(data) {
+    const nMod = data.modules.length;
+    const colW = 720 / nMod, headY = 38, rowY0 = 78, rowH = 64;
+    const rowOf = {}, pos = {};
+    data.funcs.forEach((f, i) => {
+      rowOf[f.inMod] = (rowOf[f.inMod] || 0);
+      const r = rowOf[f.inMod]++;
+      pos[i] = [colW * f.inMod + colW / 2, rowY0 + r * rowH];
+    });
+    const maxRow = Math.max(...data.modules.map((_, m) => data.funcs.filter((f) => f.inMod === m).length));
+    return { colW, headY, pos, H: rowY0 + maxRow * rowH + 6, nMod };
+  }
+
+  function diagram(data, hotFuncs, hotEdges) {
+    const L = layout(data), W = 720, r = 7, u = uid++;
+    const svg = el("svg", { viewBox: `0 0 ${W} ${L.H}`, preserveAspectRatio: "xMidYMid meet" });
+    const defs = el("defs", {});
+    for (const [id, col] of [["m", "#cfcfca"], ["a", "var(--accent)"]]) {
+      const mk = el("marker", { id: "ar" + id + u, viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: "auto-start-reverse" });
+      mk.appendChild(el("path", { d: "M0 0 L10 5 L0 10 z", fill: col })); defs.appendChild(mk);
+    }
+    svg.appendChild(defs);
+    data.modules.forEach((nm, m) => {
+      svg.appendChild(el("rect", { x: L.colW * m + 6, y: 8, width: L.colW - 12, height: L.H - 14, rx: 8, fill: "var(--band)" }));
+      const t = el("text", { x: L.colW * m + L.colW / 2, y: L.headY, "text-anchor": "middle", "font-size": 12, "font-weight": 600, fill: "#6b6b6b" }); t.textContent = nm; svg.appendChild(t);
+    });
+    data.calls.forEach(([a, b]) => {
+      const hot = hotEdges.has(key(a, b));
+      const [p, q] = [L.pos[a], L.pos[b]];
+      const dx = q[0] - p[0], dy = q[1] - p[1], Ld = Math.hypot(dx, dy) || 1;
+      const p2 = [p[0] + dx / Ld * r, p[1] + dy / Ld * r], q2 = [q[0] - dx / Ld * (r + 3), q[1] - dy / Ld * (r + 3)];
+      const mx = (p2[0] + q2[0]) / 2 + dy / Ld * 16, my = (p2[1] + q2[1]) / 2 - dx / Ld * 16;
+      svg.appendChild(el("path", { d: `M${p2[0].toFixed(1)} ${p2[1].toFixed(1)} Q ${mx.toFixed(1)} ${my.toFixed(1)} ${q2[0].toFixed(1)} ${q2[1].toFixed(1)}`,
+        fill: "none", stroke: hot ? "var(--accent)" : "#d3d3ce", "stroke-width": hot ? 2 : 1.2, "marker-end": hot ? `url(#ara${u})` : `url(#arm${u})` }));
+    });
+    data.funcs.forEach((f, i) => {
+      const [x, y] = L.pos[i], hot = hotFuncs.has(i);
+      svg.appendChild(el("circle", { cx: x, cy: y, r, fill: hot ? "var(--accent)" : "#fff", stroke: hot ? "var(--accent)" : "#bdbdb8", "stroke-width": 1.6 }));
+      const t = el("text", { x, y: y + 20, "text-anchor": "middle", "font-size": 11, "font-weight": hot ? 600 : 500, fill: hot ? "var(--accent)" : "#7a7a76" }); t.textContent = f.name; svg.appendChild(t);
+    });
+    return svg;
+  }
+
+  function label(data, i) { return data.funcs[i].name + "@" + data.modules[data.funcs[i].inMod]; }
+
+  function render(data) {
+    const root = document.getElementById("items");
+    for (const mo of data.motifs) {
+      const hotF = new Set(), hotE = new Set();
+      mo.matches.forEach((m) => { m.funcs.forEach((f) => hotF.add(f)); m.edges.forEach(([a, b]) => hotE.add(key(a, b))); });
+      const sec = document.createElement("section"); sec.className = "mitem";
+      const h = document.createElement("h3"); h.textContent = mo.name + " — " + mo.matches.length + " found"; sec.appendChild(h);
+      const sh = document.createElement("div"); sh.className = "shape"; sh.textContent = mo.shape; sec.appendChild(sh);
+      sec.appendChild(diagram(data, hotF, hotE));
+      const ms = document.createElement("div"); ms.className = "ms";
+      mo.matches.forEach((m) => { const d = document.createElement("div"); d.className = "m"; d.textContent = m.funcs.map((i) => label(data, i)).join("  ·  "); ms.appendChild(d); });
+      sec.appendChild(ms);
+      root.appendChild(sec);
+    }
+  }
+
+  window.addEventListener("DOMContentLoaded", () => {
+    if (window.SCHEMA) render(window.SCHEMA);
+  });
+</script>
+</body>
+</html>

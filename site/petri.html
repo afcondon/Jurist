@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jurist — Petri nets, functorial dynamics</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous" />
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="jurist.css" />
+<style>
+  .item { padding:0 0 26px; }
+  .item + .item { border-top:1px solid var(--rule); padding-top:22px; }
+  .item h3 { font-size:12px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:var(--accent); margin:0 0 12px; }
+  .laws { display:flex; flex-direction:column; gap:6px; }
+  .laws .law { overflow-x:auto; }
+  .laws .katex { font-size:1.0em; }
+  .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-top:6px; }
+  .legend span { display:inline-flex; align-items:center; gap:5px; }
+  .legend i { width:12px; height:3px; border-radius:2px; display:inline-block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><a href="index.html">Jurist</a> <span class="sub">a typed PureScript description · computed by Julia's runtime</span><span class="all"><a href="index.html">all demos →</a></span></div>
+  <header>
+    <h1>Petri nets → functorial dynamics</h1>
+    <p class="why">
+      Two epidemic models as <strong>typed Petri nets</strong> — species and reactions,
+      <em>no differential equations anywhere in the description</em>. Julia's
+      <strong>AlgebraicPetri</strong> produces the mass-action dynamics by a
+      <strong>functor</strong> from Petri nets to vector fields (not a hand translation);
+      <code>OrdinaryDiffEq</code> integrates it. There is no applied-category-theory
+      stack in the JS/WASM world to hand a description to.
+    </p>
+  </header>
+
+  <div class="panes">
+    <section class="pane left">
+      <h2>The PureScript you write</h2>
+<pre><span class="fn">sir</span> :: <span class="kw">PetriSpec</span>
+<span class="fn">sir</span> =
+  { species: [ <span class="li">"S"</span>, <span class="li">"I"</span>, <span class="li">"R"</span> ]
+  , transitions:
+      [ { name: <span class="li">"inf"</span>, inputs: [ <span class="li">"S"</span>, <span class="li">"I"</span> ]
+        , outputs: [ <span class="li">"I"</span>, <span class="li">"I"</span> ], rate: <span class="li">0.0003</span> }
+      , { name: <span class="li">"rec"</span>, inputs: [ <span class="li">"I"</span> ]
+        , outputs: [ <span class="li">"R"</span> ], rate: <span class="li">0.1</span> }
+      ]
+  , initial: [ <span class="li">990.0</span>, <span class="li">10.0</span>, <span class="li">0.0</span> ]
+  }
+
+<span class="cm">-- SEIR adds a latent Exposed compartment;</span>
+<span class="cm">-- the machinery is IDENTICAL</span>
+<span class="fn">seir</span> :: <span class="kw">PetriSpec</span>
+<span class="fn">seir</span> =
+  { species: [ <span class="li">"S"</span>, <span class="li">"E"</span>, <span class="li">"I"</span>, <span class="li">"R"</span> ]
+  , transitions:
+      [ { name: <span class="li">"expose"</span>, inputs: [ <span class="li">"S"</span>, <span class="li">"I"</span> ]
+        , outputs: [ <span class="li">"E"</span>, <span class="li">"I"</span> ], rate: <span class="li">0.0004</span> }
+      , { name: <span class="li">"onset"</span>, inputs: [ <span class="li">"E"</span> ]
+        , outputs: [ <span class="li">"I"</span> ], rate: <span class="li">0.2</span> }
+      , { name: <span class="li">"recover"</span>, inputs: [ <span class="li">"I"</span> ]
+        , outputs: [ <span class="li">"R"</span> ], rate: <span class="li">0.1</span> }
+      ]
+  , initial: [ <span class="li">990.0</span>, <span class="li">0.0</span>, <span class="li">10.0</span>, <span class="li">0.0</span> ]
+  }
+
+samples <- solve spec <span class="li">0.0</span> <span class="li">200.0</span> <span class="li">200</span>
+laws    <- odeLaws spec   <span class="cm">-- derived, typeset</span>
+</pre>
+      <p class="seam">The ODE laws on the right were <em>derived functorially</em> by
+        AlgebraicPetri and typeset by Latexify — never written by hand.</p>
+    </section>
+
+    <section class="pane">
+      <h2>What Julia derives &amp; integrates</h2>
+      <div id="items"></div>
+    </section>
+  </div>
+
+  <footer>
+    <code>Data.Petri</code> → Julia <code>AlgebraicPetri</code> /
+    <code>OrdinaryDiffEq</code> → KaTeX + SVG ·
+    <a href="../examples/petri-catlab/">source →</a>
+  </footer>
+</div>
+
+<script src="data/petri.js"></script>
+<script>
+  const PAL = ["#b4341f", "#2b6cb0", "#1f7a4d", "#9a6a00", "#6b46c1"];
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const el = (n, a) => { const e = document.createElementNS(SVGNS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+  const colorOf = (species, s) => PAL[species.indexOf(s) % PAL.length];
+  const fmt = (v) => (Math.round(v * 100) / 100).toString();
+  const counts = (arr) => arr.reduce((m, s) => (m[s] = (m[s] || 0) + 1, m), {});
+
+  function netDiagram(item) {
+    const W = 720, rowP = 46, rowT = 150, H = 196, r = 17;
+    const sp = item.species, tr = item.transitions;
+    const px = (i) => 60 + i * (W - 120) / Math.max(1, sp.length - 1);
+    const tx = (j) => (W / (tr.length + 1)) * (j + 1);
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "xMidYMid meet" });
+    const defs = el("defs", {});
+    for (const [id, col] of [["aIn" + item.title.length, "var(--axis)"], ["aOut" + item.title.length, "var(--accent)"]]) {
+      const mk = el("marker", { id, viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: "auto-start-reverse" });
+      mk.appendChild(el("path", { d: "M0 0 L10 5 L0 10 z", fill: col })); defs.appendChild(mk);
+    }
+    svg.appendChild(defs);
+    const sfx = item.title.length;
+    const arc = (x1, y1, x2, y2, cls, mult) => {
+      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - 14;
+      svg.appendChild(el("path", { d: `M${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}`, fill: "none",
+        stroke: cls === "in" ? "var(--axis)" : "var(--accent)", "stroke-width": 1.6,
+        "marker-end": cls === "in" ? `url(#aIn${sfx})` : `url(#aOut${sfx})`, opacity: 0.85 }));
+      if (mult > 1) { const t = el("text", { x: mx, y: my, "font-size": 11, fill: "var(--muted)", "text-anchor": "middle", "font-family": "SF Mono, monospace" }); t.textContent = "×" + mult; svg.appendChild(t); }
+    };
+    tr.forEach((t, j) => {
+      const ci = counts(t.inputs), co = counts(t.outputs);
+      Object.keys(ci).forEach((s) => arc(px(sp.indexOf(s)), rowP + r, tx(j), rowT - 11, "in", ci[s]));
+      Object.keys(co).forEach((s) => arc(tx(j), rowT + 11, px(sp.indexOf(s)), rowP + r, "out", co[s]));
+    });
+    tr.forEach((t, j) => {
+      svg.appendChild(el("rect", { x: tx(j) - 9, y: rowT - 11, width: 18, height: 22, rx: 2, fill: "#fff", stroke: "var(--ink)", "stroke-width": 1.6 }));
+      const lab = el("text", { x: tx(j), y: rowT + 32, "text-anchor": "middle", "font-size": 12, fill: "var(--muted)", "font-family": "SF Mono, monospace" }); lab.textContent = t.name; svg.appendChild(lab);
+    });
+    sp.forEach((s, i) => {
+      svg.appendChild(el("circle", { cx: px(i), cy: rowP, r, fill: "#fff", stroke: colorOf(sp, s), "stroke-width": 2.4 }));
+      const lab = el("text", { x: px(i), y: rowP + 5, "text-anchor": "middle", "font-size": 16, "font-weight": 600, fill: colorOf(sp, s) }); lab.textContent = s; svg.appendChild(lab);
+    });
+    return svg;
+  }
+
+  function trajPlot(item) {
+    const W = 720, H = 250, pT = 14, pR = 14, pB = 28, pL = 44;
+    const sp = item.species, S = item.samples;
+    const t0 = S[0][0], t1 = S[S.length - 1][0];
+    let ymax = 0; for (const row of S) for (let i = 1; i < row.length; i++) ymax = Math.max(ymax, row[i]);
+    ymax *= 1.05;
+    const sx = (t) => pL + (t - t0) / (t1 - t0) * (W - pL - pR);
+    const sy = (y) => H - pB - y / ymax * (H - pT - pB);
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "xMidYMid meet" });
+    svg.appendChild(el("line", { x1: pL, y1: sy(0), x2: W - pR, y2: sy(0), stroke: "var(--axis)" }));
+    svg.appendChild(el("line", { x1: pL, y1: pT, x2: pL, y2: sy(0), stroke: "var(--axis)" }));
+    for (let k = 0; k <= 2; k++) { const y = ymax * k / 2; const yy = sy(y);
+      const t = el("text", { x: pL - 6, y: yy + 4, "text-anchor": "end", "font-size": 10, fill: "var(--muted)", "font-family": "SF Mono, monospace" }); t.textContent = fmt(y); svg.appendChild(t); }
+    sp.forEach((s, i) => {
+      const d = S.map((row, k) => (k ? "L" : "M") + sx(row[0]).toFixed(2) + " " + sy(row[i + 1]).toFixed(2)).join(" ");
+      svg.appendChild(el("path", { d, fill: "none", stroke: colorOf(sp, s), "stroke-width": 2 }));
+    });
+    return svg;
+  }
+
+  function cap(text) { const c = document.createElement("div"); c.className = "cap"; c.textContent = text; return c; }
+
+  function render(data) {
+    const root = document.getElementById("items");
+    for (const item of data.items) {
+      const sec = document.createElement("section"); sec.className = "item";
+      const h = document.createElement("h3"); h.textContent = item.title; sec.appendChild(h);
+      sec.appendChild(cap("The net"));
+      sec.appendChild(netDiagram(item));
+      sec.appendChild(cap("Mass-action ODEs — derived functorially"));
+      const laws = document.createElement("div"); laws.className = "laws";
+      item.laws.forEach((tex) => { const l = document.createElement("div"); l.className = "law"; katex.render(tex.replace(/~/g, " "), l, { throwOnError: false, displayMode: true }); laws.appendChild(l); });
+      sec.appendChild(laws);
+      sec.appendChild(cap("Solution — integrated by OrdinaryDiffEq"));
+      sec.appendChild(trajPlot(item));
+      const leg = document.createElement("div"); leg.className = "legend";
+      item.species.forEach((s) => { const sp = document.createElement("span"); sp.innerHTML = `<i style="background:${colorOf(item.species, s)}"></i>${s}`; leg.appendChild(sp); });
+      sec.appendChild(leg);
+      root.appendChild(sec);
+    }
+  }
+
+  window.addEventListener("DOMContentLoaded", () => {
+    if (window.PETRI) render(window.PETRI);
+  });
+</script>
+</body>
+</html>

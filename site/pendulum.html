@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jurist — a double pendulum as a DAE</title>
+<link rel="stylesheet" href="jurist.css" />
+<style>
+  .pane pre { font-size: 12px; }
+  .stat { margin-top:14px; padding-top:12px; border-top:1px dashed var(--rule); font-size:13.5px; color:var(--muted); }
+  .stat strong { color:var(--good); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><a href="index.html">Jurist</a> <span class="sub">a typed PureScript description · computed by Julia's runtime</span><span class="all"><a href="index.html">all demos →</a></span></div>
+  <header>
+    <h1>A double pendulum, as the DAE it actually is</h1>
+    <p class="why">
+      In Cartesian coordinates the rod tensions are <strong>algebraic variables</strong> —
+      no time derivative, closed by rigidity constraints. That makes this a
+      <strong>differential-algebraic system</strong>, which <code>scipy.solve_ivp</code> and every
+      JS ODE library structurally cannot solve. ModelingToolkit derives the
+      index-1 form symbolically; an implicit stiff solver holds the rods rigid
+      to ~10⁻⁸ through fully chaotic motion.
+    </p>
+  </header>
+
+  <div class="panes">
+    <section class="pane left">
+      <h2>The PureScript you write</h2>
+<pre><span class="cm">-- differential state · algebraic vars · parameters,</span>
+<span class="cm">-- all row-typed</span>
+<span class="kw">type</span> DPState =
+  ( x1 :: <span class="kw">NumExpr</span>, y1 :: <span class="kw">NumExpr</span>, x2 :: <span class="kw">NumExpr</span>, y2 :: <span class="kw">NumExpr</span>
+  , u1 :: <span class="kw">NumExpr</span>, v1 :: <span class="kw">NumExpr</span>, u2 :: <span class="kw">NumExpr</span>, v2 :: <span class="kw">NumExpr</span> )
+<span class="kw">type</span> DPAlg = ( t1 :: <span class="kw">NumExpr</span>, t2 :: <span class="kw">NumExpr</span> )  <span class="cm">-- rod tensions</span>
+
+<span class="fn">doublePendulum</span> :: <span class="kw">DAESpec</span> DPState DPAlg DPParams
+<span class="fn">doublePendulum</span> =
+  daeSystem
+    <span class="cm">-- the differential part</span>
+    ( \s a p ->
+        <span class="kw">let</span> ac = accels s a p
+        <span class="kw">in</span>
+          { x1: s.u1, y1: s.v1, x2: s.u2, y2: s.v2
+          , u1: ac.ax1, v1: ac.ay1, u2: ac.ax2, v2: ac.ay2
+          }
+    )
+    <span class="cm">-- one rigidity constraint per tension</span>
+    <span class="cm">-- (|p|² = L², differentiated twice)</span>
+    ( \s a p ->
+        <span class="kw">let</span> ac = accels s a p
+        <span class="kw">in</span>
+          { t1: s.u1 * s.u1 + s.v1 * s.v1
+              + s.x1 * ac.ax1 + s.y1 * ac.ay1
+          , t2: (s.u2 - s.u1) * (s.u2 - s.u1)
+              + (s.v2 - s.v1) * (s.v2 - s.v1)
+              + (s.x2 - s.x1) * (ac.ax2 - ac.ax1)
+              + (s.y2 - s.y1) * (ac.ay2 - ac.ay1)
+          }
+    )
+</pre>
+      <p class="seam"><code>accels</code> gives the Cartesian accelerations in terms of the
+        tensions, written once and shared by both lambdas. MTK solves the 2×2
+        tension system symbolically — never written in PureScript.</p>
+    </section>
+
+    <section class="pane">
+      <h2>What Julia computes</h2>
+      <div class="cap">1200 frames, 20 s of chaos — the browser only replays them</div>
+      <div id="stage"></div>
+      <div class="stat">Max rod-length drift over the run: <strong>&lt; 10⁻⁶</strong> —
+        the algebraic constraints held through fully chaotic motion (checked back
+        in PureScript from sampled frames).</div>
+    </section>
+  </div>
+
+  <footer>
+    <code>Data.DAESystem</code> → Julia <code>ModelingToolkit</code> /
+    <code>OrdinaryDiffEq</code> (implicit stiff solver) → SVG player ·
+    <a href="../examples/numexpr-edsl/">source →</a>
+  </footer>
+</div>
+
+<script src="data/pendulum.js"></script>
+<script>
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const el = (n, a) => { const e = document.createElementNS(SVGNS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+  window.addEventListener("DOMContentLoaded", () => {
+    const D = window.PENDULUM, F = D.frames, N = F.length;
+    const W = 440, H = 400, cx = W / 2, cy = 120, S = 80; // world→px scale
+    const px = (x) => cx + x * S, py = (y) => cy - y * S;
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "xMidYMid meet" });
+    // trail of bob 2 (drawn incrementally, fading is overkill — keep faint)
+    const trail = el("path", { fill: "none", stroke: "var(--accent)", "stroke-width": 1, opacity: 0.35 });
+    const rod1 = el("line", { stroke: "var(--ink)", "stroke-width": 2 });
+    const rod2 = el("line", { stroke: "var(--ink)", "stroke-width": 2 });
+    const pivot = el("circle", { cx, cy, r: 3.5, fill: "var(--ink)" });
+    const bob1 = el("circle", { r: 8, fill: "#fff", stroke: "var(--kw)", "stroke-width": 2.4 });
+    const bob2 = el("circle", { r: 8, fill: "#fff", stroke: "var(--accent)", "stroke-width": 2.4 });
+    svg.append(trail, rod1, rod2, pivot, bob1, bob2);
+    document.getElementById("stage").appendChild(svg);
+
+    const TRAIL = 220; // frames of bob-2 trail to keep
+    let i = 0;
+    const draw = () => {
+      const [x1, y1, x2, y2] = F[i];
+      rod1.setAttribute("x1", cx); rod1.setAttribute("y1", cy);
+      rod1.setAttribute("x2", px(x1)); rod1.setAttribute("y2", py(y1));
+      rod2.setAttribute("x1", px(x1)); rod2.setAttribute("y1", py(y1));
+      rod2.setAttribute("x2", px(x2)); rod2.setAttribute("y2", py(y2));
+      bob1.setAttribute("cx", px(x1)); bob1.setAttribute("cy", py(y1));
+      bob2.setAttribute("cx", px(x2)); bob2.setAttribute("cy", py(y2));
+      const from = Math.max(0, i - TRAIL);
+      let d = "";
+      for (let k = from; k <= i; k++) d += (k === from ? "M" : "L") + px(F[k][2]).toFixed(1) + " " + py(F[k][3]).toFixed(1);
+      trail.setAttribute("d", d);
+      i = (i + 1) % N;
+      requestAnimationFrame(draw);
+    };
+    draw();
+  });
+</script>
+</body>
+</html>

@@ -6,42 +6,17 @@
 <title>Jurist — exact differentiation</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous" />
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="jurist.css" />
 <style>
-  :root { --ink:#1a1a1a; --muted:#6b6b6b; --faint:#9a9a96; --rule:#e3e3e3; --accent:#b4341f; --paper:#fbfbf9; --code:#f5f4f0; --kw:#2b6cb0; --lit:#1f7a4d; }
-  * { box-sizing:border-box; }
-  html,body { margin:0; padding:0; background:var(--paper); color:var(--ink); }
-  body { font-family:-apple-system,"Helvetica Neue",Helvetica,Arial,sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased; }
-  .wrap { max-width:980px; margin:0 auto; padding:48px 32px 96px; }
-  .brand { font-size:12px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent); }
-  .brand .sub { color:var(--faint); font-weight:500; letter-spacing:0.04em; margin-left:10px; text-transform:none; }
-  header { border-bottom:2px solid var(--ink); padding-bottom:22px; margin:14px 0 0; }
-  h1 { font-size:30px; font-weight:700; letter-spacing:-0.015em; margin:14px 0 8px; }
-  .why { color:var(--muted); font-size:15.5px; max-width:64ch; margin:0; }
-  .why strong { color:var(--ink); font-weight:600; }
-  .panes { display:grid; grid-template-columns:1fr 1fr; gap:0; margin-top:40px; border:1px solid var(--rule); border-radius:12px; overflow:hidden; }
-  @media (max-width:760px){ .panes { grid-template-columns:1fr; } }
-  .pane { padding:24px 24px 28px; }
-  .pane.left { background:var(--code); border-right:1px solid var(--rule); }
-  @media (max-width:760px){ .pane.left { border-right:none; border-bottom:1px solid var(--rule); } }
-  .pane h2 { font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--faint); margin:0 0 16px; }
-  pre { margin:0; font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:13px; line-height:1.7; color:var(--ink); overflow-x:auto; }
-  .cm { color:var(--faint); font-style:italic; }
-  .kw { color:var(--kw); }
-  .li { color:var(--lit); }
-  .fn { color:var(--ink); font-weight:600; }
-  .seam { margin:18px 0 0; font-size:12px; color:var(--faint); }
-  .seam code { color:var(--muted); }
   .out .row { display:grid; grid-template-columns:2.4em 1fr; align-items:baseline; gap:10px; margin:4px 0; }
   .out .lhs { color:var(--muted); font-size:13px; font-style:italic; text-align:right; }
   .out .rhs .katex { font-size:1.35em; }
   .out .grad { margin-top:12px; padding-top:10px; border-top:1px dashed var(--rule); }
-  footer { margin-top:28px; color:var(--faint); font-size:13px; }
-  footer a { color:var(--muted); }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="brand">Jurist <span class="sub">a typed PureScript description · computed by Julia's runtime</span></div>
+  <div class="brand"><a href="index.html">Jurist</a> <span class="sub">a typed PureScript description · computed by Julia's runtime</span><span class="all"><a href="index.html">all demos →</a></span></div>
   <header>
     <h1>Exact differentiation</h1>
     <p class="why">

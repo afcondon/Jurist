@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jurist — patterns by homomorphism search</title>
+<link rel="stylesheet" href="jurist.css" />
+<style>
+  .pitem { padding:0 0 22px; }
+  .pitem + .pitem { border-top:1px solid var(--rule); padding-top:20px; }
+  .pitem h3 { font-size:12px; font-weight:600; letter-spacing:0.04em; color:var(--accent); margin:0 0 2px; }
+  .pitem .shape { font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:12px; color:var(--muted); margin:0 0 8px; }
+  .pitem .found { font-size:13px; margin-top:4px; }
+  .pitem .found b { color:var(--accent); }
+  .pitem .set { font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:12px; }
+  .pitem svg { max-width:280px; margin:0 auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><a href="index.html">Jurist</a> <span class="sub">a typed PureScript description · computed by Julia's runtime</span><span class="all"><a href="index.html">all demos →</a></span></div>
+  <header>
+    <h1>Structural patterns, found by homomorphism search</h1>
+    <p class="why">
+      A module dependency graph and three structural motifs, described once in
+      PureScript. Catlab finds every occurrence as the set of graph homomorphisms
+      <code>pattern → graph</code> — <strong>subgraph matching generalized to any
+      schema</strong>, the category doing the searching. The <em>same engine</em> finds
+      circular dependencies, mutual dependencies, and diamonds — the machinery a
+      Minard could use to flag architectural motifs in a code graph.
+    </p>
+  </header>
+
+  <div class="panes">
+    <section class="pane left">
+      <h2>The PureScript you write</h2>
+<pre><span class="cm">-- A → B means "module A depends on module B"</span>
+<span class="fn">depGraph</span> :: <span class="kw">Graph</span>
+<span class="fn">depGraph</span> =
+  { nodes: [ <span class="li">"Core"</span>, <span class="li">"Parser"</span>, <span class="li">"AST"</span>, <span class="li">"Eval"</span>
+           , <span class="li">"Pretty"</span>, <span class="li">"Codegen"</span>, <span class="li">"Cli"</span>, <span class="li">"Utils"</span> ]
+  , edges:
+      [ edge <span class="li">6 0</span>, edge <span class="li">6 1</span>   <span class="cm">-- Cli → Core, Parser</span>
+      , edge <span class="li">1 2</span>, edge <span class="li">2 3</span>   <span class="cm">-- Parser → AST → Eval</span>
+      , edge <span class="li">3 1</span>              <span class="cm">--   → Parser  (cycle!)</span>
+      , edge <span class="li">4 5</span>, edge <span class="li">5 4</span>   <span class="cm">-- Pretty ⇄ Codegen</span>
+      , edge <span class="li">0 7</span>, edge <span class="li">1 7</span>   <span class="cm">-- Core, Parser → Utils</span>
+      , edge <span class="li">5 2</span>              <span class="cm">-- Codegen → AST</span>
+      ]
+  }
+
+<span class="fn">patterns</span> :: <span class="kw">Array</span> <span class="kw">Motif</span>
+<span class="fn">patterns</span> =
+  [ { name: <span class="li">"Circular dependency"</span>
+    , shape: <span class="li">"a → b → c → a"</span>, nodes: <span class="li">3</span>
+    , edges: [ edge <span class="li">0 1</span>, edge <span class="li">1 2</span>, edge <span class="li">2 0</span> ] }
+  , { name: <span class="li">"Mutual dependency"</span>
+    , shape: <span class="li">"a ⇄ b"</span>, nodes: <span class="li">2</span>
+    , edges: [ edge <span class="li">0 1</span>, edge <span class="li">1 0</span> ] }
+  , { name: <span class="li">"Diamond dependency"</span>
+    , shape: <span class="li">"a → (b, c) → d"</span>, nodes: <span class="li">4</span>
+    , edges: [ edge <span class="li">0 1</span>, edge <span class="li">0 2</span>
+             , edge <span class="li">1 3</span>, edge <span class="li">2 3</span> ] }
+  ]
+
+ms <- matches depGraph p   <span class="cm">-- Catlab searches</span>
+</pre>
+      <p class="seam">A match is a vertex map; PureScript canonicalises the
+        rotations/orderings the search returns down to distinct occurrences.</p>
+    </section>
+
+    <section class="pane">
+      <h2>What Catlab finds</h2>
+      <div id="items"></div>
+    </section>
+  </div>
+
+  <footer>
+    <code>Data.Pattern</code> → Julia <code>Catlab</code> (<code>homomorphisms</code>, monic) → SVG ·
+    <a href="../examples/catlab-patterns/">source →</a>
+  </footer>
+</div>
+
+<script src="data/patterns.js"></script>
+<script>
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const el = (n, a) => { const e = document.createElementNS(SVGNS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+  let uid = 0;
+
+  function graphSVG(data, matchSet) {
+    const W = 240, H = 240, cx = W / 2, cy = H / 2, R = 86, r = 20;
+    const N = data.nodes.length, inSet = (i) => matchSet.includes(i);
+    const pos = (i) => { const a = -Math.PI / 2 + 2 * Math.PI * i / N; return [cx + R * Math.cos(a), cy + R * Math.sin(a)]; };
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "xMidYMid meet" });
+    const defs = el("defs", {}), u = uid++;
+    for (const [id, col] of [["m", "#cfcfca"], ["ma", "var(--accent)"]]) {
+      const mk = el("marker", { id: "ar" + id + u, viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: "auto-start-reverse" });
+      mk.appendChild(el("path", { d: "M0 0 L10 5 L0 10 z", fill: col })); defs.appendChild(mk);
+    }
+    svg.appendChild(defs);
+    const seg = (p, q) => { const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1; return [[p[0] + dx / L * r, p[1] + dy / L * r], [q[0] - dx / L * r, q[1] - dy / L * r]]; };
+    data.edges.forEach(([a, b]) => {
+      const hot = inSet(a) && inSet(b);
+      const [p, q] = seg(pos(a), pos(b));
+      const mx = (p[0] + q[0]) / 2 + (q[1] - p[1]) * 0.12, my = (p[1] + q[1]) / 2 - (q[0] - p[0]) * 0.12;
+      svg.appendChild(el("path", { d: `M${p[0].toFixed(1)} ${p[1].toFixed(1)} Q ${mx.toFixed(1)} ${my.toFixed(1)} ${q[0].toFixed(1)} ${q[1].toFixed(1)}`,
+        fill: "none", stroke: hot ? "var(--accent)" : "#d8d8d3", "stroke-width": hot ? 2 : 1.3,
+        "marker-end": hot ? `url(#arma${u})` : `url(#arm${u})` }));
+    });
+    data.nodes.forEach((nm, i) => {
+      const [x, y] = pos(i), hot = inSet(i);
+      svg.appendChild(el("circle", { cx: x, cy: y, r, fill: hot ? "var(--accentbg)" : "#fff", stroke: hot ? "var(--accent)" : "#cfcfca", "stroke-width": hot ? 2.2 : 1.4 }));
+      const t = el("text", { x, y: y + 4, "text-anchor": "middle", "font-size": 11, "font-weight": hot ? 600 : 500, fill: hot ? "var(--accent)" : "#8a8a86" });
+      t.textContent = nm; svg.appendChild(t);
+    });
+    return svg;
+  }
+
+  function render(data) {
+    const root = document.getElementById("items");
+    for (const p of data.patterns) {
+      const set = (p.matchSets[0] || []);
+      const item = document.createElement("div"); item.className = "pitem";
+      const h = document.createElement("h3"); h.textContent = p.name; item.appendChild(h);
+      const sh = document.createElement("div"); sh.className = "shape"; sh.textContent = p.shape; item.appendChild(sh);
+      item.appendChild(graphSVG(data, set));
+      const f = document.createElement("div"); f.className = "found";
+      if (p.matchSets.length) {
+        f.innerHTML = `<b>${p.matchSets.length} found</b>`;
+        p.matchSets.forEach((s) => { const d = document.createElement("div"); d.className = "set"; d.textContent = "{ " + s.map((i) => data.nodes[i]).join(", ") + " }"; f.appendChild(d); });
+      } else { f.textContent = "none found"; }
+      item.appendChild(f);
+      root.appendChild(item);
+    }
+  }
+
+  window.addEventListener("DOMContentLoaded", () => {
+    if (window.PATTERNS) render(window.PATTERNS);
+  });
+</script>
+</body>
+</html>

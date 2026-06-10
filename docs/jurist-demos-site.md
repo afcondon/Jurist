@@ -1,6 +1,19 @@
 # jurist-demos — the site (design note)
 
-Status: Planned · Date: 2026-06-10
+Status: Built (2026-06-10, same day) · Date: 2026-06-10
+
+> **Addendum 2026-06-10**: rolled out in full. `site/` now holds the landing
+> page (`index.html`, thesis + hero receipt + three tier sections), nine
+> example pages (`lorenz`, `pendulum`, `differentiation`, `roots`,
+> `optimization`, `petri`, `patterns`, `schema`, `migration`), a shared
+> `jurist.css` shell, and `site/data/` with committed copies of every
+> example's output data (plus `lorenz.js`, dumped by the new
+> `node/src/DumpOrbit.purs` so the plotted orbit is honestly computed by
+> `integratePure` on Node). The Lorenz receipts (maxZ `47.8339540885982` on
+> Node / BEAM / Julia, byte-identical) were re-run and captured fresh at
+> build time. All ten pages verified by headless-Chrome screenshot. Still
+> pending from §Build order: Specimen-typeset hero inputs, the
+> `jurist-demos` split, Cloudflare Pages deploy.
 
 ## The idea
 

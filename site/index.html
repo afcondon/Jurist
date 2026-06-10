@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jurist demos — PureScript describes, Julia computes</title>
+<link rel="stylesheet" href="jurist.css" />
+<style>
+  .hero { margin-top:34px; border:1px solid var(--rule); border-radius:12px; overflow:hidden; display:grid; grid-template-columns:1fr 1fr; background:#fff; }
+  @media (max-width:760px){ .hero { grid-template-columns:1fr; } }
+  .hero .cell { padding:20px 24px; }
+  .hero .cell.l { background:var(--code); border-right:1px solid var(--rule); }
+  @media (max-width:760px){ .hero .cell.l { border-right:none; border-bottom:1px solid var(--rule); } }
+  .hero h2 { font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--faint); margin:0 0 12px; }
+  .hero pre { font-size:12.5px; }
+  .receipt { font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:12.5px; line-height:1.9; }
+  .receipt .rt { color:var(--muted); display:inline-block; width:5em; }
+  .receipt .v { font-weight:600; }
+  .receipt .ok { color:var(--good); font-weight:600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><a href="index.html">Jurist</a> <span class="sub">a PureScript backend for Julia · purejl</span></div>
+  <header>
+    <h1>You write the description.<br/>Julia computes the un-computable.</h1>
+    <p class="thesis">
+      Every demo below is the same move: a <strong>typed PureScript value</strong> —
+      an ADT, a row-typed system, a typed graph — crosses the seam <em>once</em>, as a
+      description, and Julia's runtime computes something <strong>structurally out of
+      reach</strong> for JS, WASM, or scipy: symbolic derivatives, DAE solving, proven
+      root enclosures, proven-optimal MILP, functorial dynamics and data migration.
+      Each page counterposes the PureScript you <em>write</em> with what Julia
+      <em>computes</em> from it.
+    </p>
+  </header>
+
+  <div class="hero">
+    <div class="cell l">
+      <h2>One typed description…</h2>
+<pre><span class="fn">lorenz</span> = system \s p ->
+  { x: p.sigma * (s.y - s.x)
+  , y: s.x * (p.rho - s.z) - s.y
+  , z: s.x * s.y - p.beta * s.z
+  }</pre>
+    </div>
+    <div class="cell">
+      <h2>…three runtimes, byte-identical</h2>
+      <div class="receipt">
+        <div><span class="rt">Node</span> maxZ = <span class="v">47.8339540885982</span></div>
+        <div><span class="rt">BEAM</span> maxZ = <span class="v">47.8339540885982</span></div>
+        <div><span class="rt">Julia</span> maxZ = <span class="v">47.8339540885982</span></div>
+        <div><span class="rt"></span>byte-identical over 5000 steps: <span class="ok">true</span></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="tier">
+    <h2>One description, many runtimes</h2>
+    <p class="tagline">The backend-agnostic core: develop the pure denotation anywhere —
+      Node, the BEAM — then deploy to the runtime with the native solvers.</p>
+    <div class="cards">
+      <a class="card" href="lorenz.html">
+        <h3>Lorenz, three ways</h3>
+        <p>A row-typed dynamical system run bit-identically on Node, the BEAM, and Julia — chaos as the witness.</p>
+        <span class="libs">SystemSpec · integratePure · purerl · purejl</span>
+      </a>
+      <a class="card" href="pendulum.html">
+        <h3>Double pendulum, as a DAE</h3>
+        <p>Rod tensions are algebraic variables — a differential-algebraic system no JS ODE library or scipy.solve_ivp can touch.</p>
+        <span class="libs">DAESpec · ModelingToolkit · stiff implicit solver</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="tier">
+    <h2>The eDSL — descriptions across, descriptions back</h2>
+    <p class="tagline">A typed <code>NumExpr</code> crosses the seam; Julia hands back
+      derivatives, proofs, and optima the description never contained.</p>
+    <div class="cards">
+      <a class="card" href="differentiation.html">
+        <h3>Exact differentiation</h3>
+        <p>Julia differentiates the expression symbolically and hands back the chain rule, typeset — never written by hand.</p>
+        <span class="libs">Symbolics · Latexify · KaTeX</span>
+      </a>
+      <a class="card" href="roots.html">
+        <h3>Rigorous roots</h3>
+        <p>Proven root enclosures, each certified unique, none missed — and "no real roots" is itself a proof.</p>
+        <span class="libs">IntervalArithmetic · IntervalRootFinding</span>
+      </a>
+      <a class="card" href="optimization.html">
+        <h3>Provably optimal</h3>
+        <p>Greedy (pure PureScript) leaves value on the table; HiGHS branch-and-bound proves the true maximum, gap zero.</p>
+        <span class="libs">JuMP · HiGHS MILP</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="tier">
+    <h2>Category theory, applied — AlgebraicJulia</h2>
+    <p class="tagline">Typed structures in, categorical machinery out: there is no
+      applied-category-theory stack in the JS/WASM world. The toolkit a Minard
+      could lean on.</p>
+    <div class="cards">
+      <a class="card" href="petri.html">
+        <h3>Petri nets → dynamics</h3>
+        <p>SIR and SEIR as typed nets; the mass-action ODEs derived by a functor, then integrated. No equations were written.</p>
+        <span class="libs">AlgebraicPetri · OrdinaryDiffEq</span>
+      </a>
+      <a class="card" href="patterns.html">
+        <h3>Patterns by homomorphism</h3>
+        <p>Cycles, mutual deps, diamonds — all found by one engine: graph homomorphism search, the category doing the matching.</p>
+        <span class="libs">Catlab · homomorphisms</span>
+      </a>
+      <a class="card" href="schema.html">
+        <h3>Motifs over a typed schema</h3>
+        <p>Modules, functions, calls as an ACSet; the motif's type structure encodes the architectural rule.</p>
+        <span class="libs">Catlab · @present · @acset</span>
+      </a>
+      <a class="card" href="migration.html">
+        <h3>Functorial data migration</h3>
+        <p>A call graph migrated along in_mod to its module dependency graph — coupling weights for free, Hylograph-shaped out.</p>
+        <span class="libs">Catlab · migrate · Δ along in_mod</span>
+      </a>
+    </div>
+  </section>
+
+  <footer>
+    Jurist — a PureScript→Julia backend (purejl). Every left-hand pane is the real
+    eDSL source from the example; every right-hand pane is data computed by the
+    Julia (or Node/BEAM) runtime and committed with the example. ADR-0007.
+  </footer>
+</div>
+</body>
+</html>

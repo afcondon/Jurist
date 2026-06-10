@@ -47,6 +47,7 @@ __pycache__/
 examples/numexpr-edsl/julia/double-pendulum.json
 # Tier-2 increment-5 LaTeX output (reproducible; committed copy lives in diff-viz/)
 examples/numexpr-edsl/julia/derivatives.js
+examples/numexpr-edsl/julia/derivatives.json
 
 # LSP ide-server port file
 .psc-ide-port

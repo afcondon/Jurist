@@ -1,0 +1,25 @@
+package:
+  name: numexpr-beam
+  description: >
+    The BEAM/Erlang denotation of the Tier-2 eDSL. Depends only on numexpr-core
+    and runs SystemSpec.integratePure — the pure-PureScript RK4, no FFI — on the
+    BEAM via purs-backend-erl (stock purs → CoreFn → Erlang). A third runtime for
+    the *same* typed description, beside Julia and Node (ADR-0007). Cross-checks
+    the Lorenz orbit's maxZ against the Julia native RK4 reference.
+  dependencies:
+    - prelude
+    - effect
+    - console
+    - arrays
+    - foldable-traversable
+    - maybe
+    - numbers
+    - numexpr-core
+workspace:
+  extraPackages:
+    numexpr-core:
+      path: ../core
+  packageSet:
+    url: https://raw.githubusercontent.com/purerl/package-sets/erl-0.15.3-20220629/packages.json
+  backend:
+    cmd: "node_modules/.bin/purs-backend-erl"

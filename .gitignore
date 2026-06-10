@@ -17,12 +17,15 @@ examples/*/output/
 examples/*/output-jl/
 examples/*/.spago/
 
-# numexpr-edsl is split into per-backend workspaces (core/julia/node), so the
-# build artifacts sit one level deeper than the examples/*/ patterns reach.
+# numexpr-edsl is split into per-backend workspaces (core/julia/node/beam), so
+# the build artifacts sit one level deeper than the examples/*/ patterns reach.
 examples/numexpr-edsl/*/output/
 examples/numexpr-edsl/*/output-jl/
+examples/numexpr-edsl/*/output-erl/
 examples/numexpr-edsl/*/.spago/
-examples/numexpr-edsl/node/node_modules/
+examples/numexpr-edsl/*/node_modules/
+examples/numexpr-edsl/beam/ebin/
+erl_crash.dump
 
 # Julia env: commit Project.toml (reproducible deps), ignore the huge,
 # Julia-version-pinned Manifest (resolved by `Pkg.instantiate`)

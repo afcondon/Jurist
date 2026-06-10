@@ -149,7 +149,21 @@ Status is **Proposed** because only Tier 1 is built; Tier 2+ will promote it.
 > run identical IEEE-754 doubles in identical step order — the cross-runtime
 > agreement is exact, not merely close. This is the "same typed API deploys
 > in-process and elsewhere" consequence below, made concrete for a second
-> backend; the BEAM (purerl) denotation is the next increment on the same `core`.
+> backend.
+>
+> **And a third — the BEAM (same session).** A `beam/` workspace runs the same
+> `integratePure` on the Erlang VM via `purs-backend-erl` (stock `purs` → CoreFn
+> → Erlang), depending only on `core` against the purerl `erl-0.15.3` package set.
+> Result: `maxZ 4.78339540885981975293e+01` — the *same* IEEE-754 double as the
+> Node run, first/last states bit-identical. One typed `lorenz` description, three
+> pure runtimes (Julia / Node / BEAM), one orbit. The one wrinkle: `core`'s
+> reference interpreter needs the transcendental primitives (`sin`/`pow`/…), and
+> the package sets disagree on where they live (`Data.Number` on the modern JS
+> sets and purejl; the deprecated `Math` on the purerl set). Rather than fork
+> `core`, it now declares those six as its only `foreign import`s, shimmed one
+> line per backend (`.js` → `Math.*`, `.erl` → `math:*`, `.jl` → `Base.*`) — the
+> irreducible machine math behind a uniform interface, the textbook use of FFI.
+> Lorenz invokes none of them, so the cross-runtime agreement is exact regardless.
 
 ## Consequences
 

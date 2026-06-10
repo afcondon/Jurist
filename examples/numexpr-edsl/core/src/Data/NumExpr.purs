@@ -40,7 +40,19 @@ module Data.NumExpr
 
 import Prelude
 
-import Data.Number as Num
+-- The reference interpreter's transcendental primitives. These are the *only*
+-- foreign imports in `core` — the irreducible machine math (every backend has
+-- them, under a different name), shimmed one line per backend: `NumExpr.js`
+-- (Math.*), `NumExpr.erl` (math:* — purerl strands these in the deprecated
+-- `Math` package, not `Data.Number`, so we can't just import them), and the
+-- purejl `ffi-jl/Data_NumExpr_foreign.jl` (Base.*). Everything else in core is
+-- pure PureScript, so the description and `integratePure` stay backend-agnostic.
+foreign import numPow :: Number -> Number -> Number
+foreign import numSin :: Number -> Number
+foreign import numCos :: Number -> Number
+foreign import numExp :: Number -> Number
+foreign import numLog :: Number -> Number
+foreign import numSqrt :: Number -> Number
 
 -- | The native unary functions the eDSL can stage.
 data UnaryFn = Sin | Cos | Exp | Log | Sqrt
@@ -107,16 +119,16 @@ eval env = go
     Mul a b -> go a * go b
     Div a b -> go a / go b
     Neg a -> negate (go a)
-    Pow a b -> Num.pow (go a) (go b)
+    Pow a b -> numPow (go a) (go b)
     Ap f a -> applyFn f (go a)
 
 applyFn :: UnaryFn -> Number -> Number
 applyFn = case _ of
-  Sin -> Num.sin
-  Cos -> Num.cos
-  Exp -> Num.exp
-  Log -> Num.log
-  Sqrt -> Num.sqrt
+  Sin -> numSin
+  Cos -> numCos
+  Exp -> numExp
+  Log -> numLog
+  Sqrt -> numSqrt
 
 -- | Fully-parenthesised pretty-printer.
 render :: NumExpr -> String

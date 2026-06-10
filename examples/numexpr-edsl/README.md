@@ -7,12 +7,12 @@ is slow and opaque to Julia's specializer).
 
 The description is **backend-agnostic** and the denotations are separate, so the
 *same* typed system runs on more than one runtime — "one description, many
-denotations". The example is split into three spago workspaces plus a frontend:
+denotations". The example is split into four spago workspaces plus a frontend:
 
 ```
 numexpr-edsl/
-  core/   numexpr-core — the FFI-free description + pure denotation.
-          Data.NumExpr     (the precision ADT, eval, render — no foreign imports)
+  core/   numexpr-core — the backend-agnostic description + pure denotation.
+          Data.NumExpr     (the precision ADT, eval, render)
           Data.SystemSpec  (row-typed ODE surface, `system`, + integratePure:
                             a pure-PureScript RK4 that runs on ANY backend)
   julia/  numexpr-edsl — the Julia (purejl) denotation. Depends on core, adds:
@@ -22,14 +22,31 @@ numexpr-edsl/
           Data.DAESystem        (index-1 DAEs: the double pendulum)
           ffi-jl/, julia-env/, bench/
   node/   numexpr-node — the Node/JS denotation. Depends only on core; runs
-          integratePure on the stock JavaScript backend (no Julia, no FFI).
+          integratePure on the stock JavaScript backend.
+  beam/   numexpr-beam — the BEAM/Erlang denotation. Depends only on core; runs
+          integratePure on the Erlang VM via purs-backend-erl.
   viz/    standalone Hylograph (HATS) frontend — a pure player of the DAE frames.
 ```
 
-`core` holds **no `foreign import`s**, so it compiles on every PureScript
-backend; `julia/` and `node/` each depend on it by path (`workspace.extraPackages`).
+`core`'s only `foreign import`s are the **six transcendental math primitives**
+(`numSin`, `numPow`, …) the reference interpreter needs — irreducible machine
+math that every backend has under a different name, shimmed one line per backend
+(`NumExpr.js` → `Math.*`, `NumExpr.erl` → `math:*`, and the purejl
+`ffi-jl/Data_NumExpr_foreign.jl` → `Base.*`). Lorenz uses none of them, so the
+pure orbit is identical across runtimes regardless. Everything else in `core` —
+the ADT, the row machinery, `integratePure` — is pure PureScript. Each denotation
+workspace depends on `core` by path (`workspace.extraPackages`), so the *same*
+source resolves against each backend's package set (the JS registry set for
+node/julia, the purerl `erl-0.15.3` set for beam).
+
+> The purerl `numbers` package strands the transcendentals in the deprecated
+> `Math` module rather than `Data.Number` (where the modern JS sets and purejl
+> put them); the per-backend shim papers over that. Worth raising with the purerl
+> maintainers once these demos ship.
+
 The pure `integratePure` is the develop-anywhere denotation; the Julia modules are
-the production denotation. They are cross-checked against each other.
+the production denotation. They are cross-checked against each other and against
+the Node and BEAM runs (same `lorenz`, maxZ ≈ 47.834 on all three pure runtimes).
 
 ## The increments
 
@@ -92,6 +109,25 @@ spago run
 Expected: the Lorenz orbit integrated by `integratePure` on the JS backend,
 `maxZ (pure-PS RK4, on Node): 47.833954…` (the Julia native RK4 reference is
 47.834), and `attractor in chaotic envelope (40 < maxZ < 55): true`.
+
+## Build & run — BEAM (the same denotation on Erlang)
+
+The `beam/` workspace runs `integratePure` on the Erlang VM via
+[`purs-backend-erl`](https://github.com/purerl/purescript) (stock `purs` →
+CoreFn → Erlang). Needs Erlang/OTP + `rebar3`/`erlc` on PATH. From `beam/`:
+
+```bash
+cd beam
+npm install                               # one-time: fetches purs-backend-erl
+spago build                               # CoreFn in output/, .erl in output-erl/
+mkdir -p ebin
+find output-erl -name '*.erl' -exec erlc -disable-feature maybe_expr -o ebin {} +
+erl -noshell -pa ebin -eval "(('main@ps':main()))()" -eval "init:stop()"
+```
+
+Expected: `maxZ (pure-PS RK4, on BEAM): 4.78339540885981975293e+01` — the *same*
+IEEE-754 double as the Node run (Lorenz's RHS is pure +,−,×, so the three pure
+runtimes agree bit-for-bit), in the chaotic envelope.
 
 ## Build & run — Julia (all four increments)
 

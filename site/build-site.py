@@ -90,7 +90,7 @@ def extract(name):
 
 def section_html(ex, num):
     return f"""  <section class="exsec" id="ex-{ex['name']}">
-    <h2 class="extitle"><span class="exnum">{num}</span>{ex['h1']} <a class="standalone" href="{ex['name']}.html" title="standalone page">§</a></h2>
+    <h2 class="extitle"><span class="exnum">{num}</span>{ex['h1']}</h2>
     <p class="why">{ex['why']}</p>
     {ex['panes']}
     <p class="exfoot">{ex['foot']}</p>

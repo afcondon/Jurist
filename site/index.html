@@ -141,7 +141,7 @@
   <p class="toc"><a href="#ex-lorenz"><b>1</b>&hairsp;lorenz</a> · <a href="#ex-pendulum"><b>2</b>&hairsp;pendulum</a> · <a href="#ex-differentiation"><b>3</b>&hairsp;differentiation</a> · <a href="#ex-roots"><b>4</b>&hairsp;roots</a> · <a href="#ex-optimization"><b>5</b>&hairsp;optimization</a> · <a href="#ex-petri"><b>6</b>&hairsp;petri</a> · <a href="#ex-patterns"><b>7</b>&hairsp;patterns</a> · <a href="#ex-schema"><b>8</b>&hairsp;schema</a> · <a href="#ex-migration"><b>9</b>&hairsp;migration</a></p>
 
   <section class="exsec" id="ex-lorenz">
-    <h2 class="extitle"><span class="exnum">1</span>One description, three runtimes <a class="standalone" href="lorenz.html" title="standalone page">§</a></h2>
+    <h2 class="extitle"><span class="exnum">1</span>One description, three runtimes</h2>
     <p class="why">Where possible the interpreter will run on other runtimes too — but for the
       Julia-specialty computations, you just write directly in the eDSL using
       Jurist. An example of something that can run on <strong>Node or the BEAM</strong>
@@ -193,7 +193,7 @@ orbit = integratePure lorenz
   </div>
     <p class="exfoot"><code>Data.SystemSpec</code> (backend-agnostic) → Node · BEAM (purerl) · Julia (purejl) ·
     data plotted here computed by <code>integratePure</code> on Node ·
-    <a href="../examples/numexpr-edsl/">source →</a></p>
+    <a href="https://github.com/afcondon/Jurist/tree/main/examples/numexpr-edsl">source →</a></p>
   </section>
 
   <div class="tierhead">
@@ -201,7 +201,7 @@ orbit = integratePure lorenz
   </div>
 
   <section class="exsec" id="ex-pendulum">
-    <h2 class="extitle"><span class="exnum">2</span>A double pendulum, as the DAE it actually is <a class="standalone" href="pendulum.html" title="standalone page">§</a></h2>
+    <h2 class="extitle"><span class="exnum">2</span>A double pendulum, as the DAE it actually is</h2>
     <p class="why">In Cartesian coordinates the rod tensions are <strong>algebraic variables</strong> —
       no time derivative, closed by rigidity constraints. That makes this a
       <strong>differential-algebraic system</strong>, which <code>scipy.solve_ivp</code> and every
@@ -259,11 +259,11 @@ orbit = integratePure lorenz
   </div>
     <p class="exfoot"><code>Data.DAESystem</code> → Julia <code>ModelingToolkit</code> /
     <code>OrdinaryDiffEq</code> (implicit stiff solver) → SVG player ·
-    <a href="../examples/numexpr-edsl/">source →</a></p>
+    <a href="https://github.com/afcondon/Jurist/tree/main/examples/numexpr-edsl">source →</a></p>
   </section>
 
   <section class="exsec" id="ex-differentiation">
-    <h2 class="extitle"><span class="exnum">3</span>Exact differentiation <a class="standalone" href="differentiation.html" title="standalone page">§</a></h2>
+    <h2 class="extitle"><span class="exnum">3</span>Exact differentiation</h2>
     <p class="why">You describe an expression once, as a typed value. Julia differentiates it
       <strong>symbolically</strong> and hands the derivative back — the chain rule,
       fractions and all — <strong>typeset, never written by hand</strong>.
@@ -293,11 +293,11 @@ orbit = integratePure lorenz
     </section>
   </div>
     <p class="exfoot"><code>Data.NumExpr</code> → Julia <code>Symbolics</code> / <code>Latexify</code> → KaTeX ·
-    <a href="../examples/numexpr-edsl/diff-viz/index.html">full differentiation demo →</a></p>
+    <a href="https://github.com/afcondon/Jurist/tree/main/examples/numexpr-edsl">source →</a></p>
   </section>
 
   <section class="exsec" id="ex-roots">
-    <h2 class="extitle"><span class="exnum">4</span>Rigorous roots — proofs, not guesses <a class="standalone" href="roots.html" title="standalone page">§</a></h2>
+    <h2 class="extitle"><span class="exnum">4</span>Rigorous roots — proofs, not guesses</h2>
     <p class="why">Each function is a typed <code>NumExpr</code> handed to Julia's
       <strong>IntervalRootFinding</strong>, which doesn't just find roots — it
       <strong>proves</strong> them: every root bracketed in a guaranteed enclosure,
@@ -338,11 +338,11 @@ rs <- provenRoots <span class="li">"x"</span> c.lo c.hi c.e
   </div>
     <p class="exfoot"><code>Data.NumExpr</code> → Julia <code>IntervalArithmetic</code> /
     <code>IntervalRootFinding</code> → KaTeX + SVG ·
-    <a href="../examples/numexpr-edsl/">source →</a></p>
+    <a href="https://github.com/afcondon/Jurist/tree/main/examples/numexpr-edsl">source →</a></p>
   </section>
 
   <section class="exsec" id="ex-optimization">
-    <h2 class="extitle"><span class="exnum">5</span>Provably optimal <a class="standalone" href="optimization.html" title="standalone page">§</a></h2>
+    <h2 class="extitle"><span class="exnum">5</span>Provably optimal</h2>
     <p class="why">A 0/1 knapsack described once in PureScript. The obvious <em>greedy</em> heuristic
       (computed in pure PureScript) grabs the best value-per-weight item and stalls.
       Julia's <strong>JuMP/HiGHS</strong> mixed-integer solver doesn't guess — branch-and-bound
@@ -378,7 +378,7 @@ opt <- knapsack weights values cap
     </section>
   </div>
     <p class="exfoot"><code>Data.Optimize</code> → Julia <code>JuMP</code> / <code>HiGHS</code> ·
-    <a href="../examples/numexpr-edsl/">source →</a></p>
+    <a href="https://github.com/afcondon/Jurist/tree/main/examples/numexpr-edsl">source →</a></p>
   </section>
 
   <div class="tierhead">
@@ -387,7 +387,7 @@ opt <- knapsack weights values cap
   </div>
 
   <section class="exsec" id="ex-petri">
-    <h2 class="extitle"><span class="exnum">6</span>Petri nets → functorial dynamics <a class="standalone" href="petri.html" title="standalone page">§</a></h2>
+    <h2 class="extitle"><span class="exnum">6</span>Petri nets → functorial dynamics</h2>
     <p class="why">Two epidemic models as <strong>typed Petri nets</strong> — species and reactions,
       <em>no differential equations anywhere in the description</em>. Julia's
       <strong>AlgebraicPetri</strong> produces the mass-action dynamics by a
@@ -439,11 +439,11 @@ laws    <- odeLaws spec   <span class="cm">-- derived, typeset</span>
   </div>
     <p class="exfoot"><code>Data.Petri</code> → Julia <code>AlgebraicPetri</code> /
     <code>OrdinaryDiffEq</code> → KaTeX + SVG ·
-    <a href="../examples/petri-catlab/">source →</a></p>
+    <a href="https://github.com/afcondon/Jurist/tree/main/examples/petri-catlab">source →</a></p>
   </section>
 
   <section class="exsec" id="ex-patterns">
-    <h2 class="extitle"><span class="exnum">7</span>Structural patterns, found by homomorphism search <a class="standalone" href="patterns.html" title="standalone page">§</a></h2>
+    <h2 class="extitle"><span class="exnum">7</span>Structural patterns, found by homomorphism search</h2>
     <p class="why">A module dependency graph and three structural motifs, described once in
       PureScript. Catlab finds every occurrence as the set of graph homomorphisms
       <code>pattern → graph</code> — <strong>subgraph matching generalized to any
@@ -494,11 +494,11 @@ ms <- matches depGraph p   <span class="cm">-- Catlab searches</span>
     </section>
   </div>
     <p class="exfoot"><code>Data.Pattern</code> → Julia <code>Catlab</code> (<code>homomorphisms</code>, monic) → SVG ·
-    <a href="../examples/catlab-patterns/">source →</a></p>
+    <a href="https://github.com/afcondon/Jurist/tree/main/examples/catlab-patterns">source →</a></p>
   </section>
 
   <section class="exsec" id="ex-schema">
-    <h2 class="extitle"><span class="exnum">8</span>Architectural motifs over a typed schema <a class="standalone" href="schema.html" title="standalone page">§</a></h2>
+    <h2 class="extitle"><span class="exnum">8</span>Architectural motifs over a typed schema</h2>
     <p class="why">A <strong>typed code graph</strong> — modules, functions typed into modules, calls —
       as an instance of a Catlab <strong>ACSet schema</strong>. Each motif is a small
       instance of the <em>same schema</em>, and its <strong>type structure encodes the
@@ -551,11 +551,11 @@ ms <- matches codeGraph mo   <span class="cm">-- typed search</span>
   </div>
     <p class="exfoot"><code>Data.CodeGraph</code> → Julia <code>Catlab</code> (typed <code>@acset</code> +
     <code>homomorphisms</code>) → SVG ·
-    <a href="../examples/catlab-schema/">source →</a></p>
+    <a href="https://github.com/afcondon/Jurist/tree/main/examples/catlab-schema">source →</a></p>
   </section>
 
   <section class="exsec" id="ex-migration">
-    <h2 class="extitle"><span class="exnum">9</span>Functorial data migration <a class="standalone" href="migration.html" title="standalone page">§</a></h2>
+    <h2 class="extitle"><span class="exnum">9</span>Functorial data migration</h2>
     <p class="why">A function-level call graph, migrated <strong>functorially</strong> to its module
       dependency graph — a Δ migration along the <code>in_mod</code> functor, where every
       call <code>f → g</code> becomes a module edge <code>in_mod(f) → in_mod(g)</code>. Not a
@@ -608,7 +608,7 @@ agg = aggregate raw
   </div>
     <p class="exfoot"><code>Data.Migration</code> → Julia <code>Catlab</code> (<code>migrate</code>, Δ along
     <code>in_mod</code>) → SVG ·
-    <a href="../examples/catlab-migration/">source →</a></p>
+    <a href="https://github.com/afcondon/Jurist/tree/main/examples/catlab-migration">source →</a></p>
   </section>
 
   <div class="tierhead" id="interpreters">

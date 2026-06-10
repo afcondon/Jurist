@@ -1,13 +1,30 @@
-# purescript-julia
+# Jurist — small typed languages for mathematical things
 
-A PureScript backend that compiles to Julia.
+## **→ [The demo site](https://afcondon.github.io/Jurist/)** ←
 
-Part of the *Julia numerics backend for Hylograph* effort (Marginalia
-project 219): the long game is Julia compute leaves (DifferentialEquations.jl,
-DynamicalSystems.jl, Catlab.jl, …) feeding Hylograph visualizations, with a
-PureScript-defined contract at the boundary. This repo is the "thin skin"
-realisation of that seam — a from-scratch CoreFn → Julia code generator,
-sibling of `purescript-python-new`.
+Little languages for **dynamical systems, symbolic expressions, optimization
+models, Petri nets, typed graphs** — backed by the Julia scientific ecosystem
+as their production semantics. Each is a handful of PureScript types: cheap to
+mint, one per domain, and a description that typechecks is a well-formed
+object of that domain.
+
+The [demo site](https://afcondon.github.io/Jurist/) shows nine examples, each
+counterposing **the PureScript you write** with **what Julia computes from
+it**: a Lorenz butterfly integrated bit-identically on three runtimes, a
+double pendulum as the DAE it actually is, exact symbolic differentiation,
+rigorously *proven* roots and optima, and Catlab's applied category theory
+(functorial dynamics, homomorphism search, data migration).
+
+In fact, Jurist isn't a minimal bridge to Julia — it's a **full backend for
+the PureScript language** (`purejl`), peer to the JavaScript, Erlang, and
+other backends, and built in the same way: a from-scratch CoreFn → Julia
+code generator, sibling of `purescript-python-new`. Part of the wider
+*polyglot PureScript* effort: if a core tenet of FP is to "make illegal
+states unrepresentable", polyglot-PureScript extends this across multiple
+runtimes — your types should mean the same thing on the Erlang or Go backend
+as they do in the browser.
+
+---
 
 Family-level docs (the backend comparison table, instructions for adding
 purerl/purepy/psgo columns to the differential matrix) live in the

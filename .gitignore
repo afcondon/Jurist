@@ -58,6 +58,8 @@ examples/petri-catlab/petri.js
 examples/catlab-patterns/patterns.js
 # Tier-3 catlab-schema output (reproducible; committed copy in schema-viz/)
 examples/catlab-schema/schema.js
+# Tier-3 catlab-migration output (reproducible; committed copy in migration-viz/)
+examples/catlab-migration/migration.js
 
 # LSP ide-server port file
 .psc-ide-port

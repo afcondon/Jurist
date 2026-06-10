@@ -1,0 +1,21 @@
+package:
+  name: catlab-migration
+  description: >
+    Tier-3 (Catlab / ACSets): functorial data migration. A Δ migration aggregates
+    a function-level call graph up to a module dependency graph along the in_mod
+    functor — the other ACSet superpower, producing a Hylograph-shaped result.
+    Self-contained purejl workspace, own Catlab julia-env.
+  dependencies:
+    - prelude
+    - effect
+    - console
+    - arrays
+    - maybe
+    - tuples
+    - strings
+    - foldable-traversable
+workspace:
+  packageSet:
+    registry: 57.1.0
+  backend:
+    cmd: "true"

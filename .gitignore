@@ -63,3 +63,6 @@ examples/catlab-migration/migration.js
 
 # LSP ide-server port file
 .psc-ide-port
+
+# ad-hoc site bundles (e.g. for phone transfer)
+site.zip

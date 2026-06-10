@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Exact derivatives, typeset — PureScript describes, Julia differentiates</title>
+<link rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
+  crossorigin="anonymous" />
+<script defer
+  src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"
+  crossorigin="anonymous"></script>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #6b6b6b;
+    --rule: #e3e3e3;
+    --accent: #b4341f;
+    --paper: #fbfbf9;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); }
+  body {
+    font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 64px 32px 96px; }
+  header { border-bottom: 2px solid var(--ink); padding-bottom: 20px; margin-bottom: 8px; }
+  h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 10px; }
+  .lede { color: var(--muted); font-size: 15px; max-width: 60ch; margin: 0; }
+  .lede strong { color: var(--ink); font-weight: 600; }
+  .item { padding: 34px 0; border-bottom: 1px solid var(--rule); }
+  .item h2 {
+    font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 18px;
+  }
+  .row { display: grid; grid-template-columns: 2.6em 1fr; align-items: baseline; gap: 10px; margin: 6px 0; }
+  .lhs { color: var(--muted); font-size: 14px; font-style: italic; text-align: right; }
+  .rhs { overflow-x: auto; }
+  .katex { font-size: 1.18em; }
+  .grad { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--rule); }
+  footer { margin-top: 40px; color: var(--muted); font-size: 13px; }
+  code { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 0.92em; color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Exact derivatives, typeset</h1>
+    <p class="lede">
+      Each expression below was <strong>described once in PureScript</strong> as a
+      typed <code>NumExpr</code>, handed across the seam, and
+      <strong>differentiated symbolically by Julia</strong> (Symbolics.jl) — the
+      chain rule, fractions and all, derived and rendered to LaTeX (Latexify.jl),
+      never written by hand. Descriptions across, descriptions back.
+    </p>
+  </header>
+  <main id="items"></main>
+  <footer>
+    PureScript <code>Data.NumExpr</code> → Julia <code>Symbolics</code> /
+    <code>Latexify</code> → KaTeX. Part of the Jurist Tier-2 eDSL (ADR-0007).
+  </footer>
+</div>
+
+<script>
+  const sub = (s) => (s || "").replace(/~/g, " ");
+  function tex(target, latex, opts) {
+    katex.render(sub(latex), target, Object.assign({ throwOnError: false, displayMode: true }, opts || {}));
+  }
+  function render(data) {
+    const root = document.getElementById("items");
+    for (const item of data.items) {
+      const sec = document.createElement("section");
+      sec.className = "item";
+      const h = document.createElement("h2");
+      h.textContent = item.title;
+      sec.appendChild(h);
+
+      const fRow = document.createElement("div");
+      fRow.className = "row";
+      const fL = document.createElement("div"); fL.className = "lhs"; fL.textContent = "f =";
+      const fR = document.createElement("div"); fR.className = "rhs";
+      fRow.append(fL, fR); sec.appendChild(fRow);
+      tex(fR, item.expr);
+
+      const grad = document.createElement("div");
+      grad.className = "grad";
+      item.vars.forEach((v, i) => {
+        const r = document.createElement("div"); r.className = "row";
+        const l = document.createElement("div"); l.className = "lhs";
+        const rr = document.createElement("div"); rr.className = "rhs";
+        r.append(l, rr); grad.appendChild(r);
+        katex.render("\\frac{\\partial f}{\\partial " + v + "}=", l, { throwOnError: false });
+        tex(rr, item.grad[i]);
+      });
+      sec.appendChild(grad);
+      root.appendChild(sec);
+    }
+  }
+  window.addEventListener("DOMContentLoaded", () => {
+    fetch("derivatives.json")
+      .then((r) => r.json())
+      .then(render)
+      .catch((e) => { document.getElementById("items").textContent = "Failed to load derivatives.json: " + e; });
+  });
+</script>
+</body>
+</html>

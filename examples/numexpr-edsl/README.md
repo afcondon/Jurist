@@ -92,10 +92,29 @@ the Node and BEAM runs (same `lorenz`, maxZ ≈ 47.834 on all three pure runtime
    trajectory is written to JSON and rendered by a Hylograph frontend (see
    `viz/`).
 
+5. **`Data.Differentiate`** (julia) — the **differentiation round-trip**. Hand a
+   `NumExpr` across the seam; Julia binds its variables to Symbolics scalars,
+   differentiates symbolically, and hands the derivative **back as LaTeX**
+   (`Latexify`) — the chain rule, fractions (`∂/∂x log x = 1/x`) and trig, derived
+   and typeset, never written in PureScript. `Main` differentiates a showpiece
+   expression and the Lorenz vector field (its analytic Jacobian), writing
+   `derivatives.json` for a KaTeX page (`diff-viz/`). "Descriptions across,
+   *descriptions back*" — what returns is math you can read.
+
 The seam is identical across the Julia denotations (ADR-0007, "descriptions
 across, handles back"): PureScript hands over a typed description; Julia owns the
 computation; results return as handles (`Compiled`, `Field`, `MTKField`/`Solution`,
 `DAEField`/`DAESolution`) and are materialised only on demand.
+
+## Frontend (`diff-viz/`) — the typeset derivatives
+
+After the Julia run writes `derivatives.json` (increment 5), a static KaTeX page
+renders the expressions and their symbolic gradients at publication quality:
+
+```bash
+cp julia/derivatives.json diff-viz/        # the increment-5 output
+cd diff-viz && python3 -m http.server 4179 # http://127.0.0.1:4179
+```
 
 ## Build & run — Node (the develop-anywhere denotation)
 

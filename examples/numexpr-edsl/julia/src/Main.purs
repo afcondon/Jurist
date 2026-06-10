@@ -25,11 +25,15 @@ import Data.Foldable (foldl, sum)
 import Data.Int (toNumber)
 import Data.Maybe (fromMaybe)
 import Data.Ord (abs)
+import Data.String (Pattern(..), Replacement(..), joinWith, replaceAll)
+import Data.Traversable (traverse)
+import Data.Tuple (Tuple(..))
 import Data.DAESystem (DAESpec, algVars, buildDAEField, daeSystem, dumpFramesJSON, sampleColumns, simplifiedEquationsSource, solveDAE, stateVars) as DAE
+import Data.Differentiate (exprLatex, gradientLatex, writeText)
 import Data.MTKSystem (buildField, equationsSource, finalState, jacobianSource, maxComponent, solve) as MTK
-import Data.NumExpr (NumExpr, divide, eval, num, render, sinE, var)
+import Data.NumExpr (NumExpr, divide, eval, logE, num, pow, render, sinE, var)
 import Data.NumExpr.Julia (compile, evalBatch)
-import Data.SystemSpec (SystemSpec, integratePure, paramVars, stateVars, system)
+import Data.SystemSpec (SystemSpec, equations, integratePure, paramVars, stateVars, system)
 import Data.SystemSpec.Julia (compileField, integrate)
 import Effect (Effect)
 import Effect.Console (log)
@@ -82,6 +86,43 @@ robertson = system \s p ->
   , y2: p.a * s.y1 - p.c * s.y2 * s.y3 - p.b * s.y2 * s.y2
   , y3: p.b * s.y2 * s.y2
   }
+
+-- ── Increment 5: exact symbolic derivatives, typeset ────────────────────────
+
+-- A showpiece expression whose gradient exercises the chain rule, a fraction
+-- (d/dx log x = 1/x), and trig: 10x² − xy + sin y + log x.
+showcase :: NumExpr
+showcase =
+  num 10.0 * pow (var "x") (num 2.0)
+    - var "x" * var "y"
+    + sinE (var "y")
+    + logE (var "x")
+
+-- Minimal JSON encoding for the LaTeX payload the KaTeX page reads. LaTeX is
+-- backslash-heavy, so escape backslashes first, then quotes.
+jStr :: String -> String
+jStr s = "\"" <> esc s <> "\""
+  where
+  esc =
+    replaceAll (Pattern "\"") (Replacement "\\\"")
+      <<< replaceAll (Pattern "\\") (Replacement "\\\\")
+
+jArrStr :: Array String -> String
+jArrStr xs = "[" <> joinWith "," (map jStr xs) <> "]"
+
+-- Join already-encoded JSON fragments (objects) into an array.
+jArrRaw :: Array String -> String
+jArrRaw xs = "[" <> joinWith "," xs <> "]"
+
+-- One display item: a title, the expression as LaTeX, the variables, and the
+-- gradient (one ∂f/∂vᵢ LaTeX string per variable).
+mkItem :: String -> Array String -> String -> Array String -> String
+mkItem title vars expr grad =
+  "{\"title\":" <> jStr title
+    <> ",\"vars\":" <> jArrStr vars
+    <> ",\"expr\":" <> jStr expr
+    <> ",\"grad\":" <> jArrStr grad
+    <> "}"
 
 -- ── Increment 4: a differential-algebraic system (double pendulum) ──────────
 
@@ -273,3 +314,31 @@ main = do
     "\"l1\":1.0,\"l2\":1.0,\"t0\":0.0,\"t1\":20.0"
     trajectoryPath
   log ("wrote " <> show (Array.length frameTimes) <> " frames to " <> trajectoryPath)
+
+  log "\n== increment 5: exact symbolic derivatives, typeset with Latexify =="
+  -- Hand a NumExpr across the seam; Julia differentiates it symbolically and
+  -- hands the derivative BACK as LaTeX — the chain rule typeset, never written
+  -- in PureScript ("descriptions across, descriptions back").
+  let scVars = [ "x", "y" ]
+  scExpr <- exprLatex scVars showcase
+  scGrad <- gradientLatex scVars scVars showcase
+  log ("showcase f:  " <> render showcase)
+  log ("  f  (LaTeX): " <> scExpr)
+  log ("  ∇f (LaTeX): " <> show scGrad)
+  let scItem = mkItem "Showcase:  10x² − xy + sin y + log x" scVars scExpr scGrad
+  -- The Lorenz Jacobian: differentiate each RHS wrt the state variables — the
+  -- analytic Jacobian as typeset math, derived symbolically. The RHS mentions
+  -- the parameters too, so declare state + params but differentiate by state.
+  let
+    lzState = stateVars lorenz
+    lzDeclare = lzState <> paramVars lorenz
+  lzItems <- traverse
+    ( \(Tuple nm rhs) -> do
+        e <- exprLatex lzDeclare rhs
+        g <- gradientLatex lzDeclare lzState rhs
+        pure (mkItem ("Lorenz  d" <> nm <> "/dt") lzState e g)
+    )
+    (equations lorenz)
+  let json = "{\"items\":" <> jArrRaw ([ scItem ] <> lzItems) <> "}"
+  writeText "derivatives.json" json
+  log ("wrote derivatives.json (" <> show (1 + Array.length lzItems) <> " items) for the KaTeX page")

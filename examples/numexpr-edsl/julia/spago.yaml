@@ -17,6 +17,8 @@ package:
     - maybe
     - record
     - tuples
+    - strings
+    - foldable-traversable
     - numexpr-core
 workspace:
   extraPackages:

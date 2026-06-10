@@ -79,3 +79,5 @@ footer a { color:var(--muted); }
 .tierhead .tagline { color:var(--muted); font-size:14.5px; margin:0; max-width:64ch; }
 .tierhead + .exsec { margin-top:26px; }
 .tierhead .tagline a { color:var(--kw); }
+.extitle .exnum { color:var(--accent); font-weight:700; margin-right:14px; font-variant-numeric:tabular-nums; }
+.toc b { color:var(--accent); font-weight:600; }

@@ -36,7 +36,7 @@ ORDER = [
       '<a href="https://github.com/AlgebraicJulia/Catlab.jl">Catlab.jl</a> — '
       '"a framework for applied and computational category theory, written '
       'in the Julia language" — and the wider AlgebraicJulia family around '
-      'it. This library lets you do things like the following examples:')),
+      'it. This library lets you do things like examples {NUMS} below:')),
     ("patterns", None),
     ("schema", None),
     ("migration", None),
@@ -88,9 +88,9 @@ def extract(name):
     }
 
 
-def section_html(ex):
+def section_html(ex, num):
     return f"""  <section class="exsec" id="ex-{ex['name']}">
-    <h2 class="extitle">{ex['h1']} <a class="standalone" href="{ex['name']}.html" title="standalone page">§</a></h2>
+    <h2 class="extitle"><span class="exnum">{num}</span>{ex['h1']} <a class="standalone" href="{ex['name']}.html" title="standalone page">§</a></h2>
     <p class="why">{ex['why']}</p>
     {ex['panes']}
     <p class="exfoot">{ex['foot']}</p>
@@ -111,18 +111,25 @@ def main():
     bottom = (HERE / "partials" / "bottom.html").read_text()
 
     sections, styles, data_srcs, scripts, toc = [], [], [], [], []
-    for name, tier in ORDER:
+    tier_at = {i for i, (_, t) in enumerate(ORDER) if t}
+    for i, (name, tier) in enumerate(ORDER):
+        num = i + 1
         ex = extract(name)
         if tier:
-            sections.append(tier_html(*tier))
-        sections.append(section_html(ex))
+            # this tier spans sections num..(section before the next tier)
+            nxt = min((j for j in tier_at if j > i), default=len(ORDER))
+            title, tagline = tier
+            if tagline:
+                tagline = tagline.replace("{NUMS}", f"{num}–{nxt}")
+            sections.append(tier_html(title, tagline))
+        sections.append(section_html(ex, num))
         styles.append(f"  /* — {name} — */\n" + ex["style"])
         for d in ex["data"]:
             if d not in data_srcs:
                 data_srcs.append(d)
         for s in ex["scripts"]:
             scripts.append(f"// — {name} —\n(() => {{\n{s}}})();")
-        toc.append(f'<a href="#ex-{name}">{name}</a>')
+        toc.append(f'<a href="#ex-{name}"><b>{num}</b>&hairsp;{name}</a>')
 
     page = top.replace("<!-- SECTION-STYLES -->", "\n".join(styles))
     page = page.replace("<!-- TOC -->", " · ".join(toc))

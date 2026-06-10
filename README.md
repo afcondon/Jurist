@@ -78,6 +78,34 @@ verified to 10⁸ iterations.
 - Pattern-binding shadowing across fall-through alternatives (inherited
   from the Python backend's structure; rare).
 
+### Cross-backend portability: the Numbers/Math wrinkle
+
+A *nice-to-have* of this work is "write the description once in
+PureScript and run it on whichever backend you like" — develop and test a
+numeric model on Node or the BEAM with a pure-PureScript denotation, then
+deploy it to the Julia backend for the real compute. The Tier-2 eDSL
+(`examples/numexpr-edsl`) demonstrates exactly this: one `SystemSpec`
+description, the *same* `integratePure` running bit-identically on Julia,
+Node, and the BEAM.
+
+The one snag is in the standard library, not this backend: the
+**transcendentals** (`sin`/`cos`/`exp`/`log`/`sqrt`/`pow`) live on
+`Data.Number` in the modern JS package sets and in this backend's built-in
+shims, but the **purerl** package set still strands them in the deprecated
+`Math` module. So a module that uses them can't be *literally* the same
+source across the JS/purejl sets and purerl without a thin shim. In
+`examples/numexpr-edsl` the shared `core` package papers over this by
+owning those six primitives as its only `foreign import`s, with a one-line
+shim per backend (`Math.*` / `math:*` / `Base.*`).
+
+This is an **acceptable MVP wrinkle**: the develop-anywhere story is a
+convenience, not the point. The point is to show the PureScript community
+things *only* the Julia runtime can do (symbolic Jacobians, stiff/DAE
+solvers, Catlab, …). The strongest case for the wider PureScript backend
+ecosystem to converge `Data.Number`/`Math` is to first put compelling
+Julia-only demos in front of people — then "let's tidy this up" writes
+itself.
+
 ## Usage
 
 ```bash

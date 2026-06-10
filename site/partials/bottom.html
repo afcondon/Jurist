@@ -79,21 +79,42 @@
   </p>
 
   <section class="colophon">
-    <h2>The unglamorous part</h2>
+    <h2>Under the hood</h2>
     <p>
-      Underneath is <strong>purejl</strong>, a from-scratch PureScript→Julia backend.
-      It consumes CoreFn — the compiler's fully-elaborated core — so the whole
-      language arrives by construction: typeclasses, row types, ADTs, the works
-      (the row-typed <code>SystemSpec</code> machinery above is RowList-driven
-      typeclass derivation, running on Julia). Core-library coverage: <strong>50
-      built-in FFI shims</strong> (prelude, arrays incl. ST, strings, records,
-      integers, numbers, …; <code>Data.String.Regex</code> is a deliberate
-      loud-failure stub). Verified by differential testing against the JS backend
-      as reference semantics: <strong>422 of 426 outputs byte-identical</strong>,
-      the other 4 documented representation choices (UTF-16 code units vs.
-      codepoints).
+      In fact, Jurist isn't a minimal bridge to Julia — it's a <strong>full
+      backend for the PureScript language</strong>, peer to the JavaScript,
+      Erlang, and other backends, and built in the same way.
     </p>
-    <p>The glamorous part is what it lets you mean.</p>
+    <p>
+      Whether you need all of PureScript or not, you won't be missing any of
+      the language in your eDSL.
+    </p>
+    <table class="facts">
+      <tr><th>language</th><td>all of it, by construction — purejl consumes CoreFn, the
+        compiler's fully-elaborated core, so typeclasses, row types, ADTs and the
+        RowList machinery behind <code>SystemSpec</code> arrive pre-checked</td></tr>
+      <tr><th>pipeline</th><td>stock <code>purs</code> → CoreFn → Julia source — the same
+        shape as purerl and the JS backend</td></tr>
+      <tr><th>core libraries</th><td><strong>50 built-in FFI shims</strong> — prelude, effect,
+        arrays (incl. ST), strings, records, integers, numbers, …</td></tr>
+      <tr><th>known gap</th><td><code>Data.String.Regex</code> ships as a deliberate
+        loud-failure stub</td></tr>
+      <tr><th>verification</th><td>differential testing against the JS backend as reference
+        semantics: <strong>422 of 426 outputs byte-identical</strong></td></tr>
+      <tr><th>the other 4</th><td>documented representation choices — UTF-16 code units
+        vs. codepoints</td></tr>
+      <tr><th>your FFI</th><td>an <code>ffi-jl/</code> directory of
+        <code>Data_Module_foreign.jl</code> files beside your project; user files win
+        over the built-ins</td></tr>
+    </table>
+    <p>
+      A guiding force for the work is that if you have types in PureScript in,
+      say, the browser, those types should mean the same thing on multiple
+      runtimes. If a core tenet of FP is to <em>"make illegal states
+      unrepresentable"</em>, then polyglot-PureScript aims to extend this across
+      multiple runtimes — lessening the chances of a really gnarly
+      cross-language bug.
+    </p>
   </section>
 
   <footer>

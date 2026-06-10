@@ -52,6 +52,8 @@ examples/numexpr-edsl/julia/derivatives.json
 examples/numexpr-edsl/julia/roots.js
 # Tier-2 increment-7 optimization output (reproducible; committed copy in opt-viz/)
 examples/numexpr-edsl/julia/optimize.js
+# Tier-3 petri-catlab output (reproducible; committed copy in petri-viz/)
+examples/petri-catlab/petri.js
 
 # LSP ide-server port file
 .psc-ide-port

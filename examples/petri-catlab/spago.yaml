@@ -1,0 +1,22 @@
+package:
+  name: petri-catlab
+  description: >
+    Tier-3 (AlgebraicJulia): a typed Petri-net surface in PureScript whose
+    mass-action ODE dynamics Julia derives functorially via AlgebraicPetri, then
+    solves with OrdinaryDiffEq. Self-contained purejl workspace with its own
+    julia-env (Catlab + AlgebraicPetri + OrdinaryDiffEq), isolated from the
+    numexpr-edsl MTK/JuMP env.
+  dependencies:
+    - prelude
+    - effect
+    - console
+    - arrays
+    - maybe
+    - tuples
+    - strings
+    - foldable-traversable
+workspace:
+  packageSet:
+    registry: 57.1.0
+  backend:
+    cmd: "true"

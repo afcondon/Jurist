@@ -32,9 +32,11 @@ ORDER = [
     ("optimization", None),
     ("petri",
      ("Category theory, applied — AlgebraicJulia",
-      "Typed structures in, categorical machinery out: there is no "
-      "applied-category-theory stack in the JS/WASM world. The toolkit a "
-      "Minard could lean on.")),
+      'One super nice thing in the Julia ecosystem is '
+      '<a href="https://github.com/AlgebraicJulia/Catlab.jl">Catlab.jl</a> — '
+      '"a framework for applied and computational category theory, written '
+      'in the Julia language" — and the wider AlgebraicJulia family around '
+      'it. This library lets you do things like the following examples:')),
     ("patterns", None),
     ("schema", None),
     ("migration", None),

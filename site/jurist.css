@@ -78,3 +78,4 @@ footer a { color:var(--muted); }
 .tierhead h2 { font-size:13px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--accent); margin:0 0 6px; }
 .tierhead .tagline { color:var(--muted); font-size:14.5px; margin:0; max-width:64ch; }
 .tierhead + .exsec { margin-top:26px; }
+.tierhead .tagline a { color:var(--kw); }

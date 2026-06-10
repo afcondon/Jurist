@@ -3,10 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Jurist demos — PureScript describes, Julia computes</title>
+<title>Jurist — small typed languages for mathematical things</title>
 <link rel="stylesheet" href="jurist.css" />
 <style>
-  .hero { margin-top:34px; border:1px solid var(--rule); border-radius:12px; overflow:hidden; display:grid; grid-template-columns:1fr 1fr; background:#fff; }
+  .interp { color:var(--muted); font-size:15.5px; max-width:66ch; margin:26px 0 0; }
+  .interp strong { color:var(--ink); font-weight:600; }
+  .hero { margin-top:22px; border:1px solid var(--rule); border-radius:12px; overflow:hidden; display:grid; grid-template-columns:1fr 1fr; background:#fff; }
   @media (max-width:760px){ .hero { grid-template-columns:1fr; } }
   .hero .cell { padding:20px 24px; }
   .hero .cell.l { background:var(--code); border-right:1px solid var(--rule); }
@@ -17,23 +19,38 @@
   .receipt .rt { color:var(--muted); display:inline-block; width:5em; }
   .receipt .v { font-weight:600; }
   .receipt .ok { color:var(--good); font-weight:600; }
+  .heronote { font-size:13px; color:var(--faint); margin:10px 2px 0; }
+  .heronote a { color:var(--muted); }
+  .colophon { margin-top:56px; border-top:2px solid var(--ink); padding-top:20px; }
+  .colophon h2 { font-size:13px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin:0 0 10px; }
+  .colophon p { color:var(--muted); font-size:14.5px; max-width:70ch; margin:0 0 12px; }
+  .colophon strong { color:var(--ink); font-weight:600; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="brand"><a href="index.html">Jurist</a> <span class="sub">a PureScript backend for Julia · purejl</span></div>
+  <div class="brand"><a href="index.html">Jurist</a> <span class="sub">demos</span></div>
   <header>
-    <h1>You write the description.<br/>Julia computes the un-computable.</h1>
+    <h1>Small typed languages for mathematical things</h1>
     <p class="thesis">
-      Every demo below is the same move: a <strong>typed PureScript value</strong> —
-      an ADT, a row-typed system, a typed graph — crosses the seam <em>once</em>, as a
-      description, and Julia's runtime computes something <strong>structurally out of
-      reach</strong> for JS, WASM, or scipy: symbolic derivatives, DAE solving, proven
-      root enclosures, proven-optimal MILP, functorial dynamics and data migration.
-      Each page counterposes the PureScript you <em>write</em> with what Julia
-      <em>computes</em> from it.
+      Little languages for <strong>dynamical systems, symbolic expressions,
+      optimization models, Petri nets, typed graphs</strong> — with the Julia
+      scientific ecosystem as their production semantics. Each is a handful of
+      PureScript types: cheap to mint, one per domain, and a description that
+      typechecks is a well-formed object of that domain.
     </p>
   </header>
+
+  <p class="interp">
+    Like any well-made eDSL, each admits <strong>more than one interpreter</strong>.
+    The same description runs on Node, the BEAM, and Julia — prototype against the
+    pure reference interpreter wherever you already work, check it does what you
+    mean, then hand the <em>identical value</em> to the Julia interpreter, where it
+    gains what only that runtime offers: <strong>analytic Jacobians and stiff/DAE
+    solvers, rigorously proven roots and optima, dynamics derived functorially
+    from category theory</strong>. Same description, same meaning — cross-checked
+    byte for byte:
+  </p>
 
   <div class="hero">
     <div class="cell l">
@@ -54,30 +71,19 @@
       </div>
     </div>
   </div>
+  <p class="heronote">5000 steps of a chaotic system — any difference in the
+    arithmetic diverges visibly. <a href="lorenz.html">The full receipts →</a></p>
 
   <section class="tier">
-    <h2>One description, many runtimes</h2>
-    <p class="tagline">The backend-agnostic core: develop the pure denotation anywhere —
-      Node, the BEAM — then deploy to the runtime with the native solvers.</p>
+    <h2>What the Julia interpreter buys you</h2>
+    <p class="tagline">The same typed value, given its most powerful meaning:
+      solvers and proofs structurally out of reach for JS, WASM, or scipy.</p>
     <div class="cards">
-      <a class="card" href="lorenz.html">
-        <h3>Lorenz, three ways</h3>
-        <p>A row-typed dynamical system run bit-identically on Node, the BEAM, and Julia — chaos as the witness.</p>
-        <span class="libs">SystemSpec · integratePure · purerl · purejl</span>
-      </a>
       <a class="card" href="pendulum.html">
         <h3>Double pendulum, as a DAE</h3>
         <p>Rod tensions are algebraic variables — a differential-algebraic system no JS ODE library or scipy.solve_ivp can touch.</p>
         <span class="libs">DAESpec · ModelingToolkit · stiff implicit solver</span>
       </a>
-    </div>
-  </section>
-
-  <section class="tier">
-    <h2>The eDSL — descriptions across, descriptions back</h2>
-    <p class="tagline">A typed <code>NumExpr</code> crosses the seam; Julia hands back
-      derivatives, proofs, and optima the description never contained.</p>
-    <div class="cards">
       <a class="card" href="differentiation.html">
         <h3>Exact differentiation</h3>
         <p>Julia differentiates the expression symbolically and hands back the chain rule, typeset — never written by hand.</p>
@@ -125,10 +131,28 @@
     </div>
   </section>
 
+  <section class="colophon">
+    <h2>The unglamorous part</h2>
+    <p>
+      Underneath is <strong>purejl</strong>, a from-scratch PureScript→Julia backend.
+      It consumes CoreFn — the compiler's fully-elaborated core — so the whole
+      language arrives by construction: typeclasses, row types, ADTs, the works
+      (the row-typed <code>SystemSpec</code> machinery above is RowList-driven
+      typeclass derivation, running on Julia). Core-library coverage: <strong>50
+      built-in FFI shims</strong> (prelude, arrays incl. ST, strings, records,
+      integers, numbers, …; <code>Data.String.Regex</code> is a deliberate
+      loud-failure stub). Verified by differential testing against the JS backend
+      as reference semantics: <strong>422 of 426 outputs byte-identical</strong>,
+      the other 4 documented representation choices (UTF-16 code units vs.
+      codepoints).
+    </p>
+    <p>The glamorous part is what it lets you mean.</p>
+  </section>
+
   <footer>
-    Jurist — a PureScript→Julia backend (purejl). Every left-hand pane is the real
-    eDSL source from the example; every right-hand pane is data computed by the
-    Julia (or Node/BEAM) runtime and committed with the example. ADR-0007.
+    Every left-hand pane on these pages is the real eDSL source from the example;
+    every right-hand pane is data computed by the Julia (or Node/BEAM) runtime and
+    committed with the example. ADR-0007.
   </footer>
 </div>
 </body>

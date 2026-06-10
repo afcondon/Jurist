@@ -340,5 +340,7 @@ main = do
     )
     (equations lorenz)
   let json = "{\"items\":" <> jArrRaw ([ scItem ] <> lzItems) <> "}"
-  writeText "derivatives.json" json
-  log ("wrote derivatives.json (" <> show (1 + Array.length lzItems) <> " items) for the KaTeX page")
+  -- Emit a JS global the KaTeX page reads via a <script> tag, so it opens under
+  -- file:// with no server (a fetch() of local JSON is blocked cross-origin).
+  writeText "derivatives.js" ("window.DERIVATIVES = " <> json <> ";\n")
+  log ("wrote derivatives.js (" <> show (1 + Array.length lzItems) <> " items) for the KaTeX page")

@@ -63,6 +63,10 @@
   </footer>
 </div>
 
+<!-- The Julia backend (increment 5) writes this: `window.DERIVATIVES = {…}`.
+     A plain <script> include works under file:// (no server needed), unlike
+     fetch() of a local JSON, which the browser blocks as cross-origin. -->
+<script src="derivatives.js"></script>
 <script>
   const sub = (s) => (s || "").replace(/~/g, " ");
   function tex(target, latex, opts) {
@@ -99,10 +103,12 @@
     }
   }
   window.addEventListener("DOMContentLoaded", () => {
-    fetch("derivatives.json")
-      .then((r) => r.json())
-      .then(render)
-      .catch((e) => { document.getElementById("items").textContent = "Failed to load derivatives.json: " + e; });
+    if (window.DERIVATIVES) {
+      render(window.DERIVATIVES);
+    } else {
+      document.getElementById("items").textContent =
+        "derivatives.js not found — run the Julia backend (increment 5) to generate it.";
+    }
   });
 </script>
 </body>

@@ -108,12 +108,14 @@ computation; results return as handles (`Compiled`, `Field`, `MTKField`/`Solutio
 
 ## Frontend (`diff-viz/`) — the typeset derivatives
 
-After the Julia run writes `derivatives.json` (increment 5), a static KaTeX page
-renders the expressions and their symbolic gradients at publication quality:
+After the Julia run writes `derivatives.js` (increment 5), a static KaTeX page
+renders the expressions and their symbolic gradients at publication quality —
+**no server needed**, the data is a `window.DERIVATIVES` global pulled in by a
+`<script>` tag (a `fetch()` of local JSON would be blocked under `file://`):
 
 ```bash
-cp julia/derivatives.json diff-viz/        # the increment-5 output
-cd diff-viz && python3 -m http.server 4179 # http://127.0.0.1:4179
+cp julia/derivatives.js diff-viz/   # the increment-5 output
+open diff-viz/index.html            # just double-click it
 ```
 
 ## Build & run — Node (the develop-anywhere denotation)

@@ -34,7 +34,7 @@
 <div class="wrap">
   <div class="brand"><a href="index.html">Jurist</a> <span class="sub">demos</span></div>
   <header>
-    <h1>Small typed languages for mathematical things</h1>
+    <h1>small typed languages for mathematical things</h1>
     <p class="thesis">
       Little languages for <strong>dynamical systems, symbolic expressions,
       optimization models, Petri nets, typed graphs</strong> — backed by the
@@ -45,83 +45,6 @@
       and a description that typechecks is a well-formed object of that domain.
     </p>
   </header>
-
-  <p class="interp">
-    Like any well-made eDSL, each admits <strong>more than one interpreter</strong> —
-    and they are not equals:
-  </p>
-
-  <div class="cap">The reference interpreter — plain PureScript, every runtime</div>
-  <div class="igrid">
-    <div class="ibox wide">
-      <code>eval env expr</code>
-      <div class="note">evaluate a <code>NumExpr</code> — the eDSL's reference semantics</div>
-      <span class="chip on">node</span><span class="chip on">beam</span><span class="chip on">julia</span>
-    </div>
-    <div class="ibox wide">
-      <code>integratePure lorenz s0 ps dt n</code>
-      <div class="note">the orbit, by a pure-PureScript RK4 — no FFI anywhere</div>
-      <span class="chip on">node</span><span class="chip on">beam</span><span class="chip on">julia</span>
-    </div>
-  </div>
-
-  <div class="cap">The production interpreters — the same descriptions, given more meaning</div>
-  <div class="igrid">
-    <div class="ibox">
-      <code>jacobianSource mtk</code>
-      <div class="note">analytic Jacobian — ModelingToolkit</div>
-      <span class="chip">node</span><span class="chip">beam</span><span class="chip jl">julia</span>
-    </div>
-    <div class="ibox">
-      <code>solveDAE dp s0 a0 ps 0.0 20.0</code>
-      <div class="note">index-1 DAE, implicit stiff solve — ModelingToolkit</div>
-      <span class="chip">node</span><span class="chip">beam</span><span class="chip jl">julia</span>
-    </div>
-    <div class="ibox">
-      <code>gradientLatex vars vars f</code>
-      <div class="note">exact ∂f/∂xᵢ, typeset — Symbolics · Latexify</div>
-      <span class="chip def">node</span><span class="chip def">beam</span><span class="chip jl">julia</span>
-    </div>
-    <div class="ibox">
-      <code>provenRoots "x" lo hi f</code>
-      <div class="note">root enclosures, proven complete — IntervalRootFinding</div>
-      <span class="chip def">node</span><span class="chip def">beam</span><span class="chip jl">julia</span>
-    </div>
-    <div class="ibox">
-      <code>knapsack weights values cap</code>
-      <div class="note">global optimum, proven — JuMP · HiGHS</div>
-      <span class="chip">node</span><span class="chip">beam</span><span class="chip jl">julia</span>
-    </div>
-    <div class="ibox">
-      <code>odeLaws sir</code>
-      <div class="note">mass-action ODEs, by functor — AlgebraicPetri</div>
-      <span class="chip">node</span><span class="chip">beam</span><span class="chip jl">julia</span>
-    </div>
-    <div class="ibox">
-      <code>matches depGraph motif</code>
-      <div class="note">homomorphism search — Catlab</div>
-      <span class="chip">node</span><span class="chip">beam</span><span class="chip jl">julia</span>
-    </div>
-    <div class="ibox">
-      <code>moduleGraph codeGraph</code>
-      <div class="note">Δ data migration — Catlab</div>
-      <span class="chip">node</span><span class="chip">beam</span><span class="chip jl">julia</span>
-    </div>
-  </div>
-
-  <p class="chipnote">
-    <span class="chip on">solid</span> computed on that runtime &nbsp;·&nbsp;
-    <span class="chip def">dashed</span> a typed placeholder: the verb runs and
-    type-checks there, answering <code>Deferred</code> — a description of what the
-    production interpreter will compute — never fake data &nbsp;·&nbsp;
-    <span class="chip">faint</span> not yet stubbed
-  </p>
-
-  <p class="interp">
-    Portability is the development story; the Julia-only interpreters are the
-    reason to deploy. And where two runtimes run the <em>same</em> interpreter,
-    they agree to the last float — the receipts open the gallery below.
-  </p>
 
   <p class="toc"><!-- TOC --></p>
 

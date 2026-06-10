@@ -20,11 +20,12 @@
   <header>
     <h1>One description, three runtimes</h1>
     <p class="why">
-      The Lorenz system, described once as a <strong>row-typed value</strong> — a misspelt
-      field is a compile error. The same description runs through the same pure
-      RK4 (<code>integratePure</code>, no FFI) on <strong>Node, the BEAM, and Julia</strong> —
-      and the orbits agree <strong>byte for byte</strong>. Develop anywhere; deploy to the
-      runtime with the native solvers.
+      Where possible the interpreter will run on other runtimes too — but for the
+      Julia-specialty computations, you just write directly in the eDSL using
+      Jurist. An example of something that can run on <strong>Node or the BEAM</strong>
+      as well: the Lorenz butterfly, described once as a <strong>row-typed value</strong>
+      (a misspelt field is a compile error), integrated by the same pure RK4 on
+      all three runtimes — orbits agreeing <strong>byte for byte</strong>:
     </p>
   </header>
 

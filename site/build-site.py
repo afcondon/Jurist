@@ -26,9 +26,7 @@ HERE = Path(__file__).parent
 ORDER = [
     ("lorenz", None),
     ("pendulum",
-     ("What the Julia interpreter buys you",
-      "The same typed value, given its most powerful meaning: solvers and "
-      "proofs structurally out of reach for JS, WASM, or scipy.")),
+     ("Stuff you can't easily do on other runtimes", None)),
     ("differentiation", None),
     ("roots", None),
     ("optimization", None),
@@ -99,9 +97,9 @@ def section_html(ex):
 
 
 def tier_html(title, tagline):
+    tag = f"\n    <p class=\"tagline\">{tagline}</p>" if tagline else ""
     return f"""  <div class="tierhead">
-    <h2>{title}</h2>
-    <p class="tagline">{tagline}</p>
+    <h2>{title}</h2>{tag}
   </div>
 """
 

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Provably optimal — PureScript describes, Julia proves the best</title>
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #6b6b6b; --rule: #e3e3e3; --faint: #f0efeb;
+    --accent: #b4341f; --accent-bg: #fbeae6; --paper: #fbfbf9; --good: #1f7a4d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); }
+  body { font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 64px 32px 96px; }
+  header { border-bottom: 2px solid var(--ink); padding-bottom: 20px; margin-bottom: 8px; }
+  h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 10px; }
+  .lede { color: var(--muted); font-size: 15px; max-width: 62ch; margin: 0; }
+  .lede strong { color: var(--ink); font-weight: 600; }
+  code { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 0.92em; }
+  .solution { padding: 30px 0; border-bottom: 1px solid var(--rule); }
+  .solution h2 { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0 0 16px; display: flex; align-items: center; gap: 10px; }
+  .solution.best h2 { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 620px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  .card { border: 1.5px solid var(--rule); border-radius: 8px; padding: 14px 12px; background: #fff; opacity: 0.5; transition: none; }
+  .card.sel { opacity: 1; border-color: var(--accent); background: var(--accent-bg); }
+  .card .name { font-weight: 600; font-size: 15px; }
+  .card .stats { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .card.sel .stats { color: var(--ink); }
+  .summary { margin-top: 16px; font-size: 14.5px; display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
+  .summary .val { font-size: 22px; font-weight: 700; }
+  .summary .val .unit { font-size: 13px; font-weight: 500; color: var(--muted); }
+  .best .summary .val { color: var(--accent); }
+  .cap { color: var(--muted); font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 13px; }
+  .badge { display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #fff; background: var(--accent); border-radius: 3px; padding: 2px 7px; }
+  .verdict { margin-top: 28px; font-size: 16px; }
+  .verdict strong { color: var(--accent); }
+  footer { margin-top: 36px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Provably optimal</h1>
+    <p class="lede">
+      A 0/1 knapsack — pick items to maximize value without exceeding the weight
+      budget — <strong>described once in PureScript</strong> and handed to Julia's
+      <strong>JuMP/HiGHS</strong> mixed-integer solver. The obvious <em>greedy</em>
+      heuristic (computed in pure PureScript) grabs the best value-per-weight item
+      and stalls. The solver doesn't guess — its branch-and-bound <strong>proves
+      the global optimum</strong>, closing the gap to zero. There is no MILP solver
+      in the JS/WASM world to hand a model to.
+    </p>
+  </header>
+  <main id="root"></main>
+  <footer>
+    PureScript <code>Data.Optimize</code> → Julia <code>JuMP</code> /
+    <code>HiGHS</code>. Jurist Tier-2 eDSL (ADR-0007).
+  </footer>
+</div>
+
+<script src="optimize.js"></script>
+<script>
+  const num = (v) => (Math.round(v * 100) / 100).toString();
+  function grid(items, mask) {
+    const g = document.createElement("div"); g.className = "grid";
+    items.forEach((it, i) => {
+      const c = document.createElement("div");
+      c.className = "card" + (mask[i] === 1 ? " sel" : "");
+      const nm = document.createElement("div"); nm.className = "name"; nm.textContent = it.name;
+      const st = document.createElement("div"); st.className = "stats";
+      st.textContent = `weight ${num(it.weight)} · value ${num(it.value)}`;
+      c.append(nm, st); g.appendChild(c);
+    });
+    return g;
+  }
+  function usedWeight(items, mask) { return items.reduce((s, it, i) => s + (mask[i] === 1 ? it.weight : 0), 0); }
+
+  function solution(title, items, cap, mask, value, opts) {
+    const sec = document.createElement("section");
+    sec.className = "solution" + (opts && opts.best ? " best" : "");
+    const h = document.createElement("h2"); h.textContent = title;
+    if (opts && opts.badge) { const b = document.createElement("span"); b.className = "badge"; b.textContent = opts.badge; h.appendChild(b); }
+    sec.appendChild(h);
+    sec.appendChild(grid(items, mask));
+    const sum = document.createElement("div"); sum.className = "summary";
+    const v = document.createElement("div"); v.className = "val";
+    v.innerHTML = `${num(value)} <span class="unit">total value</span>`;
+    const w = document.createElement("div"); w.className = "cap";
+    w.textContent = `weight ${num(usedWeight(items, mask))} / ${num(cap)} budget`;
+    sum.append(v, w); sec.appendChild(sum);
+    return sec;
+  }
+
+  function render(d) {
+    const root = document.getElementById("root");
+    root.appendChild(solution("Greedy heuristic", d.items, d.capacity, d.greedy.mask, d.greedy.value, {}));
+    root.appendChild(solution("Provably optimal (HiGHS MILP)", d.items, d.capacity, d.optimal.mask, d.optimal.value,
+      { best: true, badge: d.optimal.optimal ? "proven · gap 0" : "not proven" }));
+    const gain = d.optimal.value - d.greedy.value;
+    const vd = document.createElement("p"); vd.className = "verdict";
+    vd.innerHTML = `The greedy heuristic leaves <strong>${num(gain)}</strong> of value on the table — ` +
+      `it can't know that without searching. HiGHS proved <strong>${num(d.optimal.value)}</strong> is the true maximum.`;
+    root.appendChild(vd);
+  }
+
+  window.addEventListener("DOMContentLoaded", () => {
+    if (window.OPTIMIZE) render(window.OPTIMIZE);
+    else document.getElementById("root").textContent = "optimize.js not found — run the Julia backend (increment 7) to generate it.";
+  });
+</script>
+</body>
+</html>

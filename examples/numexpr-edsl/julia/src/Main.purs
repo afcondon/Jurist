@@ -20,7 +20,7 @@ module Main where
 
 import Prelude
 
-import Data.Array (concat, elemIndex, index, length, range, take, zipWith, (!!)) as Array
+import Data.Array (concat, drop, elemIndex, index, length, range, take, zipWith, (!!)) as Array
 import Data.Foldable (foldl, sum)
 import Data.Int (toNumber)
 import Data.Maybe (fromMaybe)
@@ -33,6 +33,7 @@ import Data.Differentiate (exprLatex, gradientLatex, writeText)
 import Data.MTKSystem (buildField, equationsSource, finalState, jacobianSource, maxComponent, solve) as MTK
 import Data.NumExpr (NumExpr, divide, eval, logE, num, pow, render, sinE, var)
 import Data.NumExpr.Julia (compile, evalBatch)
+import Data.Optimize (greedyValue, knapsack)
 import Data.Roots (provenRoots, sampleCurve)
 import Data.SystemSpec (SystemSpec, equations, integratePure, paramVars, stateVars, system)
 import Data.SystemSpec.Julia (compileField, integrate)
@@ -397,3 +398,39 @@ main = do
     rootCases
   writeText "roots.js" ("window.ROOTS = {\"items\":" <> jArrRaw rootItems <> "};\n")
   log ("wrote roots.js (" <> show (Array.length rootItems) <> " items) for the roots page")
+
+  log "\n== increment 7: provably-optimal MILP (JuMP + HiGHS) vs the greedy heuristic =="
+  -- A 0/1 knapsack where greedy is myopic: it grabs the shiniest item (Telescope,
+  -- best value/weight) and then can't fit Camera+Tripod, which together are
+  -- worth more. PureScript computes the greedy answer; Julia PROVES the optimum.
+  let
+    items =
+      [ { name: "Telescope", w: 6.0, v: 12.0 }
+      , { name: "Camera", w: 5.0, v: 9.0 }
+      , { name: "Tripod", w: 5.0, v: 9.0 }
+      , { name: "Drone", w: 7.0, v: 8.0 }
+      ]
+    weights = map _.w items
+    values = map _.v items
+    cap = 10.0
+    greedy = greedyValue weights values cap
+  opt <- knapsack weights values cap
+  let
+    optObj = fromMaybe 0.0 (opt Array.!! 0)
+    optGap = fromMaybe 0.0 (opt Array.!! 1)
+    optFlag = fromMaybe 0.0 (opt Array.!! 2) == 1.0
+    optMask = Array.drop 3 opt
+    itemJson it =
+      "{\"name\":" <> jStr it.name <> ",\"weight\":" <> show it.w <> ",\"value\":" <> show it.v <> "}"
+    optimizeJson =
+      "{\"capacity\":" <> show cap
+        <> ",\"items\":" <> jArrRaw (map itemJson items)
+        <> ",\"greedy\":{\"value\":" <> show greedy.value <> ",\"mask\":" <> jNumArr greedy.mask <> "}"
+        <> ",\"optimal\":{\"value\":" <> show optObj
+        <> ",\"gap\":" <> show optGap
+        <> ",\"optimal\":" <> (if optFlag then "true" else "false")
+        <> ",\"mask\":" <> jNumArr optMask <> "}}"
+  log ("  greedy heuristic value:  " <> show greedy.value)
+  log ("  proven optimal value:    " <> show optObj <> "  (optimal=" <> show optFlag <> ", gap=" <> show optGap <> ")")
+  writeText "optimize.js" ("window.OPTIMIZE = " <> optimizeJson <> ";\n")
+  log "wrote optimize.js for the optimization page"

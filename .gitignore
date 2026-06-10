@@ -50,6 +50,8 @@ examples/numexpr-edsl/julia/derivatives.js
 examples/numexpr-edsl/julia/derivatives.json
 # Tier-2 increment-6 roots output (reproducible; committed copy lives in roots-viz/)
 examples/numexpr-edsl/julia/roots.js
+# Tier-2 increment-7 optimization output (reproducible; committed copy in opt-viz/)
+examples/numexpr-edsl/julia/optimize.js
 
 # LSP ide-server port file
 .psc-ide-port

@@ -110,6 +110,15 @@ the Node and BEAM runs (same `lorenz`, maxZ ≈ 47.834 on all three pure runtime
    (including `x²+1`, proven to have *none*), writing `roots.js` for a page
    (`roots-viz/`) that plots each curve with its proven roots marked.
 
+7. **`Data.Optimize`** (julia) — **provably-optimal optimization**. Hand a typed
+   0/1 knapsack to Julia's `JuMP`/`HiGHS` mixed-integer solver; its
+   branch-and-bound returns the optimal selection *and the proof* (status
+   OPTIMAL, gap 0). The pure-PureScript `greedyValue` baseline shows why it
+   matters — greedy grabs the best value/weight item and stalls, leaving value on
+   the table. `Main` writes `optimize.js` for `opt-viz/`, which shows greedy vs
+   the proven optimum side by side. There is no MILP solver in the JS/WASM world
+   to hand a model to.
+
 The seam is identical across the Julia denotations (ADR-0007, "descriptions
 across, handles back"): PureScript hands over a typed description; Julia owns the
 computation; results return as handles (`Compiled`, `Field`, `MTKField`/`Solution`,
@@ -136,6 +145,17 @@ out. Same `window.ROOTS` global trick — no server needed:
 ```bash
 cp julia/roots.js roots-viz/        # the increment-6 output
 open roots-viz/index.html           # just double-click it
+```
+
+## Frontend (`opt-viz/`) — greedy vs. proven optimal
+
+The increment-7 run writes `optimize.js`; a static page shows the knapsack items,
+the greedy heuristic's pick, and the MILP's proven-optimal pick side by side.
+Same `window.OPTIMIZE` global — no server:
+
+```bash
+cp julia/optimize.js opt-viz/        # the increment-7 output
+open opt-viz/index.html              # just double-click it
 ```
 
 ## Build & run — Node (the develop-anywhere denotation)

@@ -201,11 +201,17 @@ The thin-skin seam demo: PS contract + Julia RK4 numerics in a user
 
 ### The demo site — `site/`
 
-A static gallery (`site/index.html`) that gathers every example and, per
-page, **counterposes the PureScript eDSL you write against what Julia
-computes from it** — input | output, side by side. Opens straight from the
-filesystem (no server): all data is committed as `window.*` script globals
-under `site/data/`, copied from each example's `*-viz/` output. The Lorenz
+A static gallery that **counterposes the PureScript eDSL you write against
+what Julia computes from it** — input | output, side by side. The home page
+(`site/index.html`) is **one long page with every example inlined** — few
+people ever navigate a site fully — and is GENERATED: the standalone pages
+(`lorenz.html`, `pendulum.html`, …) are the source of truth; edit those (or
+`partials/` for the landing copy and colophon) and re-run
+`python3 site/build-site.py`, which scopes each page's CSS, prefixes its DOM
+ids, and IIFE-wraps its render script so nine sections coexist. Everything
+opens straight from the filesystem (no server): all data is committed as
+`window.*` script globals under `site/data/`, copied from each example's
+`*-viz/` output. The Lorenz
 page's receipts (maxZ bit-identical on Node / BEAM / Julia) and its plotted
 orbit are real runs — the orbit is dumped by
 `examples/numexpr-edsl/node/src/DumpOrbit.purs`, i.e. computed by

@@ -1,0 +1,27 @@
+  <section class="colophon">
+    <h2>The unglamorous part</h2>
+    <p>
+      Underneath is <strong>purejl</strong>, a from-scratch PureScript→Julia backend.
+      It consumes CoreFn — the compiler's fully-elaborated core — so the whole
+      language arrives by construction: typeclasses, row types, ADTs, the works
+      (the row-typed <code>SystemSpec</code> machinery above is RowList-driven
+      typeclass derivation, running on Julia). Core-library coverage: <strong>50
+      built-in FFI shims</strong> (prelude, arrays incl. ST, strings, records,
+      integers, numbers, …; <code>Data.String.Regex</code> is a deliberate
+      loud-failure stub). Verified by differential testing against the JS backend
+      as reference semantics: <strong>422 of 426 outputs byte-identical</strong>,
+      the other 4 documented representation choices (UTF-16 code units vs.
+      codepoints).
+    </p>
+    <p>The glamorous part is what it lets you mean.</p>
+  </section>
+
+  <footer>
+    Every left-hand pane above is the real eDSL source from its example; every
+    right-hand pane is data computed by the Julia (or Node/BEAM) runtime and
+    committed with the example. Each section also exists as a standalone,
+    shareable page — the §&nbsp;links. ADR-0007.
+  </footer>
+</div>
+</body>
+</html>

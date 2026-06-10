@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jurist — small typed languages for mathematical things</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous" />
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="jurist.css" />
+<style>
+  .interp { color:var(--muted); font-size:15.5px; max-width:66ch; margin:26px 0 0; }
+  .interp strong { color:var(--ink); font-weight:600; }
+  .colophon { margin-top:72px; border-top:2px solid var(--ink); padding-top:20px; }
+  .colophon h2 { font-size:13px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin:0 0 10px; }
+  .colophon p { color:var(--muted); font-size:14.5px; max-width:70ch; margin:0 0 12px; }
+  .colophon strong { color:var(--ink); font-weight:600; }
+<!-- SECTION-STYLES -->
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><a href="index.html">Jurist</a> <span class="sub">demos</span></div>
+  <header>
+    <h1>Small typed languages for mathematical things</h1>
+    <p class="thesis">
+      Little languages for <strong>dynamical systems, symbolic expressions,
+      optimization models, Petri nets, typed graphs</strong> — with the Julia
+      scientific ecosystem as their production semantics. Each is a handful of
+      PureScript types: cheap to mint, one per domain, and a description that
+      typechecks is a well-formed object of that domain.
+    </p>
+  </header>
+
+  <p class="interp">
+    Like any well-made eDSL, each admits <strong>more than one interpreter</strong> —
+    and they are not equals. The <strong>reference interpreter</strong> is plain
+    PureScript, so it runs wherever PureScript runs: prototype on Node or the
+    BEAM and check the description does what you mean. Julia runs that same
+    reference interpreter too — byte-identically, in the receipts just below —
+    but it also has interpreters <strong>no other runtime can offer</strong>:
+    analytic Jacobians and stiff/DAE solvers, rigorously proven roots and optima,
+    dynamics derived functorially from category theory. Portability is the
+    development story; the Julia-only interpreters are the reason to deploy.
+  </p>
+
+  <p class="toc"><!-- TOC --></p>
+
+<!-- SECTIONS -->

@@ -1,0 +1,21 @@
+package:
+  name: catlab-patterns
+  description: >
+    Tier-3 (Catlab / ACSets): structural pattern-finding by homomorphism search.
+    A module dependency graph + patterns (circular / mutual dependency, diamond)
+    described in PureScript; Catlab finds every occurrence. Self-contained purejl
+    workspace with its own (Catlab-only) julia-env.
+  dependencies:
+    - prelude
+    - effect
+    - console
+    - arrays
+    - maybe
+    - tuples
+    - strings
+    - foldable-traversable
+workspace:
+  packageSet:
+    registry: 57.1.0
+  backend:
+    cmd: "true"

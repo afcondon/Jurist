@@ -56,6 +56,8 @@ examples/numexpr-edsl/julia/optimize.js
 examples/petri-catlab/petri.js
 # Tier-3 catlab-patterns output (reproducible; committed copy in pattern-viz/)
 examples/catlab-patterns/patterns.js
+# Tier-3 catlab-schema output (reproducible; committed copy in schema-viz/)
+examples/catlab-schema/schema.js
 
 # LSP ide-server port file
 .psc-ide-port

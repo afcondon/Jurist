@@ -165,6 +165,29 @@ Status is **Proposed** because only Tier 1 is built; Tier 2+ will promote it.
 > irreducible machine math behind a uniform interface, the textbook use of FFI.
 > Lorenz invokes none of them, so the cross-runtime agreement is exact regardless.
 
+> **Progress (2026-06-10): "descriptions *back*" — two Julia-only demos on the
+> same eDSL.** The doctrine's return half is usually a *handle* to Julia-owned
+> data; these two increments show the richer case where what crosses back is
+> itself a *description* or a *certificate*, computed by a Julia library the JS /
+> WASM backends have no equivalent of.
+> - **Increment 5 — differentiation round-trip** (`Data.Differentiate`). Hand a
+>   `NumExpr` across; Julia binds its variables to Symbolics scalars,
+>   differentiates symbolically, and returns the derivative **as LaTeX**
+>   (`Latexify`) — the chain rule and fractions typeset, never written in
+>   PureScript. A KaTeX page (`diff-viz/`) renders the showpiece gradient and the
+>   Lorenz analytic Jacobian.
+> - **Increment 6 — rigorous root finding** (`Data.Roots`). Hand a single-variable
+>   `NumExpr` to `IntervalRootFinding`; it returns **proven** root enclosures, each
+>   certified unique, the search exhaustive (none missed) — and "no roots" is
+>   itself a proof. The same JExpr becomes a single-var RGF that runs on Float64
+>   *and*, because IntervalArithmetic overloads the ops, rigorously on a *box*.
+>   `roots-viz/` plots each curve with its proven roots; `x²+1` proven to have none
+>   is the discriminator a `scipy`/JS solver can't produce.
+>
+> Both are the un-dismissable case (memory `demos-must-be-undismissable`): the
+> *substance* — symbolic differentiation, validated numerics — is the only-Julia
+> part, while the presentation (KaTeX) is deliberately good-enough, not gold-plated.
+
 ## Consequences
 
 - Tier 1 is implemented and verified — `examples/st-number-vector`

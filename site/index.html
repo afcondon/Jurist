@@ -9,8 +9,21 @@
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="jurist.css" />
 <style>
+  .subthesis { color:var(--faint); font-size:13.5px; max-width:64ch; margin:10px 0 0; }
   .interp { color:var(--muted); font-size:15.5px; max-width:66ch; margin:26px 0 0; }
   .interp strong { color:var(--ink); font-weight:600; }
+  .igrid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  @media (max-width:860px){ .igrid { grid-template-columns:repeat(2,1fr); } }
+  .ibox { border:1px solid var(--rule); border-radius:8px; background:#fff; padding:11px 13px; min-width:0; }
+  .ibox.wide { grid-column:span 2; }
+  .ibox code { font-size:11.5px; display:block; color:var(--ink); white-space:nowrap; overflow-x:auto; }
+  .ibox .note { font-size:11.5px; color:var(--faint); margin:4px 0 9px; }
+  .chip { display:inline-block; font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:10px; letter-spacing:0.04em; border:1px dashed #ddddd8; border-radius:3px; padding:1px 6px; margin-right:4px; color:#c8c8c4; }
+  .chip.on { border:1px solid var(--ink); border-style:solid; color:var(--ink); }
+  .chip.jl { border-color:var(--accent); color:var(--accent); font-weight:600; }
+  .chip.def { border:1px dashed var(--muted); color:var(--muted); }
+  .chipnote { font-size:12px; color:var(--faint); max-width:72ch; margin:14px 0 0; }
+  .chipnote code { color:var(--muted); }
   .colophon { margin-top:72px; border-top:2px solid var(--ink); padding-top:20px; }
   .colophon h2 { font-size:13px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin:0 0 10px; }
   .colophon p { color:var(--muted); font-size:14.5px; max-width:70ch; margin:0 0 12px; }
@@ -111,23 +124,90 @@
     <h1>Small typed languages for mathematical things</h1>
     <p class="thesis">
       Little languages for <strong>dynamical systems, symbolic expressions,
-      optimization models, Petri nets, typed graphs</strong> — with the Julia
-      scientific ecosystem as their production semantics. Each is a handful of
-      PureScript types: cheap to mint, one per domain, and a description that
-      typechecks is a well-formed object of that domain.
+      optimization models, Petri nets, typed graphs</strong> — backed by the
+      Julia scientific ecosystem as their production semantics.
+    </p>
+    <p class="subthesis">
+      Each is a handful of PureScript types: cheap to mint, one per domain,
+      and a description that typechecks is a well-formed object of that domain.
     </p>
   </header>
 
   <p class="interp">
     Like any well-made eDSL, each admits <strong>more than one interpreter</strong> —
-    and they are not equals. The <strong>reference interpreter</strong> is plain
-    PureScript, so it runs wherever PureScript runs: prototype on Node or the
-    BEAM and check the description does what you mean. Julia runs that same
-    reference interpreter too — byte-identically, in the receipts just below —
-    but it also has interpreters <strong>no other runtime can offer</strong>:
-    analytic Jacobians and stiff/DAE solvers, rigorously proven roots and optima,
-    dynamics derived functorially from category theory. Portability is the
-    development story; the Julia-only interpreters are the reason to deploy.
+    and they are not equals:
+  </p>
+
+  <div class="cap">The reference interpreter — plain PureScript, every runtime</div>
+  <div class="igrid">
+    <div class="ibox wide">
+      <code>eval env expr</code>
+      <div class="note">evaluate a <code>NumExpr</code> — the eDSL's reference semantics</div>
+      <span class="chip on">node</span><span class="chip on">beam</span><span class="chip on">julia</span>
+    </div>
+    <div class="ibox wide">
+      <code>integratePure lorenz s0 ps dt n</code>
+      <div class="note">the orbit, by a pure-PureScript RK4 — no FFI anywhere</div>
+      <span class="chip on">node</span><span class="chip on">beam</span><span class="chip on">julia</span>
+    </div>
+  </div>
+
+  <div class="cap">The production interpreters — the same descriptions, given more meaning</div>
+  <div class="igrid">
+    <div class="ibox">
+      <code>jacobianSource mtk</code>
+      <div class="note">analytic Jacobian — ModelingToolkit</div>
+      <span class="chip">node</span><span class="chip">beam</span><span class="chip jl">julia</span>
+    </div>
+    <div class="ibox">
+      <code>solveDAE dp s0 a0 ps 0.0 20.0</code>
+      <div class="note">index-1 DAE, implicit stiff solve — ModelingToolkit</div>
+      <span class="chip">node</span><span class="chip">beam</span><span class="chip jl">julia</span>
+    </div>
+    <div class="ibox">
+      <code>gradientLatex vars vars f</code>
+      <div class="note">exact ∂f/∂xᵢ, typeset — Symbolics · Latexify</div>
+      <span class="chip def">node</span><span class="chip def">beam</span><span class="chip jl">julia</span>
+    </div>
+    <div class="ibox">
+      <code>provenRoots "x" lo hi f</code>
+      <div class="note">root enclosures, proven complete — IntervalRootFinding</div>
+      <span class="chip def">node</span><span class="chip def">beam</span><span class="chip jl">julia</span>
+    </div>
+    <div class="ibox">
+      <code>knapsack weights values cap</code>
+      <div class="note">global optimum, proven — JuMP · HiGHS</div>
+      <span class="chip">node</span><span class="chip">beam</span><span class="chip jl">julia</span>
+    </div>
+    <div class="ibox">
+      <code>odeLaws sir</code>
+      <div class="note">mass-action ODEs, by functor — AlgebraicPetri</div>
+      <span class="chip">node</span><span class="chip">beam</span><span class="chip jl">julia</span>
+    </div>
+    <div class="ibox">
+      <code>matches depGraph motif</code>
+      <div class="note">homomorphism search — Catlab</div>
+      <span class="chip">node</span><span class="chip">beam</span><span class="chip jl">julia</span>
+    </div>
+    <div class="ibox">
+      <code>moduleGraph codeGraph</code>
+      <div class="note">Δ data migration — Catlab</div>
+      <span class="chip">node</span><span class="chip">beam</span><span class="chip jl">julia</span>
+    </div>
+  </div>
+
+  <p class="chipnote">
+    <span class="chip on">solid</span> computed on that runtime &nbsp;·&nbsp;
+    <span class="chip def">dashed</span> a typed placeholder: the verb runs and
+    type-checks there, answering <code>Deferred</code> — a description of what the
+    production interpreter will compute — never fake data &nbsp;·&nbsp;
+    <span class="chip">faint</span> not yet stubbed
+  </p>
+
+  <p class="interp">
+    Portability is the development story; the Julia-only interpreters are the
+    reason to deploy. And where two runtimes run the <em>same</em> interpreter,
+    they agree to the last float — the receipts open the gallery below.
   </p>
 
   <p class="toc"><a href="#ex-lorenz">lorenz</a> · <a href="#ex-pendulum">pendulum</a> · <a href="#ex-differentiation">differentiation</a> · <a href="#ex-roots">roots</a> · <a href="#ex-optimization">optimization</a> · <a href="#ex-petri">petri</a> · <a href="#ex-patterns">patterns</a> · <a href="#ex-schema">schema</a> · <a href="#ex-migration">migration</a></p>

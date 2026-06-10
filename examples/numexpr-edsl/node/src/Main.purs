@@ -27,6 +27,7 @@ import Data.NumExpr (NumExpr)
 import Data.SystemSpec (SystemSpec, integratePure, paramVars, stateVars, system)
 import Effect (Effect)
 import Effect.Console (log)
+import VerbsDemo (run) as VerbsDemo
 
 -- The same row-typed Lorenz system as the Julia workspace's `Main` — a misspelt
 -- field (`s.q`) would be a compile error here too. The description is identical;
@@ -62,3 +63,4 @@ main = do
   log ("maxZ (pure-PS RK4, on Node): " <> show maxZ)
   log ("Julia native RK4 reference:  47.834 (julia/ Main, increment 2)")
   log ("attractor in chaotic envelope (40 < maxZ < 55): " <> show sane)
+  VerbsDemo.run

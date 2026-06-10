@@ -209,3 +209,34 @@ Status is **Proposed** because only Tier 1 is built; Tier 2+ will promote it.
 - **A general `mapNum :: (Number -> Number) -> …`.** Rejected for the same
   reason at micro scale; replaced by a vocabulary of fused kernels plus the
   Tier-2 eDSL for the general case.
+
+## Addendum (2026-06-10): `Answer` — the typed IOU for production verbs
+
+The "one description, many denotations" doctrine raised an honest objection:
+why have an interpreter on Node/the BEAM at all if it can't do the powerful
+thing? The answer now in the code (`examples/numexpr-edsl`):
+
+- **`Data.Answer`** (core, FFI-free): `data Answer a = Computed a | Deferred
+  String`. A production verb evaluated where its production interpreter
+  doesn't exist returns a typed IOU — never fake data (an empty array from a
+  stubbed `provenRoots` would be indistinguishable from "proven: no roots",
+  the exact lie the verb exists to prevent). The type forces every host to
+  handle the pending case.
+- **`Data.Verbs`** — the portable verb surface, supplied per workspace
+  (module-level backend selection, the same trick as core's per-backend math
+  shims, one level up). Node/BEAM: every verb answers `Deferred` with a
+  `render` of the description it would consume. Julia: the same signatures
+  wrap the real interpreters (`Data.Differentiate`, `Data.Roots`) in
+  `Computed`.
+- **`VerbsDemo`** — byte-identical module in all three workspaces. Verified
+  2026-06-10: Node and the BEAM print `deferred — ∇[10x² − xy + sin y +
+  log x] …`; Julia prints the real Symbolics gradient and the proven
+  enclosure `[2.0945514815072483, 2.0945514815774047]` (unique) for x³−2x−5.
+
+This recovers the develop-anywhere story honestly: the host (browser/Hylograph,
+BEAM/live-rig, ShapedSteer) holds, type-checks, renders and pipelines the
+description — heavy cells marked pending — and the Julia leaf fills them in.
+`Deferred` is the DAG-node placeholder ShapedSteer wants, arrived early. The
+verb taxonomy this implies: *same answer, cruder* (eval/integrate — real pure
+dummies exist), *guess vs proof* (roots/optima — any runtime can answer, only
+Julia can prove), *no dummy possible* (DAE/stiff — the irreducible core).

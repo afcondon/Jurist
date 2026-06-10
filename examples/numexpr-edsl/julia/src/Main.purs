@@ -39,6 +39,7 @@ import Data.SystemSpec (SystemSpec, equations, integratePure, paramVars, stateVa
 import Data.SystemSpec.Julia (compileField, integrate)
 import Effect (Effect)
 import Effect.Console (log)
+import VerbsDemo (run) as VerbsDemo
 
 -- ── Increment 1: a single staged expression ─────────────────────────────────
 
@@ -434,3 +435,8 @@ main = do
   log ("  proven optimal value:    " <> show optObj <> "  (optimal=" <> show optFlag <> ", gap=" <> show optGap <> ")")
   writeText "optimize.js" ("window.OPTIMIZE = " <> optimizeJson <> ";\n")
   log "wrote optimize.js for the optimization page"
+
+  -- == increment 8: the portable verb surface (Data.Verbs / Data.Answer) ==
+  -- The same VerbsDemo module runs on Node and the BEAM, where these verbs
+  -- answer `Deferred`; here they answer `Computed`.
+  VerbsDemo.run

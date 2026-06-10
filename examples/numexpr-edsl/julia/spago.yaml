@@ -1,0 +1,28 @@
+package:
+  name: numexpr-edsl
+  description: >
+    The Julia (purejl) denotation of the Tier-2 eDSL. Depends on numexpr-core
+    for the backend-agnostic description (NumExpr / SystemSpec / integratePure)
+    and adds the Julia-only modules: NumExpr.Julia + SystemSpec.Julia (native
+    RGF + RK4), MTKSystem (ModelingToolkit), DAESystem (index-1 DAEs). Built
+    with `backend: cmd "true"` so purejl consumes output/ separately; FFI shims
+    live in ffi-jl/.
+  dependencies:
+    - prelude
+    - effect
+    - console
+    - arrays
+    - integers
+    - numbers
+    - maybe
+    - record
+    - tuples
+    - numexpr-core
+workspace:
+  extraPackages:
+    numexpr-core:
+      path: ../core
+  packageSet:
+    registry: 57.1.0
+  backend:
+    cmd: "true"

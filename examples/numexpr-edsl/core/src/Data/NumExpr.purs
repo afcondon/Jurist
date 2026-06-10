@@ -15,10 +15,12 @@
 -- | whole expression crosses *once* as a description, and Julia metaprograms
 -- | it into a native function (`docs/julia-shaped-libraries.md`, ADR-0007).
 -- |
--- | Representation independence (ADR-0002): the Julia shim never destructures
--- | a PureScript `NumExpr`. `toJExpr` folds the AST on the PS side, calling
--- | Julia *builders* (`jAdd`, `jMul`, …) handed in as ordinary functions, so
--- | Julia assembles its own `Expr` — "constructors across, handles back".
+-- | This module is **backend-agnostic** — it holds no `foreign import`s, so it
+-- | compiles on any PureScript backend (JS/Node, the BEAM, purejl). The Julia
+-- | *denotation* of a `NumExpr` (the `JExpr` builders, `compile`, `evalBatch`)
+-- | lives in the companion `Data.NumExpr.Julia`, which folds the AST exported
+-- | here through Julia builders — "constructors across, handles back"
+-- | (ADR-0002), the shim never destructuring a PureScript `NumExpr`.
 module Data.NumExpr
   ( NumExpr(..)
   , UnaryFn(..)
@@ -33,17 +35,12 @@ module Data.NumExpr
   , sqrtE
   , eval
   , render
-  , JExpr
-  , toJExpr
-  , Compiled
-  , compile
-  , evalBatch
+  , fnName
   ) where
 
 import Prelude
 
 import Data.Number as Num
-import Effect (Effect)
 
 -- | The native unary functions the eDSL can stage.
 data UnaryFn = Sin | Cos | Exp | Log | Sqrt
@@ -136,6 +133,9 @@ render expr = case expr of
   where
   bin op a b = "(" <> render a <> " " <> op <> " " <> render b <> ")"
 
+-- | The name each unary function carries on both sides of the seam — the
+-- | `render` pretty-printer and the Julia denotation (`Data.NumExpr.Julia`,
+-- | which splices `fnName f` into the generated Julia lambda) agree on it.
 fnName :: UnaryFn -> String
 fnName = case _ of
   Sin -> "sin"
@@ -143,43 +143,3 @@ fnName = case _ of
   Exp -> "exp"
   Log -> "log"
   Sqrt -> "sqrt"
-
--- | An opaque handle to a Julia-built expression node (a Julia `Expr`).
-foreign import data JExpr :: Type
-
-foreign import jLit :: Number -> JExpr
-foreign import jVar :: String -> JExpr
-foreign import jAdd :: JExpr -> JExpr -> JExpr
-foreign import jSub :: JExpr -> JExpr -> JExpr
-foreign import jMul :: JExpr -> JExpr -> JExpr
-foreign import jDiv :: JExpr -> JExpr -> JExpr
-foreign import jNeg :: JExpr -> JExpr
-foreign import jPow :: JExpr -> JExpr -> JExpr
-foreign import jApp :: String -> JExpr -> JExpr
-
--- | Replay the PS AST through the Julia builders — the single seam crossing.
-toJExpr :: NumExpr -> JExpr
-toJExpr = case _ of
-  Lit n -> jLit n
-  Var s -> jVar s
-  Add a b -> jAdd (toJExpr a) (toJExpr b)
-  Sub a b -> jSub (toJExpr a) (toJExpr b)
-  Mul a b -> jMul (toJExpr a) (toJExpr b)
-  Div a b -> jDiv (toJExpr a) (toJExpr b)
-  Neg a -> jNeg (toJExpr a)
-  Pow a b -> jPow (toJExpr a) (toJExpr b)
-  Ap f a -> jApp (fnName f) (toJExpr a)
-
--- | An opaque handle to a native Julia function compiled from a `JExpr`.
-foreign import data Compiled :: Type
-
--- | Compile a Julia-assembled expression over an ordered variable list into a
--- | native function (Julia metaprogramming: `eval` of a generated lambda).
-foreign import compileJ :: Array String -> JExpr -> Effect Compiled
-
--- | Evaluate the compiled function over a batch of variable-assignment rows.
-foreign import evalBatch :: Compiled -> Array (Array Number) -> Effect (Array Number)
-
--- | Stage a `NumExpr` to a native Julia function: fold to `JExpr`, then compile.
-compile :: Array String -> NumExpr -> Effect Compiled
-compile vars e = compileJ vars (toJExpr e)

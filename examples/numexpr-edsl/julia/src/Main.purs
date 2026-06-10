@@ -27,8 +27,10 @@ import Data.Maybe (fromMaybe)
 import Data.Ord (abs)
 import Data.DAESystem (DAESpec, algVars, buildDAEField, daeSystem, dumpFramesJSON, sampleColumns, simplifiedEquationsSource, solveDAE, stateVars) as DAE
 import Data.MTKSystem (buildField, equationsSource, finalState, jacobianSource, maxComponent, solve) as MTK
-import Data.NumExpr (NumExpr, compile, divide, eval, evalBatch, num, render, sinE, var)
-import Data.SystemSpec (SystemSpec, compileField, integrate, integratePure, paramVars, stateVars, system)
+import Data.NumExpr (NumExpr, divide, eval, num, render, sinE, var)
+import Data.NumExpr.Julia (compile, evalBatch)
+import Data.SystemSpec (SystemSpec, integratePure, paramVars, stateVars, system)
+import Data.SystemSpec.Julia (compileField, integrate)
 import Effect (Effect)
 import Effect.Console (log)
 

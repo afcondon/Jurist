@@ -17,9 +17,17 @@ examples/*/output/
 examples/*/output-jl/
 examples/*/.spago/
 
+# numexpr-edsl is split into per-backend workspaces (core/julia/node), so the
+# build artifacts sit one level deeper than the examples/*/ patterns reach.
+examples/numexpr-edsl/*/output/
+examples/numexpr-edsl/*/output-jl/
+examples/numexpr-edsl/*/.spago/
+examples/numexpr-edsl/node/node_modules/
+
 # Julia env: commit Project.toml (reproducible deps), ignore the huge,
 # Julia-version-pinned Manifest (resolved by `Pkg.instantiate`)
 examples/*/julia-env/Manifest.toml
+examples/numexpr-edsl/julia/julia-env/Manifest.toml
 
 # test-suite
 test-suite/output/
@@ -33,7 +41,7 @@ test-suite/.spago/
 __pycache__/
 
 # Tier-2 increment-4 backend output (reproducible; committed copy lives in viz/public/)
-examples/numexpr-edsl/double-pendulum.json
+examples/numexpr-edsl/julia/double-pendulum.json
 
 # LSP ide-server port file
 .psc-ide-port

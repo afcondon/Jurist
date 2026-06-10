@@ -14,21 +14,24 @@
 -- | ```
 -- |
 -- | The lambdas do *not* build runtime closures — `s.x` is `var "x"`, so each
--- | lambda builds a `NumExpr` AST. The whole vector field crosses the seam
--- | once (the `NumExpr` staging of increment 1) and Julia compiles it into a
--- | native RHS, then integrates it with a native RK4 loop. The state/param
--- | rows flow through `SystemSpec → Field → integrate`, so initial conditions
--- | and parameters must match the system by type, and the alphabetical
--- | RowList order is used consistently on both sides (no positional mixups).
+-- | lambda builds a `NumExpr` AST. The state/param rows flow through
+-- | `SystemSpec → integrate`, so initial conditions and parameters must match
+-- | the system by type, and the alphabetical RowList order is used consistently
+-- | on both sides (no positional mixups).
+-- |
+-- | This module is **backend-agnostic** — it holds no `foreign import`s, so the
+-- | description *and its pure-PureScript denotation* (`integratePure`, a RK4 in
+-- | plain PureScript) compile on any backend (JS/Node, the BEAM, purejl). The
+-- | Julia *production* denotation — compiling the vector field to a native RHS
+-- | and integrating it with a native RK4 (or, in the sibling modules, MTK /
+-- | DAEs) — lives in the companion `Data.SystemSpec.Julia`. One description,
+-- | two denotations (ADR-0007).
 module Data.SystemSpec
   ( SystemSpec
   , system
   , stateVars
   , paramVars
   , equations
-  , Field
-  , compileField
-  , integrate
   , integratePure
   , class MakeVars
   , makeVarsB
@@ -45,10 +48,9 @@ import Prelude
 
 import Data.Array (elemIndex, index, range, scanl, zipWith, (:))
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.NumExpr (JExpr, NumExpr, eval, toJExpr, var)
+import Data.NumExpr (NumExpr, eval, var)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (Tuple(..), snd)
-import Effect (Effect)
 import Prim.Row as Row
 import Prim.RowList (class RowToList, Cons, Nil, RowList)
 import Record as Record
@@ -139,9 +141,6 @@ instance toValuesCons ::
     where
     nameP = Proxy :: Proxy name
 
-toValues :: forall row rl. RowToList row rl => ToValues rl row => Record row -> Array Number
-toValues = toValuesB (Proxy :: Proxy rl)
-
 -- | Relate a `NumExpr`-valued row (the system's state/params) to the
 -- | `Number`-valued row of concrete values with the same labels — so initial
 -- | conditions and parameters stay type-checked against the system while
@@ -181,54 +180,14 @@ system f = SystemSpec
   s = makeVars :: Record state
   p = makeVars :: Record params
 
--- | An opaque handle to a Julia-compiled vector field, carrying the system's
--- | state/param rows as phantoms so `integrate` is type-checked against them.
-foreign import data Field :: Row Type -> Row Type -> Type
-
--- The phantom rows are PS-only (erased at runtime), so the foreign is free to
--- return them polymorphically; `compileField` pins them from the SystemSpec.
-foreign import compileFieldJ
-  :: forall s p. Array String -> Array String -> Array JExpr -> Effect (Field s p)
-
-foreign import integrateJ
-  :: forall s p
-   . Field s p -> Array Number -> Array Number -> Number -> Int -> Effect (Array (Array Number))
-
--- | Compile a system's vector field into native Julia code (once).
-compileField :: forall s p. SystemSpec s p -> Effect (Field s p)
-compileField (SystemSpec r) =
-  compileFieldJ r.stateVars r.paramVars (map (toJExpr <<< snd) r.eqs)
-
--- | Integrate the field with native RK4. Initial conditions and parameters are
--- | records matching the system's rows; values are read in row order so they
--- | line up with the compiled field. Returns the orbit (state per step).
-integrate
-  :: forall state stateRL stateN stateNRL params paramRL paramN paramNRL
-   . RowToList state stateRL
-  => NumberRow stateRL stateN
-  => RowToList stateN stateNRL
-  => ToValues stateNRL stateN
-  => RowToList params paramRL
-  => NumberRow paramRL paramN
-  => RowToList paramN paramNRL
-  => ToValues paramNRL paramN
-  => Field state params
-  -> Record stateN
-  -> Record paramN
-  -> Number
-  -> Int
-  -> Effect (Array (Array Number))
-integrate field s0 ps dt steps =
-  integrateJ field (toValues s0) (toValues ps) dt steps
-
 -- | The **develop-anywhere** denotation of the *same* `SystemSpec`: a pure
 -- | PureScript RK4 that reads the system's `NumExpr` equations and evaluates
 -- | them with the reference interpreter (`Data.NumExpr.eval`) — no FFI, so it
 -- | runs on any backend (JS/Node, the BEAM, …), not just Julia. It is the
--- | dummy/prototyping executor to the Julia `integrate`'s production executor:
--- | one description, two denotations (ADR-0007). The RK4 step order matches
--- | `integrateJ` exactly, so on a non-chaotic horizon the two agree to machine
--- | precision (`Main.purs` cross-checks them).
+-- | dummy/prototyping executor to the production executor `Data.SystemSpec.Julia.integrate`:
+-- | one description, two denotations (ADR-0007). The RK4 step order matches the
+-- | Julia `integrateJ` exactly, so on a non-chaotic horizon the two agree to
+-- | machine precision (the `julia/` and `node/` `Main`s each cross-check it).
 -- |
 -- | It is pure (no `Effect`) — the computation has no side effects; only the
 -- | Julia handle-based path needs `Effect`.

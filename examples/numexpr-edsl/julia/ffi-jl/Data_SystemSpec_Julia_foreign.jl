@@ -1,4 +1,4 @@
-# FFI for Data.SystemSpec — Tier-2 increment 2.
+# FFI for Data.SystemSpec.Julia — Tier-2 increment 2.
 #
 # Compile a system's RHS expressions (already folded to Julia Exprs on the PS
 # side) into native functions over (stateVars..., paramVars...), then integrate

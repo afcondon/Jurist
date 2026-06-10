@@ -11,6 +11,7 @@
             "integers",
             "maybe",
             "numbers",
+            "numexpr-core",
             "prelude",
             "record",
             "tuples"
@@ -530,7 +531,11 @@
         "zipperarray": "2.0.0"
       }
     },
-    "extra_packages": {}
+    "extra_packages": {
+      "numexpr-core": {
+        "path": "../core"
+      }
+    }
   },
   "packages": {
     "arrays": {
@@ -762,6 +767,18 @@
         "functions",
         "maybe",
         "prelude"
+      ]
+    },
+    "numexpr-core": {
+      "type": "local",
+      "path": "../core",
+      "dependencies": [
+        "arrays",
+        "maybe",
+        "numbers",
+        "prelude",
+        "record",
+        "tuples"
       ]
     },
     "orders": {

@@ -48,7 +48,8 @@ module Data.DAESystem
 
 import Prelude
 
-import Data.NumExpr (JExpr, NumExpr, toJExpr)
+import Data.NumExpr (NumExpr)
+import Data.NumExpr.Julia (JExpr, toJExpr)
 import Data.SystemSpec
   ( class CollectEqs
   , class Keys

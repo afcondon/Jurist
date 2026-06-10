@@ -1,4 +1,4 @@
-# FFI for Data.NumExpr — Tier-2 staging (increment 1).
+# FFI for Data.NumExpr.Julia — Tier-2 staging (increment 1).
 #
 # The PS side folds its NumExpr AST through these builders (ADR-0002:
 # constructors handed in, the shim never destructures a PS ADT). Each builder

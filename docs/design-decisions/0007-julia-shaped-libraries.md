@@ -131,6 +131,26 @@ Status is **Proposed** because only Tier 1 is built; Tier 2+ will promote it.
 > FFI/staging overhead, not "Julia vs Python" — that cross-runtime comparison,
 > native specialised RHS vs a per-step `scipy` Python callback, is separate.)
 
+> **Progress (2026-06-10): the description runs on a second runtime — Node.**
+> The doctrine's "develop-anywhere" claim — a typed description carries a
+> *pure* denotation that needs no Julia — is now realised literally in the build
+> graph, not just asserted. `examples/numexpr-edsl` was split into three spago
+> workspaces: a backend-agnostic **`core`** package holding the FFI-free
+> description (`Data.NumExpr` — ADT + `eval`/`render`; `Data.SystemSpec` — the
+> row-typed surface + `integratePure`, a pure-PureScript RK4), and two
+> denotation workspaces that each depend on `core` by path. The Julia foreign
+> imports moved out of the shared modules into companion **`*.Julia`** modules
+> (`Data.NumExpr.Julia`, `Data.SystemSpec.Julia`) in the **`julia/`** workspace
+> (purejl backend, unchanged behaviour). A new **`node/`** workspace depends only
+> on `core` and runs `integratePure` on the **stock JavaScript backend** — no
+> Julia, no FFI: the *same* `lorenz` description integrates to `maxZ
+> 47.833954…`, in the chaotic envelope and matching the Julia native RK4's
+> 47.834. Lorenz's RHS is pure +,−,× (no transcendentals), so the two runtimes
+> run identical IEEE-754 doubles in identical step order — the cross-runtime
+> agreement is exact, not merely close. This is the "same typed API deploys
+> in-process and elsewhere" consequence below, made concrete for a second
+> backend; the BEAM (purerl) denotation is the next increment on the same `core`.
+
 ## Consequences
 
 - Tier 1 is implemented and verified — `examples/st-number-vector`

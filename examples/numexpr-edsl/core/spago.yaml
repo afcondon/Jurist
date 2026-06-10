@@ -1,0 +1,15 @@
+package:
+  name: numexpr-core
+  description: >
+    Backend-agnostic core of the Tier-2 eDSL: the NumExpr precision ADT and the
+    row-typed SystemSpec, plus integratePure (a pure-PureScript RK4). It holds
+    no foreign imports, so it compiles on every PureScript backend — the
+    "one description, many denotations" substrate (ADR-0007). The Julia
+    denotation lives in the julia/ workspace; the JS denotation in node/.
+  dependencies:
+    - prelude
+    - arrays
+    - maybe
+    - numbers
+    - record
+    - tuples

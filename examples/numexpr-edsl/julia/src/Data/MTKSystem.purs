@@ -39,7 +39,7 @@ module Data.MTKSystem
 
 import Prelude
 
-import Data.NumExpr (JExpr, toJExpr)
+import Data.NumExpr.Julia (JExpr, toJExpr)
 import Data.SystemSpec
   ( SystemSpec
   , class NumberRow

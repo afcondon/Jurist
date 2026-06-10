@@ -42,14 +42,16 @@
   </header>
 
   <p class="interp">
-    Like any well-made eDSL, each admits <strong>more than one interpreter</strong>.
-    The same description runs on Node, the BEAM, and Julia — prototype against the
-    pure reference interpreter wherever you already work, check it does what you
-    mean, then hand the <em>identical value</em> to the Julia interpreter, where it
-    gains what only that runtime offers: <strong>analytic Jacobians and stiff/DAE
-    solvers, rigorously proven roots and optima, dynamics derived functorially
-    from category theory</strong>. Same description, same meaning — cross-checked
-    byte for byte:
+    Like any well-made eDSL, each admits <strong>more than one interpreter</strong> —
+    and they are not equals. The <strong>reference interpreter</strong> is plain
+    PureScript, so it runs wherever PureScript runs: prototype on Node or the
+    BEAM and check the description does what you mean. Julia runs that same
+    reference interpreter too — byte-identically, below — but it also has
+    interpreters <strong>no other runtime can offer</strong>: analytic Jacobians and
+    stiff/DAE solvers, rigorously proven roots and optima, dynamics derived
+    functorially from category theory. Portability is the development story;
+    the Julia-only interpreters are the reason to deploy. And where two runtimes
+    run the <em>same</em> interpreter, they agree to the last float:
   </p>
 
   <div class="hero">

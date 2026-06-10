@@ -98,8 +98,17 @@ the Node and BEAM runs (same `lorenz`, maxZ ≈ 47.834 on all three pure runtime
    (`Latexify`) — the chain rule, fractions (`∂/∂x log x = 1/x`) and trig, derived
    and typeset, never written in PureScript. `Main` differentiates a showpiece
    expression and the Lorenz vector field (its analytic Jacobian), writing
-   `derivatives.json` for a KaTeX page (`diff-viz/`). "Descriptions across,
+   `derivatives.js` for a KaTeX page (`diff-viz/`). "Descriptions across,
    *descriptions back*" — what returns is math you can read.
+
+6. **`Data.Roots`** (julia) — **rigorous root finding**. Hand a single-variable
+   `NumExpr` to `IntervalRootFinding`, which doesn't just *find* roots, it
+   **proves** them: each root bracketed in a guaranteed enclosure and certified
+   unique, the search exhaustive so none is missed — and "no roots" is itself a
+   proof. Validated numerics, holding despite floating point; a `scipy`/JS solver
+   gives a number and a prayer. `Main` proves the roots of four functions
+   (including `x²+1`, proven to have *none*), writing `roots.js` for a page
+   (`roots-viz/`) that plots each curve with its proven roots marked.
 
 The seam is identical across the Julia denotations (ADR-0007, "descriptions
 across, handles back"): PureScript hands over a typed description; Julia owns the
@@ -116,6 +125,17 @@ renders the expressions and their symbolic gradients at publication quality —
 ```bash
 cp julia/derivatives.js diff-viz/   # the increment-5 output
 open diff-viz/index.html            # just double-click it
+```
+
+## Frontend (`roots-viz/`) — the proven roots
+
+The increment-6 run writes `roots.js`; a static page (KaTeX + a small SVG plot)
+draws each curve with its rigorously-proven roots marked and the verdict spelled
+out. Same `window.ROOTS` global trick — no server needed:
+
+```bash
+cp julia/roots.js roots-viz/        # the increment-6 output
+open roots-viz/index.html           # just double-click it
 ```
 
 ## Build & run — Node (the develop-anywhere denotation)

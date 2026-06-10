@@ -33,6 +33,7 @@ import Data.Differentiate (exprLatex, gradientLatex, writeText)
 import Data.MTKSystem (buildField, equationsSource, finalState, jacobianSource, maxComponent, solve) as MTK
 import Data.NumExpr (NumExpr, divide, eval, logE, num, pow, render, sinE, var)
 import Data.NumExpr.Julia (compile, evalBatch)
+import Data.Roots (provenRoots, sampleCurve)
 import Data.SystemSpec (SystemSpec, equations, integratePure, paramVars, stateVars, system)
 import Data.SystemSpec.Julia (compileField, integrate)
 import Effect (Effect)
@@ -113,6 +114,28 @@ jArrStr xs = "[" <> joinWith "," (map jStr xs) <> "]"
 -- Join already-encoded JSON fragments (objects) into an array.
 jArrRaw :: Array String -> String
 jArrRaw xs = "[" <> joinWith "," xs <> "]"
+
+-- Numeric JSON arrays (`show` on a Number gives a valid JSON number).
+jNumArr :: Array Number -> String
+jNumArr xs = "[" <> joinWith "," (map show xs) <> "]"
+
+jNumArr2 :: Array (Array Number) -> String
+jNumArr2 xs = "[" <> joinWith "," (map jNumArr xs) <> "]"
+
+-- One root-finding display item: the expression as LaTeX, the search interval,
+-- the sampled curve, and the proven root enclosures (`[lo, hi, unique]` each).
+mkRootItem
+  :: String -> String -> Number -> Number -> String
+  -> Array (Array Number) -> Array (Array Number) -> String
+mkRootItem title vr lo hi expr samples roots =
+  "{\"title\":" <> jStr title
+    <> ",\"var\":" <> jStr vr
+    <> ",\"lo\":" <> show lo
+    <> ",\"hi\":" <> show hi
+    <> ",\"expr\":" <> jStr expr
+    <> ",\"samples\":" <> jNumArr2 samples
+    <> ",\"roots\":" <> jNumArr2 roots
+    <> "}"
 
 -- One display item: a title, the expression as LaTeX, the variables, and the
 -- gradient (one ∂f/∂vᵢ LaTeX string per variable).
@@ -344,3 +367,33 @@ main = do
   -- file:// with no server (a fetch() of local JSON is blocked cross-origin).
   writeText "derivatives.js" ("window.DERIVATIVES = " <> json <> ";\n")
   log ("wrote derivatives.js (" <> show (1 + Array.length lzItems) <> " items) for the KaTeX page")
+
+  log "\n== increment 6: rigorous root finding (IntervalRootFinding) — proofs, not guesses =="
+  -- Hand a single-variable NumExpr across the seam; Julia returns PROVEN root
+  -- enclosures (each certified unique) and the certainty that none were missed —
+  -- something scipy/JS root finders cannot give. Powers written as products so
+  -- interval arithmetic stays valid over negative x (xⁿ via float pow would need
+  -- x > 0). The `x² + 1` case proves *no* real roots exist.
+  let
+    x = var "x"
+    rootCases =
+      [ { title: "x³ − 2x − 5", lo: -3.0, hi: 3.0
+        , e: x * x * x - num 2.0 * x - num 5.0 }
+      , { title: "sin x − x∕3  (three crossings)", lo: -6.0, hi: 6.0
+        , e: sinE x - divide x (num 3.0) }
+      , { title: "x² + 1  — proven to have no real roots", lo: -3.0, hi: 3.0
+        , e: x * x + num 1.0 }
+      , { title: "x⁴ − 10x² + 9  =  (x²−1)(x²−9)", lo: -4.0, hi: 4.0
+        , e: x * x * x * x - num 10.0 * (x * x) + num 9.0 }
+      ]
+  rootItems <- traverse
+    ( \c -> do
+        lx <- exprLatex [ "x" ] c.e
+        rs <- provenRoots "x" c.lo c.hi c.e
+        sm <- sampleCurve "x" c.lo c.hi 240 c.e
+        log ("  " <> c.title <> ":  " <> show (Array.length rs) <> " proven root(s)")
+        pure (mkRootItem c.title "x" c.lo c.hi lx sm rs)
+    )
+    rootCases
+  writeText "roots.js" ("window.ROOTS = {\"items\":" <> jArrRaw rootItems <> "};\n")
+  log ("wrote roots.js (" <> show (Array.length rootItems) <> " items) for the roots page")

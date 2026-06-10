@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rigorous roots — PureScript describes, Julia proves</title>
+<link rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
+  crossorigin="anonymous" />
+<script defer
+  src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"
+  crossorigin="anonymous"></script>
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #6b6b6b; --rule: #e3e3e3;
+    --accent: #b4341f; --paper: #fbfbf9; --axis: #c4c4c0;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); }
+  body { font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 64px 32px 96px; }
+  header { border-bottom: 2px solid var(--ink); padding-bottom: 20px; margin-bottom: 8px; }
+  h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 10px; }
+  .lede { color: var(--muted); font-size: 15px; max-width: 62ch; margin: 0; }
+  .lede strong { color: var(--ink); font-weight: 600; }
+  .item { padding: 36px 0; border-bottom: 1px solid var(--rule); }
+  .item h2 { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin: 0 0 16px; }
+  .eqline { display: flex; align-items: baseline; gap: 12px; margin: 0 0 14px; }
+  .eqline .lhs { color: var(--muted); font-style: italic; font-size: 14px; }
+  .eqline .rhs .katex { font-size: 1.45em; }
+  .plot { width: 100%; }
+  .proof { margin-top: 14px; font-size: 14.5px; }
+  .proof .verdict { font-weight: 600; }
+  .proof .verdict.some { color: var(--accent); }
+  .roots { list-style: none; margin: 8px 0 0; padding: 0; color: var(--ink); }
+  .roots li { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 13px; color: var(--muted); margin: 2px 0; }
+  .roots .val { color: var(--ink); }
+  .badge { display: inline-block; font-family: -apple-system, sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); border: 1px solid var(--accent); border-radius: 3px; padding: 1px 5px; margin-left: 8px; }
+  footer { margin-top: 40px; color: var(--muted); font-size: 13px; }
+  code { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 0.92em; color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Rigorous roots</h1>
+    <p class="lede">
+      Each function was <strong>described once in PureScript</strong> as a typed
+      <code>NumExpr</code> and handed to Julia's <strong>IntervalRootFinding</strong>,
+      which doesn't just find roots — it <strong>proves</strong> them: every root
+      is bracketed in a guaranteed enclosure and certified unique, and the search
+      is exhaustive, so <em>no root is missed</em> (and "none" is itself a proof).
+      Validated numerics — the answer holds despite floating point. A `scipy`/JS
+      solver gives a number and a prayer.
+    </p>
+  </header>
+  <main id="items"></main>
+  <footer>
+    PureScript <code>Data.NumExpr</code> → Julia <code>IntervalArithmetic</code> /
+    <code>IntervalRootFinding</code> → KaTeX + SVG. Jurist Tier-2 eDSL (ADR-0007).
+  </footer>
+</div>
+
+<script src="roots.js"></script>
+<script>
+  const sub = (s) => (s || "").replace(/~/g, " ");
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const el = (n, attrs) => { const e = document.createElementNS(SVGNS, n); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+  const fmt = (v) => { const a = Math.abs(v); if (a !== 0 && (a < 1e-4 || a >= 1e6)) return v.toExponential(3); return (Math.round(v * 1e6) / 1e6).toString(); };
+
+  function plot(item) {
+    const W = 720, H = 240, pT = 16, pR = 16, pB = 32, pL = 16;
+    const xs = item.samples.map((p) => p[0]), ys = item.samples.map((p) => p[1]);
+    let ymin = Math.min(0, ...ys), ymax = Math.max(0, ...ys);
+    const pad = (ymax - ymin) * 0.08 || 1; ymin -= pad; ymax += pad;
+    const sx = (x) => pL + (x - item.lo) / (item.hi - item.lo) * (W - pL - pR);
+    const sy = (y) => H - pB - (y - ymin) / (ymax - ymin) * (H - pT - pB);
+
+    const svg = el("svg", { class: "plot", viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "xMidYMid meet" });
+    // x-axis (y = 0)
+    svg.appendChild(el("line", { x1: pL, y1: sy(0), x2: W - pR, y2: sy(0), stroke: "var(--axis)", "stroke-width": 1 }));
+    // the curve
+    const d = item.samples.map((p, i) => (i ? "L" : "M") + sx(p[0]).toFixed(2) + " " + sy(p[1]).toFixed(2)).join(" ");
+    svg.appendChild(el("path", { d, fill: "none", stroke: "var(--ink)", "stroke-width": 1.8 }));
+    // proven roots: guide + dot + label
+    for (const r of item.roots) {
+      const m = (r[0] + r[1]) / 2, X = sx(m);
+      svg.appendChild(el("line", { x1: X, y1: pT, x2: X, y2: H - pB, stroke: "var(--accent)", "stroke-width": 1, "stroke-dasharray": "3 3", opacity: 0.5 }));
+      svg.appendChild(el("circle", { cx: X, cy: sy(0), r: 4.5, fill: "var(--accent)" }));
+      const t = el("text", { x: X, y: H - pB + 16, "text-anchor": "middle", "font-size": 11, fill: "var(--accent)", "font-family": "SF Mono, monospace" });
+      t.textContent = fmt(m); svg.appendChild(t);
+    }
+    // interval end labels
+    for (const [x, anc] of [[item.lo, "start"], [item.hi, "end"]]) {
+      const t = el("text", { x: sx(x), y: H - pB + 16, "text-anchor": anc, "font-size": 11, fill: "var(--muted)", "font-family": "SF Mono, monospace" });
+      t.textContent = fmt(x); svg.appendChild(t);
+    }
+    return svg;
+  }
+
+  function render(data) {
+    const root = document.getElementById("items");
+    for (const item of data.items) {
+      const sec = document.createElement("section"); sec.className = "item";
+      const h = document.createElement("h2"); h.textContent = item.title; sec.appendChild(h);
+
+      const eq = document.createElement("div"); eq.className = "eqline";
+      const l = document.createElement("span"); l.className = "lhs"; l.textContent = "f(" + item.var + ") =";
+      const r = document.createElement("span"); r.className = "rhs";
+      eq.append(l, r); sec.appendChild(eq);
+      katex.render(sub(item.expr), r, { throwOnError: false });
+
+      sec.appendChild(plot(item));
+
+      const n = item.roots.length;
+      const proof = document.createElement("div"); proof.className = "proof";
+      const v = document.createElement("span");
+      v.className = "verdict" + (n ? " some" : "");
+      v.textContent = n === 0
+        ? `Rigorously proven: no real roots in [${fmt(item.lo)}, ${fmt(item.hi)}].`
+        : `Rigorously proven: exactly ${n} root${n > 1 ? "s" : ""} in [${fmt(item.lo)}, ${fmt(item.hi)}].`;
+      proof.appendChild(v);
+      if (n) {
+        const ul = document.createElement("ul"); ul.className = "roots";
+        for (const rt of item.roots) {
+          const li = document.createElement("li");
+          li.innerHTML = `${item.var} ∈ [<span class="val">${rt[0].toPrecision(10)}</span>, <span class="val">${rt[1].toPrecision(10)}</span>]`;
+          if (rt[2] === 1) { const b = document.createElement("span"); b.className = "badge"; b.textContent = "unique"; li.appendChild(b); }
+          ul.appendChild(li);
+        }
+        proof.appendChild(ul);
+      }
+      sec.appendChild(proof);
+      root.appendChild(sec);
+    }
+  }
+
+  window.addEventListener("DOMContentLoaded", () => {
+    if (window.ROOTS) render(window.ROOTS);
+    else document.getElementById("items").textContent = "roots.js not found — run the Julia backend (increment 6) to generate it.";
+  });
+</script>
+</body>
+</html>

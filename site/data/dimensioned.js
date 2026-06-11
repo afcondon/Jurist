@@ -1,0 +1,1 @@
+window.DIMENSIONED = {"period":1.6300923853906788,"si":"1.6300923853906788 s","conversions":[{"unit":"ms","result":"1630.0923853906788 ms"},{"unit":"min","result":"0.02716820642317798 min"},{"unit":"m","result":"✗ DimensionError: 1.6300923853906788 s and 1.0 m have incompatible dimensions"}]};

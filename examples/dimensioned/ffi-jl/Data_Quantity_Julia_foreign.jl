@@ -26,3 +26,11 @@ inUnitsJ(target) = v -> m -> l -> t -> () -> begin
         "✗ " * Base.sprint(Base.showerror, e)
     end
 end
+
+# writeTextJ path content : Effect Unit
+writeTextJ(path) = content -> () -> begin
+    Base.open(path, "w") do io
+        Base.write(io, content)
+    end
+    Base.nothing
+end

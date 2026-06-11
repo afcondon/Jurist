@@ -58,6 +58,10 @@ examples/numexpr-edsl/julia/derivatives.json
 examples/numexpr-edsl/julia/roots.js
 # Tier-2 increment-7 optimization output (reproducible; committed copy in opt-viz/)
 examples/numexpr-edsl/julia/optimize.js
+# Tier-2 increment-9 unit-validation receipts (reproducible; committed copy in site/data/)
+examples/numexpr-edsl/julia/units.js
+# dimensioned receipts (reproducible; committed copy in site/data/)
+examples/dimensioned/dimensioned.js
 # Tier-3 petri-catlab output (reproducible; committed copy in petri-viz/)
 examples/petri-catlab/petri.js
 # Tier-3 catlab-patterns output (reproducible; committed copy in pattern-viz/)

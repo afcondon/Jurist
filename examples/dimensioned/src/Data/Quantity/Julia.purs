@@ -6,6 +6,7 @@
 module Data.Quantity.Julia
   ( prettySI
   , inUnits
+  , writeText
   ) where
 
 import Prelude
@@ -17,6 +18,12 @@ import Effect (Effect)
 foreign import prettySIJ :: Number -> Int -> Int -> Int -> Effect String
 
 foreign import inUnitsJ :: String -> Number -> Int -> Int -> Int -> Effect String
+
+foreign import writeTextJ :: String -> String -> Effect Unit
+
+-- | Write a string to a file (the assembled JSON the page reads).
+writeText :: String -> String -> Effect Unit
+writeText = writeTextJ
 
 -- | The quantity as DynamicQuantities renders it in SI: value and unit.
 prettySI

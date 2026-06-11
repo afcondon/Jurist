@@ -38,9 +38,10 @@ import Data.Optimize (greedyValue, knapsack)
 import Data.Roots (provenRoots, sampleCurve)
 import Data.SystemSpec (SystemSpec, equations, integratePure, paramVars, stateVars, system)
 import Data.SystemSpec.Julia (compileField, integrate)
+import Data.MTKSystem (validateUnits) as MTK
 import Effect (Effect)
 import Effect.Console (log)
-import VerbsDemo (run) as VerbsDemo
+import VerbsDemo (fallingBody, fallingBodyBad, run) as VerbsDemo
 
 -- ── Increment 1: a single staged expression ─────────────────────────────────
 
@@ -441,3 +442,16 @@ main = do
   -- The same VerbsDemo module runs on Node and the BEAM, where these verbs
   -- answer `Deferred`; here they answer `Computed`.
   VerbsDemo.run
+
+  log "\n== increment 9: dimensional validation receipts for the site page =="
+  -- The same drag systems VerbsDemo exercises, dumped as a window.* global.
+  -- Units in row order: state (v, y), params (c, g).
+  good <- MTK.validateUnits VerbsDemo.fallingBody [ "m/s", "m" ] [ "1/s", "m/s^2" ]
+  bad <- MTK.validateUnits VerbsDemo.fallingBodyBad [ "m/s", "m" ] [ "1/s", "m/s^2" ]
+  let
+    verdict v =
+      "{\"consistent\":" <> (if v.consistent then "true" else "false")
+        <> ",\"report\":" <> jArrStr v.report <> "}"
+    unitsJson = "{\"good\":" <> verdict good <> ",\"bad\":" <> verdict bad <> "}"
+  writeText "units.js" ("window.UNITS = " <> unitsJson <> ";\n")
+  log ("wrote units.js (good: " <> show good.consistent <> ", bad: " <> show bad.consistent <> ")")

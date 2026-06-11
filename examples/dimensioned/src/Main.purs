@@ -15,9 +15,18 @@ import Prelude
 
 import Data.Number (pi)
 import Data.Quantity (Quantity, kilograms, newtonsPerMeter, qSqrt, scalar, value, (|*|), (|/|))
-import Data.Quantity.Julia (inUnits, prettySI)
+import Data.Quantity.Julia (inUnits, prettySI, writeText)
+import Data.String (Pattern(..), Replacement(..), joinWith, replaceAll)
 import Effect (Effect)
 import Effect.Console (log)
+
+-- Minimal JSON encoding (escape backslashes first, then quotes).
+jStr :: String -> String
+jStr s = "\"" <> esc s <> "\""
+  where
+  esc =
+    replaceAll (Pattern "\"") (Replacement "\\\"")
+      <<< replaceAll (Pattern "\\") (Replacement "\\\\")
 
 -- A spring of 5.2 N/m: mass¹ · time⁻² — the dimension is the type.
 springK :: Quantity 1 0 (-2)
@@ -60,3 +69,15 @@ main = do
   -- DynamicQuantities' own error, honestly relayed.
   bad <- inUnits "m" period
   log ("converted to m:           " <> bad)
+  -- Assemble the receipts the site page reads (window.* global so the page
+  -- opens under file:// with no server).
+  let
+    conv u s = "{\"unit\":" <> jStr u <> ",\"result\":" <> jStr s <> "}"
+    json =
+      "{\"period\":" <> show (value period)
+        <> ",\"si\":" <> jStr si
+        <> ",\"conversions\":["
+        <> joinWith "," [ conv "ms" ms, conv "min" mins, conv "m" bad ]
+        <> "]}"
+  writeText "dimensioned.js" ("window.DIMENSIONED = " <> json <> ";\n")
+  log "wrote dimensioned.js for the site page"

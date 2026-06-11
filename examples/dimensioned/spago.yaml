@@ -13,6 +13,7 @@ package:
     - console
     - numbers
     - quantity-core
+    - strings
 workspace:
   packageSet:
     registry: 57.1.0

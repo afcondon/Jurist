@@ -86,6 +86,29 @@
   #ex-optimization .vbadge { display:inline-block; font-size:10px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#fff; background:var(--accent); border-radius:3px; padding:2px 7px; }
   #ex-optimization .verdict { margin-top:18px; padding-top:14px; border-top:1px dashed var(--rule); font-size:14.5px; }
   #ex-optimization .verdict strong { color:var(--accent); }
+  /* — dimensions — */
+
+  #ex-dimensions .pane.row2 { border-top:1px solid var(--rule); }
+  #ex-dimensions .errbox { margin-top:18px; border:1.5px solid var(--accent); border-radius:8px; background:var(--accentbg); padding:12px 14px; font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:12px; line-height:1.65; color:var(--ink); overflow-x:auto; white-space:pre; }
+  #ex-dimensions .errbox .etag { display:inline-block; font-size:10px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#fff; background:var(--accent); border-radius:3px; padding:2px 7px; margin-bottom:8px; font-family:inherit; }
+  #ex-dimensions .qcard { border:1.5px solid var(--rule); border-radius:8px; background:#fff; padding:12px 14px; margin-bottom:10px; }
+  #ex-dimensions .qcard .qlabel { font-size:10.5px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+  #ex-dimensions .qcard .qval { font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:14px; }
+  #ex-dimensions .qcard.hero .qval { font-size:19px; font-weight:700; }
+  #ex-dimensions .qcard.hero { border-color:var(--good); }
+  #ex-dimensions .qcard.refused { border-color:var(--accent); background:var(--accentbg); }
+  #ex-dimensions .qcard.refused .qval { color:var(--accent); font-size:12.5px; }
+  #ex-dimensions .vcard { border:1.5px solid var(--rule); border-radius:8px; background:#fff; padding:12px 14px; margin-bottom:12px; }
+  #ex-dimensions .vcard h3 { font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin:0 0 10px; display:flex; align-items:center; gap:10px; }
+  #ex-dimensions .vcard .vbadge { display:inline-block; font-size:10px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#fff; border-radius:3px; padding:2px 7px; }
+  #ex-dimensions .vcard.ok { border-color:var(--good); }
+  #ex-dimensions .vcard.ok .vbadge { background:var(--good); }
+  #ex-dimensions .vcard.bad { border-color:var(--accent); }
+  #ex-dimensions .vcard.bad .vbadge { background:var(--accent); }
+  #ex-dimensions .vcard .vrow { font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:12.5px; line-height:1.7; }
+  #ex-dimensions .vcard .complaint { margin-top:8px; padding:8px 10px; border-radius:6px; background:var(--accentbg); color:var(--accent); font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:12px; line-height:1.6; }
+  #ex-dimensions .twonote { margin-top:16px; font-size:13.5px; color:var(--muted); }
+  #ex-dimensions .twonote strong { color:var(--ink); }
   /* — petri — */
 
   #ex-petri .item { padding:0 0 26px; }
@@ -138,7 +161,7 @@
     </p>
   </header>
 
-  <p class="toc"><a href="#ex-lorenz"><b>1</b>&hairsp;lorenz</a> · <a href="#ex-pendulum"><b>2</b>&hairsp;pendulum</a> · <a href="#ex-differentiation"><b>3</b>&hairsp;differentiation</a> · <a href="#ex-roots"><b>4</b>&hairsp;roots</a> · <a href="#ex-optimization"><b>5</b>&hairsp;optimization</a> · <a href="#ex-petri"><b>6</b>&hairsp;petri</a> · <a href="#ex-patterns"><b>7</b>&hairsp;patterns</a> · <a href="#ex-schema"><b>8</b>&hairsp;schema</a> · <a href="#ex-migration"><b>9</b>&hairsp;migration</a></p>
+  <p class="toc"><a href="#ex-lorenz"><b>1</b>&hairsp;lorenz</a> · <a href="#ex-pendulum"><b>2</b>&hairsp;pendulum</a> · <a href="#ex-differentiation"><b>3</b>&hairsp;differentiation</a> · <a href="#ex-roots"><b>4</b>&hairsp;roots</a> · <a href="#ex-optimization"><b>5</b>&hairsp;optimization</a> · <a href="#ex-dimensions"><b>6</b>&hairsp;dimensions</a> · <a href="#ex-petri"><b>7</b>&hairsp;petri</a> · <a href="#ex-patterns"><b>8</b>&hairsp;patterns</a> · <a href="#ex-schema"><b>9</b>&hairsp;schema</a> · <a href="#ex-migration"><b>10</b>&hairsp;migration</a></p>
 
   <section class="exsec" id="ex-lorenz">
     <h2 class="extitle"><span class="exnum">1</span>One description, three runtimes</h2>
@@ -381,13 +404,92 @@ opt <- knapsack weights values cap
     <a href="https://github.com/afcondon/Jurist/tree/main/examples/numexpr-edsl">source →</a></p>
   </section>
 
+  <section class="exsec" id="ex-dimensions">
+    <h2 class="extitle"><span class="exnum">6</span>Dimensions in the type system</h2>
+    <p class="why">Dimensional analysis, twice over. A <code>Quantity</code> carries its physical
+      dimension <strong>in the type</strong> — exponents of mass, length, time as
+      type-level integers. Multiplication adds exponents, division subtracts them,
+      √ halves them, all solved by the compiler — so adding a spring constant to a
+      mass <strong>does not compile</strong>, on any backend, browser included. And at
+      system scale, unit annotations ride the same typed rows:
+      <strong>ModelingToolkit · DynamicQuantities</strong> prove every equation
+      dimensionally consistent — or refuse, naming the term and the clashing units.</p>
+    <div class="panes">
+    <section class="pane left">
+      <h2>The PureScript you write</h2>
+<pre>springK <span class="kw">:: Quantity 1 0 (-2)</span>   <span class="cm">-- kg·s⁻², i.e. N/m</span>
+springK = newtonsPerMeter <span class="li">5.2</span>
+
+bobMass <span class="kw">:: Quantity 1 0 0</span>
+bobMass = kilograms <span class="li">0.35</span>
+
+<span class="cm">-- |/| subtracts exponents, √ halves them: this only
+-- compiles because √(kg / kg·s⁻²) works out to s¹</span>
+period <span class="kw">:: Quantity 0 0 1</span>
+period = scalar (<span class="li">2.0</span> * pi)
+           |*| qSqrt (bobMass |/| springK)
+</pre>
+      <div class="errbox"><span class="etag">does not compile</span>
+nonsense = springK |+| bobMass
+
+[ERROR] TypesDoNotUnify
+  Could not match type 0 with type -2
+  while trying to match type Quantity 1 0 0
+    with type Quantity 1 0 -2</div>
+      <p class="seam">The exponents are <code>Prim.Int</code> type-level integers; they
+        reflect to plain values (<code>Data.Reflectable</code>) and cross the seam once —
+        the same dimension record DynamicQuantities consumes.</p>
+    </section>
+
+    <section class="pane">
+      <h2>What Julia computes — and refuses</h2>
+      <div id="dimensions-qroot"></div>
+      <p class="twonote"><strong>Two layers of the same guarantee:</strong> the types
+        reject mis-dimensioned <em>expressions</em> before the program exists; the
+        runtime refuses the mistakes only it can see — like a conversion target
+        that arrives as a string.</p>
+    </section>
+
+    <section class="pane left row2">
+      <h2>Units on a whole system</h2>
+<pre><span class="cm">-- a falling body with linear drag; c has units 1/s</span>
+fallingBody = system \s p ->
+  { y: s.v, v: negate p.g - p.c * s.v }
+
+<span class="cm">-- annotations are records matching the system's rows:
+-- a unit for a misspelt variable is a compile error</span>
+validateUnits fallingBody
+  { y: <span class="li">"m"</span>, v: <span class="li">"m/s"</span> }
+  { g: <span class="li">"m/s^2"</span>, c: <span class="li">"1/s"</span> }
+
+<span class="cm">-- the same body, drag mistyped as c·v² — the SAME c.
+-- NumExpr is dimensionless, so this still type-checks;
+-- only the production interpreter can catch it:</span>
+fallingBodyBad = system \s p ->
+  { y: s.v, v: negate p.g - p.c * s.v * s.v }
+</pre>
+      <p class="seam">On Node and the BEAM this verb answers <code>Deferred</code>; on
+        Julia, MTK attaches the units as variable metadata and validates at system
+        construction.</p>
+    </section>
+
+    <section class="pane row2">
+      <h2>What ModelingToolkit proves</h2>
+      <div id="dimensions-uroot"></div>
+    </section>
+  </div>
+    <p class="exfoot"><code>Data.Quantity</code> → Julia <code>DynamicQuantities</code> ·
+    <code>validateUnits</code> → <code>ModelingToolkit</code> ·
+    <a href="https://github.com/afcondon/Jurist/tree/main/examples/dimensioned">source →</a></p>
+  </section>
+
   <div class="tierhead">
     <h2>Category theory, applied — AlgebraicJulia</h2>
-    <p class="tagline">One super nice thing in the Julia ecosystem is <a href="https://github.com/AlgebraicJulia/Catlab.jl">Catlab.jl</a> — "a framework for applied and computational category theory, written in the Julia language" — and the wider AlgebraicJulia family around it. This library lets you do things like examples 6–9 below:</p>
+    <p class="tagline">One super nice thing in the Julia ecosystem is <a href="https://github.com/AlgebraicJulia/Catlab.jl">Catlab.jl</a> — "a framework for applied and computational category theory, written in the Julia language" — and the wider AlgebraicJulia family around it. This library lets you do things like examples 7–10 below:</p>
   </div>
 
   <section class="exsec" id="ex-petri">
-    <h2 class="extitle"><span class="exnum">6</span>Petri nets → functorial dynamics</h2>
+    <h2 class="extitle"><span class="exnum">7</span>Petri nets → functorial dynamics</h2>
     <p class="why">Two epidemic models as <strong>typed Petri nets</strong> — species and reactions,
       <em>no differential equations anywhere in the description</em>. Julia's
       <strong>AlgebraicPetri</strong> produces the mass-action dynamics by a
@@ -443,7 +545,7 @@ laws    <- odeLaws spec   <span class="cm">-- derived, typeset</span>
   </section>
 
   <section class="exsec" id="ex-patterns">
-    <h2 class="extitle"><span class="exnum">7</span>Structural patterns, found by homomorphism search</h2>
+    <h2 class="extitle"><span class="exnum">8</span>Structural patterns, found by homomorphism search</h2>
     <p class="why">A module dependency graph and three structural motifs, described once in
       PureScript. Catlab finds every occurrence as the set of graph homomorphisms
       <code>pattern → graph</code> — <strong>subgraph matching generalized to any
@@ -498,7 +600,7 @@ ms <- matches depGraph p   <span class="cm">-- Catlab searches</span>
   </section>
 
   <section class="exsec" id="ex-schema">
-    <h2 class="extitle"><span class="exnum">8</span>Architectural motifs over a typed schema</h2>
+    <h2 class="extitle"><span class="exnum">9</span>Architectural motifs over a typed schema</h2>
     <p class="why">A <strong>typed code graph</strong> — modules, functions typed into modules, calls —
       as an instance of a Catlab <strong>ACSet schema</strong>. Each motif is a small
       instance of the <em>same schema</em>, and its <strong>type structure encodes the
@@ -555,7 +657,7 @@ ms <- matches codeGraph mo   <span class="cm">-- typed search</span>
   </section>
 
   <section class="exsec" id="ex-migration">
-    <h2 class="extitle"><span class="exnum">9</span>Functorial data migration</h2>
+    <h2 class="extitle"><span class="exnum">10</span>Functorial data migration</h2>
     <p class="why">A function-level call graph, migrated <strong>functorially</strong> to its module
       dependency graph — a Δ migration along the <code>in_mod</code> functor, where every
       call <code>f → g</code> becomes a module edge <code>in_mod(f) → in_mod(g)</code>. Not a
@@ -746,6 +848,8 @@ agg = aggregate raw
 <script src="data/pendulum.js"></script>
 <script src="data/roots.js"></script>
 <script src="data/optimize.js"></script>
+<script src="data/dimensioned.js"></script>
+<script src="data/units.js"></script>
 <script src="data/petri.js"></script>
 <script src="data/patterns.js"></script>
 <script src="data/schema.js"></script>
@@ -941,6 +1045,51 @@ agg = aggregate raw
 
   window.addEventListener("DOMContentLoaded", () => {
     if (window.OPTIMIZE) render(window.OPTIMIZE);
+  });
+})();
+
+// — dimensions —
+(() => {
+  function qcard(label, val, cls) {
+    const c = document.createElement("div"); c.className = "qcard" + (cls ? " " + cls : "");
+    const l = document.createElement("div"); l.className = "qlabel"; l.textContent = label;
+    const v = document.createElement("div"); v.className = "qval"; v.textContent = val;
+    c.append(l, v); return c;
+  }
+  function renderQ(d) {
+    const root = document.getElementById("dimensions-qroot");
+    root.appendChild(qcard("period · rendered in SI by DynamicQuantities", d.si, "hero"));
+    d.conversions.forEach((cv) => {
+      const refused = cv.result.startsWith("✗");
+      root.appendChild(qcard(
+        refused ? "converted to " + cv.unit + " — refused at runtime" : "converted to " + cv.unit,
+        cv.result, refused ? "refused" : ""));
+    });
+  }
+  function vcard(title, v, badge) {
+    const c = document.createElement("div"); c.className = "vcard " + (v.consistent ? "ok" : "bad");
+    const h = document.createElement("h3"); h.textContent = title;
+    const b = document.createElement("span"); b.className = "vbadge";
+    b.textContent = badge; h.appendChild(b); c.appendChild(h);
+    v.report.forEach((line) => {
+      if (line.indexOf("do not match") >= 0) {
+        const p = document.createElement("div"); p.className = "complaint"; p.textContent = line;
+        c.appendChild(p);
+      } else {
+        const r = document.createElement("div"); r.className = "vrow"; r.textContent = line;
+        c.appendChild(r);
+      }
+    });
+    return c;
+  }
+  function renderU(d) {
+    const root = document.getElementById("dimensions-uroot");
+    root.appendChild(vcard("drag written c·v", d.good, "consistent ✓"));
+    root.appendChild(vcard("drag written c·v²", d.bad, "refused ✗"));
+  }
+  window.addEventListener("DOMContentLoaded", () => {
+    if (window.DIMENSIONED) renderQ(window.DIMENSIONED);
+    if (window.UNITS) renderU(window.UNITS);
   });
 })();
 

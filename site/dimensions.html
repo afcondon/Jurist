@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jurist — dimensions in the type system</title>
+<link rel="stylesheet" href="jurist.css" />
+<style>
+  .pane.row2 { border-top:1px solid var(--rule); }
+  .errbox { margin-top:18px; border:1.5px solid var(--accent); border-radius:8px; background:var(--accentbg); padding:12px 14px; font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:12px; line-height:1.65; color:var(--ink); overflow-x:auto; white-space:pre; }
+  .errbox .etag { display:inline-block; font-size:10px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#fff; background:var(--accent); border-radius:3px; padding:2px 7px; margin-bottom:8px; font-family:inherit; }
+  .qcard { border:1.5px solid var(--rule); border-radius:8px; background:#fff; padding:12px 14px; margin-bottom:10px; }
+  .qcard .qlabel { font-size:10.5px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+  .qcard .qval { font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:14px; }
+  .qcard.hero .qval { font-size:19px; font-weight:700; }
+  .qcard.hero { border-color:var(--good); }
+  .qcard.refused { border-color:var(--accent); background:var(--accentbg); }
+  .qcard.refused .qval { color:var(--accent); font-size:12.5px; }
+  .vcard { border:1.5px solid var(--rule); border-radius:8px; background:#fff; padding:12px 14px; margin-bottom:12px; }
+  .vcard h3 { font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin:0 0 10px; display:flex; align-items:center; gap:10px; }
+  .vcard .vbadge { display:inline-block; font-size:10px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#fff; border-radius:3px; padding:2px 7px; }
+  .vcard.ok { border-color:var(--good); }
+  .vcard.ok .vbadge { background:var(--good); }
+  .vcard.bad { border-color:var(--accent); }
+  .vcard.bad .vbadge { background:var(--accent); }
+  .vcard .vrow { font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:12.5px; line-height:1.7; }
+  .vcard .complaint { margin-top:8px; padding:8px 10px; border-radius:6px; background:var(--accentbg); color:var(--accent); font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:12px; line-height:1.6; }
+  .twonote { margin-top:16px; font-size:13.5px; color:var(--muted); }
+  .twonote strong { color:var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><a href="index.html">Jurist</a> <span class="sub">a typed PureScript description · computed by Julia's runtime</span><span class="all"><a href="index.html">all demos →</a></span></div>
+  <header>
+    <h1>Dimensions in the type system</h1>
+    <p class="why">
+      Dimensional analysis, twice over. A <code>Quantity</code> carries its physical
+      dimension <strong>in the type</strong> — exponents of mass, length, time as
+      type-level integers. Multiplication adds exponents, division subtracts them,
+      √ halves them, all solved by the compiler — so adding a spring constant to a
+      mass <strong>does not compile</strong>, on any backend, browser included. And at
+      system scale, unit annotations ride the same typed rows:
+      <strong>ModelingToolkit · DynamicQuantities</strong> prove every equation
+      dimensionally consistent — or refuse, naming the term and the clashing units.
+    </p>
+  </header>
+
+  <div class="panes">
+    <section class="pane left">
+      <h2>The PureScript you write</h2>
+<pre>springK <span class="kw">:: Quantity 1 0 (-2)</span>   <span class="cm">-- kg·s⁻², i.e. N/m</span>
+springK = newtonsPerMeter <span class="li">5.2</span>
+
+bobMass <span class="kw">:: Quantity 1 0 0</span>
+bobMass = kilograms <span class="li">0.35</span>
+
+<span class="cm">-- |/| subtracts exponents, √ halves them: this only
+-- compiles because √(kg / kg·s⁻²) works out to s¹</span>
+period <span class="kw">:: Quantity 0 0 1</span>
+period = scalar (<span class="li">2.0</span> * pi)
+           |*| qSqrt (bobMass |/| springK)
+</pre>
+      <div class="errbox"><span class="etag">does not compile</span>
+nonsense = springK |+| bobMass
+
+[ERROR] TypesDoNotUnify
+  Could not match type 0 with type -2
+  while trying to match type Quantity 1 0 0
+    with type Quantity 1 0 -2</div>
+      <p class="seam">The exponents are <code>Prim.Int</code> type-level integers; they
+        reflect to plain values (<code>Data.Reflectable</code>) and cross the seam once —
+        the same dimension record DynamicQuantities consumes.</p>
+    </section>
+
+    <section class="pane">
+      <h2>What Julia computes — and refuses</h2>
+      <div id="qroot"></div>
+      <p class="twonote"><strong>Two layers of the same guarantee:</strong> the types
+        reject mis-dimensioned <em>expressions</em> before the program exists; the
+        runtime refuses the mistakes only it can see — like a conversion target
+        that arrives as a string.</p>
+    </section>
+
+    <section class="pane left row2">
+      <h2>Units on a whole system</h2>
+<pre><span class="cm">-- a falling body with linear drag; c has units 1/s</span>
+fallingBody = system \s p ->
+  { y: s.v, v: negate p.g - p.c * s.v }
+
+<span class="cm">-- annotations are records matching the system's rows:
+-- a unit for a misspelt variable is a compile error</span>
+validateUnits fallingBody
+  { y: <span class="li">"m"</span>, v: <span class="li">"m/s"</span> }
+  { g: <span class="li">"m/s^2"</span>, c: <span class="li">"1/s"</span> }
+
+<span class="cm">-- the same body, drag mistyped as c·v² — the SAME c.
+-- NumExpr is dimensionless, so this still type-checks;
+-- only the production interpreter can catch it:</span>
+fallingBodyBad = system \s p ->
+  { y: s.v, v: negate p.g - p.c * s.v * s.v }
+</pre>
+      <p class="seam">On Node and the BEAM this verb answers <code>Deferred</code>; on
+        Julia, MTK attaches the units as variable metadata and validates at system
+        construction.</p>
+    </section>
+
+    <section class="pane row2">
+      <h2>What ModelingToolkit proves</h2>
+      <div id="uroot"></div>
+    </section>
+  </div>
+
+  <footer>
+    <code>Data.Quantity</code> → Julia <code>DynamicQuantities</code> ·
+    <code>validateUnits</code> → <code>ModelingToolkit</code> ·
+    <a href="https://github.com/afcondon/Jurist/tree/main/examples/dimensioned">source →</a>
+  </footer>
+</div>
+
+<script src="data/dimensioned.js"></script>
+<script src="data/units.js"></script>
+<script>
+  function qcard(label, val, cls) {
+    const c = document.createElement("div"); c.className = "qcard" + (cls ? " " + cls : "");
+    const l = document.createElement("div"); l.className = "qlabel"; l.textContent = label;
+    const v = document.createElement("div"); v.className = "qval"; v.textContent = val;
+    c.append(l, v); return c;
+  }
+  function renderQ(d) {
+    const root = document.getElementById("qroot");
+    root.appendChild(qcard("period · rendered in SI by DynamicQuantities", d.si, "hero"));
+    d.conversions.forEach((cv) => {
+      const refused = cv.result.startsWith("✗");
+      root.appendChild(qcard(
+        refused ? "converted to " + cv.unit + " — refused at runtime" : "converted to " + cv.unit,
+        cv.result, refused ? "refused" : ""));
+    });
+  }
+  function vcard(title, v, badge) {
+    const c = document.createElement("div"); c.className = "vcard " + (v.consistent ? "ok" : "bad");
+    const h = document.createElement("h3"); h.textContent = title;
+    const b = document.createElement("span"); b.className = "vbadge";
+    b.textContent = badge; h.appendChild(b); c.appendChild(h);
+    v.report.forEach((line) => {
+      if (line.indexOf("do not match") >= 0) {
+        const p = document.createElement("div"); p.className = "complaint"; p.textContent = line;
+        c.appendChild(p);
+      } else {
+        const r = document.createElement("div"); r.className = "vrow"; r.textContent = line;
+        c.appendChild(r);
+      }
+    });
+    return c;
+  }
+  function renderU(d) {
+    const root = document.getElementById("uroot");
+    root.appendChild(vcard("drag written c·v", d.good, "consistent ✓"));
+    root.appendChild(vcard("drag written c·v²", d.bad, "refused ✗"));
+  }
+  window.addEventListener("DOMContentLoaded", () => {
+    if (window.DIMENSIONED) renderQ(window.DIMENSIONED);
+    if (window.UNITS) renderU(window.UNITS);
+  });
+</script>
+</body>
+</html>

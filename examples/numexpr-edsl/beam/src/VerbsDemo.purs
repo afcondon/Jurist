@@ -7,7 +7,7 @@
 -- | enclosures, the real symbolic Jacobian, the real DAE solve, the real
 -- | certified optimum (ADR-0007: one description, a hierarchy of
 -- | interpreters).
-module VerbsDemo (run) where
+module VerbsDemo (run, fallingBody, fallingBodyBad) where
 
 import Prelude
 

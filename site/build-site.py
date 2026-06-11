@@ -30,6 +30,7 @@ ORDER = [
     ("differentiation", None),
     ("roots", None),
     ("optimization", None),
+    ("dimensions", None),
     ("petri",
      ("Category theory, applied — AlgebraicJulia",
       'One super nice thing in the Julia ecosystem is '

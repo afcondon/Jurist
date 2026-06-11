@@ -1,0 +1,32 @@
+# The Python (purepy) denotation workspace - the FOURTH runtime for the
+# same numexpr-core description (after Julia, Node, and the BEAM).
+package:
+  name: numexpr-python
+  description: >
+    The Python/purepy denotation of the Tier-2 eDSL. Depends only on
+    numexpr-core and runs SystemSpec.integratePure - the pure-PureScript RK4,
+    no FFI beyond core's six math primitives (shimmed in ffi-py/) - on the
+    purepy backend, proving the core description runs on a fourth runtime.
+    Built with `backend: cmd "true"` so spago emits CoreFn and purepy consumes
+    output/ separately (same arrangement as the julia workspace).
+  dependencies:
+    - answer
+    - prelude
+    - effect
+    - console
+    - arrays
+    - foldable-traversable
+    - maybe
+    - numbers
+    - numexpr-core
+    - strings
+workspace:
+  extraPackages:
+    answer:
+      path: ../../answer
+    numexpr-core:
+      path: ../core
+  packageSet:
+    registry: 57.1.0
+  backend:
+    cmd: "true"

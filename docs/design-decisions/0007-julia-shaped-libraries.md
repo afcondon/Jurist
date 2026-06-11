@@ -165,6 +165,20 @@ Status is **Proposed** because only Tier 1 is built; Tier 2+ will promote it.
 > irreducible machine math behind a uniform interface, the textbook use of FFI.
 > Lorenz invokes none of them, so the cross-runtime agreement is exact regardless.
 
+> **Progress (2026-06-11): — and a fourth: Python.** A `python/` workspace runs
+> the same `integratePure` on CPython via the rebooted sibling backend
+> (`purescript-python-new`, "purepy", same-day at 422/426 on the shared
+> conformance corpus — its ADR-0001/0002). Same arrangement as `julia/`
+> (`backend: cmd "true"`, shims in `ffi-py/` — core's six math foreigns are one
+> line each, the `.py` row of the per-backend table). Result: maxZ
+> `47.8339540885982` and output **byte-identical to the Node run** except the
+> two banner lines naming the runtime — same IEEE-754 doubles, same JS number
+> formatting, same `deferred —` verb renders. One typed `lorenz` description,
+> four runtimes (Julia / Node / BEAM / Python), one orbit. The Python column is
+> the matrix's natural *middle* tier — its sympy/scipy production verbs
+> (differentiate `Computed`, integrate via lambdify+Radau) are designed in
+> `purescript-python-new/docs/python-shaped-libraries.md` and come next.
+
 > **Progress (2026-06-10): "descriptions *back*" — two Julia-only demos on the
 > same eDSL.** The doctrine's return half is usually a *handle* to Julia-owned
 > data; these two increments show the richer case where what crosses back is

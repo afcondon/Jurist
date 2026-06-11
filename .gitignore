@@ -22,6 +22,7 @@ examples/*/.spago/
 examples/numexpr-edsl/*/output/
 examples/numexpr-edsl/*/output-jl/
 examples/numexpr-edsl/*/output-erl/
+examples/numexpr-edsl/*/output-py/
 examples/numexpr-edsl/*/.spago/
 examples/numexpr-edsl/*/node_modules/
 examples/numexpr-edsl/beam/ebin/

@@ -15,7 +15,7 @@
 -- |     implicit stiff solver holds the constraints (rods stay rigid to ~1e-8)
 -- |     through fully chaotic motion — something no plain ODE integrator, and no
 -- |     `scipy.solve_ivp`, can do. The trajectory is written to JSON for the
--- |     Hylograph frontend.
+-- |     animation frontend (viz/).
 module Main where
 
 import Prelude
@@ -208,7 +208,7 @@ doublePendulum =
           }
     )
 
--- Number of animation frames written to JSON for the Hylograph frontend.
+-- Number of animation frames written to JSON for the animation frontend (viz/).
 nFrames :: Int
 nFrames = 1200
 
@@ -332,7 +332,7 @@ main = do
   let drift = foldl max 0.0 (map rodDrift checkFrames)
   log ("max rod-length drift over the run: " <> show drift)
   log ("constraints maintained through chaos (drift < 1e-6): " <> show (drift < 1.0e-6))
-  -- Write the full animation trajectory (Julia-side) for the Hylograph frontend.
+  -- Write the full animation trajectory (Julia-side) for the animation frontend.
   let
     frameTimes =
       map (\i -> 20.0 * toNumber i / toNumber (nFrames - 1)) (Array.range 0 (nFrames - 1))

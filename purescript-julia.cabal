@@ -7,7 +7,7 @@ cabal-version: 1.12
 name:           purescript-julia
 version:        0.0.1
 synopsis:       PureScript Programming Language Julia Back-end
-description:    Julia backend for PureScript. Consumes CoreFn JSON (purs --codegen corefn) and emits Julia source - one Julia module per PureScript module, a topologically-ordered loader, and a small runtime. Sibling of purescript-python-new, part of the Julia-numerics-for-Hylograph effort.
+description:    Julia backend for PureScript. Consumes CoreFn JSON (purs --codegen corefn) and emits Julia source - one Julia module per PureScript module, a topologically-ordered loader, and a small runtime. Sibling of purescript-python-new in the polyglot-PureScript backends effort.
 category:       Language
 stability:      experimental
 homepage:       https://github.com/afcondon/purescript-julia#readme

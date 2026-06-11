@@ -2,8 +2,8 @@ package:
   name: catlab-schema
   description: >
     Tier-3 (Catlab / ACSets): a typed multi-sort schema (Module / Func / Call) and
-    architectural motifs found by homomorphism search over it — the typed-graph
-    analogue of Hylograph's graphs. Self-contained purejl workspace, own Catlab
+    architectural motifs found by homomorphism search over it — a typed schema
+    language for graph-shaped data. Self-contained purejl workspace, own Catlab
     julia-env.
   dependencies:
     - prelude

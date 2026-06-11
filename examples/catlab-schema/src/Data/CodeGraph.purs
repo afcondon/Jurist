@@ -6,11 +6,11 @@
 -- | motif with two *distinct* pattern-modules matches only cross-module calls;
 -- | one with a shared pattern-module matches intra-module structure.
 -- |
--- | This is the ACSet payoff — a typed schema language for graph-shaped data,
--- | the categorical analogue of Hylograph's typed graphs. PureScript describes
--- | the schema instance and the motifs; Catlab's homomorphism search finds every
--- | occurrence. It is the machinery a Minard could use to express and check
--- | architectural rules (cross-module coupling, shared dependencies, layering).
+-- | This is the ACSet payoff — a typed schema language for graph-shaped data.
+-- | PureScript describes the schema instance and the motifs; Catlab's
+-- | homomorphism search finds every occurrence. It is the machinery a
+-- | code-analysis tool could use to express and check architectural rules
+-- | (cross-module coupling, shared dependencies, layering).
 module Data.CodeGraph
   ( Edge
   , Func

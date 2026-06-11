@@ -4,7 +4,7 @@
 -- | This is the seam the whole backend exists for — a Julia compute leaf
 -- | (here: Lorenz attractor via RK4, in the FFI shim) feeding typed data
 -- | to PureScript, which inspects it and serializes it for a consumer
--- | (eventually: a Hylograph visualization over a WebSocket).
+-- | (eventually: a browser visualization over a WebSocket).
 module Main where
 
 import Prelude
@@ -35,5 +35,5 @@ main = do
   log ("points: " <> show (Array.length orbit))
   let maxZ = foldl (\m p -> max m p.z) 0.0 orbit
   log ("maxZ: " <> show maxZ)
-  -- JSON at the seam — stand-in for the WebSocket push to Hylograph
+  -- JSON at the seam — stand-in for the WebSocket push to the browser frontend
   log (toJson (Array.take 2 orbit))

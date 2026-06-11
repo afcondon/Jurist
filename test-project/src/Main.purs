@@ -89,7 +89,7 @@ main = do
   log "Hello from PureScript, via Julia!"
   log (show (area (Circle 2.0)))
   log (describe (Rect 4.0 3.0))
-  log (greet (Name "Hylograph"))
+  log (greet (Name "Jurist"))
   log (show (fact 10))
   log (show (isEven 42))
   log (show (map (_ * 2) [ 1, 2, 3 ]))

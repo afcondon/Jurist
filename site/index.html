@@ -448,8 +448,8 @@ laws    <- odeLaws spec   <span class="cm">-- derived, typeset</span>
       PureScript. Catlab finds every occurrence as the set of graph homomorphisms
       <code>pattern → graph</code> — <strong>subgraph matching generalized to any
       schema</strong>, the category doing the searching. The <em>same engine</em> finds
-      circular dependencies, mutual dependencies, and diamonds — the machinery a
-      Minard could use to flag architectural motifs in a code graph.</p>
+      circular dependencies, mutual dependencies, and diamonds — ready-made
+      machinery for flagging architectural motifs in any code graph.</p>
     <div class="panes">
     <section class="pane left">
       <h2>The PureScript you write</h2>
@@ -503,8 +503,8 @@ ms <- matches depGraph p   <span class="cm">-- Catlab searches</span>
       as an instance of a Catlab <strong>ACSet schema</strong>. Each motif is a small
       instance of the <em>same schema</em>, and its <strong>type structure encodes the
       rule</strong>: two distinct pattern-modules match only cross-module structure.
-      The typed-graph analogue of Hylograph's graphs, and the machinery a Minard
-      could use to express architectural rules.</p>
+      A typed schema language for graph-shaped data — machinery for expressing,
+      and mechanically checking, architectural rules.</p>
     <div class="panes">
     <section class="pane left">
       <h2>The PureScript you write</h2>
@@ -560,7 +560,8 @@ ms <- matches codeGraph mo   <span class="cm">-- typed search</span>
       dependency graph — a Δ migration along the <code>in_mod</code> functor, where every
       call <code>f → g</code> becomes a module edge <code>in_mod(f) → in_mod(g)</code>. Not a
       hand-written fold; a migration functor with categorical guarantees. The result
-      is a plain graph — <strong>exactly the shape Hylograph lays out and renders</strong>.</p>
+      is a plain graph — <strong>describe the fine structure, let Catlab derive the
+      coarse view, bring it back to draw</strong>.</p>
     <div class="panes">
     <section class="pane left">
       <h2>The PureScript you write</h2>

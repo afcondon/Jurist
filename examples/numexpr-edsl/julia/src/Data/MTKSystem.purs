@@ -35,6 +35,7 @@ module Data.MTKSystem
   , sampleAt
   , finalState
   , maxComponent
+  , validateUnits
   ) where
 
 import Prelude
@@ -141,3 +142,26 @@ finalState = finalStateJ
 -- | orbit across.
 maxComponent :: Solution -> Int -> Effect Number
 maxComponent = maxComponentJ
+
+foreign import validateUnitsJ
+  :: Array String
+  -> Array String
+  -> Array String
+  -> Array String
+  -> Array JExpr
+  -> Effect { consistent :: Boolean, report :: Array String }
+
+-- | Dimensionally validate the system: one unit string per state variable and
+-- | per parameter (in row order — line them up with `stateVars`/`paramVars`).
+-- | MTK attaches the units as variable metadata and checks every equation;
+-- | the report carries the per-equation units and, on failure, the exact
+-- | complaint naming the offending term and the clashing units.
+validateUnits
+  :: forall s p
+   . SystemSpec s p
+  -> Array String
+  -> Array String
+  -> Effect { consistent :: Boolean, report :: Array String }
+validateUnits spec stateUnits paramUnits =
+  validateUnitsJ (stateVars spec) stateUnits (paramVars spec) paramUnits
+    (map (toJExpr <<< snd) (equations spec))

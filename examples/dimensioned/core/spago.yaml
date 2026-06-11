@@ -1,0 +1,12 @@
+package:
+  name: quantity-core
+  description: >
+    A small typed language for dimensioned quantities: the physical dimension
+    (mass/length/time exponents) lives in the TYPE, as Prim.Int type-level
+    integers, so a mis-dimensioned expression is a compile error — before any
+    runtime, on any backend. No foreign imports; the Julia denotation
+    (DynamicQuantities, in the parent workspace) renders, converts and
+    independently re-validates the same quantities at runtime.
+  dependencies:
+    - prelude
+    - numbers

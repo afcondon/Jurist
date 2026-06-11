@@ -15,17 +15,29 @@ module Data.Verbs
   , jacobianSource
   , solveDAE
   , knapsack
+  , validateUnits
   ) where
 
 import Prelude
 
 import Data.Answer (Answer(..))
-import Data.Array (length)
+import Data.Array (length, zipWith)
 import Data.DAESpec (DAESpec, algVars, stateVars) as DAE
 import Data.NumExpr (NumExpr, render)
-import Data.SystemSpec (class NumberRow, class ToValues, SystemSpec, stateVars)
+import Data.String (joinWith)
+import Data.SystemSpec
+  ( class NumberRow
+  , class StringRow
+  , class ToTexts
+  , class ToValues
+  , SystemSpec
+  , paramVars
+  , stateVars
+  , toTextsB
+  )
 import Effect (Effect)
 import Prim.RowList (class RowToList)
+import Type.Proxy (Proxy(..))
 
 exprLatex :: Array String -> NumExpr -> Effect (Answer String)
 exprLatex _ f = pure
@@ -96,3 +108,31 @@ knapsack weights _values _cap = pure
           <> " items — JuMP · HiGHS, on the Julia runtime"
       )
   )
+
+-- Local `toTexts` (SystemSpec exports only the builder `toTextsB`).
+toTexts :: forall row rl. RowToList row rl => ToTexts rl row => Record row -> Array String
+toTexts = toTextsB (Proxy :: Proxy rl)
+
+validateUnits
+  :: forall state stateRL stateU stateURL params paramRL paramU paramURL
+   . RowToList state stateRL
+  => StringRow stateRL stateU
+  => RowToList stateU stateURL
+  => ToTexts stateURL stateU
+  => RowToList params paramRL
+  => StringRow paramRL paramU
+  => RowToList paramU paramURL
+  => ToTexts paramURL paramU
+  => SystemSpec state params
+  -> Record stateU
+  -> Record paramU
+  -> Effect (Answer { consistent :: Boolean, report :: Array String })
+validateUnits spec sUnits pUnits = pure
+  ( Deferred
+      ( "dimensional validation of the system in [" <> ann (stateVars spec) (toTexts sUnits)
+          <> "], parameters [" <> ann (paramVars spec) (toTexts pUnits)
+          <> "] — ModelingToolkit · DynamicQuantities, on the Julia runtime"
+      )
+  )
+  where
+  ann names units = joinWith ", " (zipWith (\n u -> n <> ":" <> u) names units)

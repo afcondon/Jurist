@@ -131,3 +131,63 @@ maxComponentJ(sol) = idx -> () -> begin
     v = sol.sts[idx + 1]
     Base.maximum(sol.sol[v])
 end
+
+# ── Unit validation (increment 9) ────────────────────────────────────────────
+# Dimensional analysis as a verb: the same descriptions (names + RHS JExprs)
+# plus one unit string per variable/parameter. The names become Symbolics
+# variables carrying DynamicQuantities unit metadata, bound to the UNITFUL
+# independent variable (ModelingToolkit.t, not t_nounits — D(x) must have unit
+# unit(x)/s for the check to mean anything), and MTK validates every equation.
+# The human-readable complaint is captured from the warning logger and crosses
+# the seam as data — the refusal is part of the answer.
+
+import DynamicQuantities
+import Logging
+
+const _JURIST_IV_U = ModelingToolkit.t
+const _JURIST_D_U = ModelingToolkit.D
+
+function _jurist_state_vars_u(names)
+    decls = Base.Any[Base.Expr(:call, Base.Symbol(n), :t) for n in names]
+    varmacro = Base.Expr(:macrocall,
+        Base.Expr(:., :Symbolics, Base.QuoteNode(Base.Symbol("@variables"))),
+        Base.LineNumberNode(0, :none),
+        decls...)
+    letexpr = Base.Expr(:let, Base.Expr(:block, Base.Expr(:(=), :t, _JURIST_IV_U)), varmacro)
+    Base.collect(Base.eval(@__MODULE__, letexpr))
+end
+
+_jurist_with_unit(sym, ustr) =
+    Symbolics.setmetadata(sym, ModelingToolkit.VariableUnit, DynamicQuantities.uparse(ustr))
+
+# validateUnitsJ stateVars stateUnits paramVars paramUnits jexprs
+#   : Effect { consistent :: Boolean, report :: Array String }
+validateUnitsJ(stateVars) = stateUnits -> paramVars -> paramUnits -> jexprs -> () -> begin
+    sts = [_jurist_with_unit(v, stateUnits[i])
+           for (i, v) in Base.enumerate(_jurist_state_vars_u(stateVars))]
+    ps = [_jurist_with_unit(Symbolics.variable(Base.Symbol(n)), paramUnits[i])
+          for (i, n) in Base.enumerate(paramVars)]
+    allnames = Base.vcat(Base.collect(stateVars), Base.collect(paramVars))
+    allsyms = Base.vcat(sts, ps)
+    rhs = Base.Any[_jurist_denote(je, allnames, allsyms) for je in jexprs]
+    eqs = [_JURIST_D_U(sts[i]) ~ rhs[i] for i in 1:Base.length(sts)]
+    io = Base.IOBuffer()
+    ok = Logging.with_logger(Logging.SimpleLogger(io, Logging.Warn)) do
+        ModelingToolkit.validate(eqs)
+    end
+    report = Base.Any[]
+    for i in 1:Base.length(eqs)
+        u = try
+            Base.string(ModelingToolkit.get_unit(rhs[i]))
+        catch e
+            "✗"
+        end
+        Base.push!(report, "D(" * stateVars[i] * "): " * u)
+    end
+    for line in Base.split(Base.String(Base.take!(io)), "\n")
+        if Base.occursin("Warning:", line)
+            Base.push!(report, Base.strip(Base.replace(line, "┌ Warning:" => "")))
+        end
+    end
+    Base.Dict{Base.String, Base.Any}("consistent" => ok, "report" => report)
+end

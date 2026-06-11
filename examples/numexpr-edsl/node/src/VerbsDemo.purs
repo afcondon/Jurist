@@ -14,8 +14,9 @@ import Prelude
 import Data.Answer (describe)
 import Data.DAESpec (DAESpec, daeSystem)
 import Data.NumExpr (NumExpr, logE, num, pow, sinE, var)
+import Data.String (joinWith)
 import Data.SystemSpec (SystemSpec, system)
-import Data.Verbs (gradientLatex, jacobianSource, knapsack, provenRoots, solveDAE)
+import Data.Verbs (gradientLatex, jacobianSource, knapsack, provenRoots, solveDAE, validateUnits)
 import Effect (Effect)
 import Effect.Console (log)
 
@@ -60,6 +61,22 @@ pendulum =
         }
     )
 
+-- A falling body with linear drag — every variable and parameter carries a
+-- unit annotation (`validateUnits` below checks the equations against them).
+fallingBody :: SystemSpec ( y :: NumExpr, v :: NumExpr ) ( g :: NumExpr, c :: NumExpr )
+fallingBody = system \s p -> { y: s.v, v: negate p.g - p.c * s.v }
+
+-- The same body with the drag term written c·v² — same `c :: 1/s`, so the
+-- term's dimensions are wrong. The description still type-checks (NumExpr is
+-- dimensionless); only the production interpreter can refuse it.
+fallingBodyBad :: SystemSpec ( y :: NumExpr, v :: NumExpr ) ( g :: NumExpr, c :: NumExpr )
+fallingBodyBad = system \s p -> { y: s.v, v: negate p.g - p.c * s.v * s.v }
+
+showReport :: { consistent :: Boolean, report :: Array String } -> String
+showReport r =
+  (if r.consistent then "consistent ✓   " else "INCONSISTENT ✗   ")
+    <> joinWith "  |  " r.report
+
 run :: Effect Unit
 run = do
   log "\n== the verb surface: same program, this runtime's answers =="
@@ -80,3 +97,7 @@ run = do
   log ("pendulum DAE, state [u,v,x,y] at t=2: " <> describe show final)
   best <- knapsack [ 6.0, 5.0, 5.0, 7.0 ] [ 12.0, 9.0, 9.0, 8.0 ] 10.0
   log ("knapsack [obj,gap,proven,mask…]: " <> describe show best)
+  okU <- validateUnits fallingBody { y: "m", v: "m/s" } { g: "m/s^2", c: "1/s" }
+  log ("units (drag c·v):  " <> describe showReport okU)
+  badU <- validateUnits fallingBodyBad { y: "m", v: "m/s" } { g: "m/s^2", c: "1/s" }
+  log ("units (drag c·v²): " <> describe showReport badU)

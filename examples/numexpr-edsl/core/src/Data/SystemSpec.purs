@@ -42,6 +42,9 @@ module Data.SystemSpec
   , class ToValues
   , toValuesB
   , class NumberRow
+  , class ToTexts
+  , toTextsB
+  , class StringRow
   ) where
 
 import Prelude
@@ -154,6 +157,38 @@ instance numberRowCons ::
   , Row.Cons name Number tailN numbers
   ) =>
   NumberRow (Cons name NumExpr tail) numbers
+
+-- | Read a record's `String` fields in row (alphabetical) order — used to line
+-- | unit annotations up with the system's variable order.
+class ToTexts (rl :: RowList Type) (row :: Row Type) where
+  toTextsB :: Proxy rl -> Record row -> Array String
+
+instance toTextsNil :: ToTexts Nil row where
+  toTextsB _ _ = []
+
+instance toTextsCons ::
+  ( IsSymbol name
+  , Row.Cons name String rest row
+  , ToTexts tail row
+  ) =>
+  ToTexts (Cons name String tail) row where
+  toTextsB _ rec = Record.get nameP rec : toTextsB (Proxy :: Proxy tail) rec
+    where
+    nameP = Proxy :: Proxy name
+
+-- | Relate a `NumExpr`-valued row to the `String`-valued row with the same
+-- | labels — so per-variable annotations (e.g. units) stay type-checked
+-- | against the system: an annotation for a misspelt or missing variable is a
+-- | compile error.
+class StringRow (rl :: RowList Type) (strings :: Row Type) | rl -> strings
+
+instance stringRowNil :: StringRow Nil ()
+
+instance stringRowCons ::
+  ( StringRow tail tailS
+  , Row.Cons name String tailS strings
+  ) =>
+  StringRow (Cons name NumExpr tail) strings
 
 -- | Assemble a typed system from a function over the typed state/param
 -- | records, returning a record of RHS expressions (one per state variable).

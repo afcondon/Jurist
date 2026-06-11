@@ -12,6 +12,7 @@ module Data.Verbs
   , jacobianSource
   , solveDAE
   , knapsack
+  , validateUnits
   ) where
 
 import Prelude
@@ -23,13 +24,21 @@ import Data.DAESystem (buildDAEField, sampleColumns) as DAE
 import Data.DAESystem (solveDAE) as DAESolve
 import Data.Differentiate (exprLatex, gradientLatex) as D
 import Data.Maybe (fromMaybe)
-import Data.MTKSystem (buildField, jacobianSource) as MTK
+import Data.MTKSystem (buildField, jacobianSource, validateUnits) as MTK
 import Data.NumExpr (NumExpr)
 import Data.Optimize (knapsack) as O
 import Data.Roots (provenRoots) as R
-import Data.SystemSpec (class NumberRow, class ToValues, SystemSpec)
+import Data.SystemSpec
+  ( class NumberRow
+  , class StringRow
+  , class ToTexts
+  , class ToValues
+  , SystemSpec
+  , toTextsB
+  )
 import Effect (Effect)
 import Prim.RowList (class RowToList)
+import Type.Proxy (Proxy(..))
 
 exprLatex :: Array String -> NumExpr -> Effect (Answer String)
 exprLatex vars f = Computed <$> D.exprLatex vars f
@@ -83,3 +92,28 @@ solveDAE spec s0 aGuess ps t0 t1 = do
 
 knapsack :: Array Number -> Array Number -> Number -> Effect (Answer (Array Number))
 knapsack weights values cap = Computed <$> O.knapsack weights values cap
+
+-- Local `toTexts` (SystemSpec exports only the builder `toTextsB`).
+toTexts :: forall row rl. RowToList row rl => ToTexts rl row => Record row -> Array String
+toTexts = toTextsB (Proxy :: Proxy rl)
+
+-- | Dimensionally validate the system against per-variable unit annotations
+-- | (records matching the state/param rows, so an annotation for a misspelt
+-- | variable is a compile error). The answer carries MTK's verdict and, on
+-- | failure, the exact complaint naming the offending term.
+validateUnits
+  :: forall state stateRL stateU stateURL params paramRL paramU paramURL
+   . RowToList state stateRL
+  => StringRow stateRL stateU
+  => RowToList stateU stateURL
+  => ToTexts stateURL stateU
+  => RowToList params paramRL
+  => StringRow paramRL paramU
+  => RowToList paramU paramURL
+  => ToTexts paramURL paramU
+  => SystemSpec state params
+  -> Record stateU
+  -> Record paramU
+  -> Effect (Answer { consistent :: Boolean, report :: Array String })
+validateUnits spec sUnits pUnits =
+  Computed <$> MTK.validateUnits spec (toTexts sUnits) (toTexts pUnits)

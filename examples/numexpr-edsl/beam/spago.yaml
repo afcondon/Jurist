@@ -16,6 +16,7 @@ package:
     - maybe
     - numbers
     - numexpr-core
+    - strings
 workspace:
   extraPackages:
     answer:

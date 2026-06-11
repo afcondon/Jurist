@@ -13,7 +13,8 @@
             "maybe",
             "numbers",
             "numexpr-core",
-            "prelude"
+            "prelude",
+            "strings"
           ]
         },
         "test": {
@@ -1526,6 +1527,23 @@
         "prelude"
       ]
     },
+    "enums": {
+      "type": "git",
+      "url": "https://github.com/purerl/purescript-enums.git",
+      "rev": "9c3ec61d03c04642af91e2ac72500cdd6009bd98",
+      "dependencies": [
+        "control",
+        "either",
+        "gen",
+        "maybe",
+        "newtype",
+        "nonempty",
+        "partial",
+        "prelude",
+        "tuples",
+        "unfoldable"
+      ]
+    },
     "exists": {
       "type": "git",
       "url": "https://github.com/purescript/purescript-exists.git",
@@ -1580,6 +1598,23 @@
         "unsafe-coerce"
       ]
     },
+    "gen": {
+      "type": "git",
+      "url": "https://github.com/purescript/purescript-gen.git",
+      "rev": "85c369f56545a3de834b7e7475a56bc9193bb4b4",
+      "dependencies": [
+        "either",
+        "foldable-traversable",
+        "identity",
+        "maybe",
+        "newtype",
+        "nonempty",
+        "prelude",
+        "tailrec",
+        "tuples",
+        "unfoldable"
+      ]
+    },
     "identity": {
       "type": "git",
       "url": "https://github.com/purescript/purescript-identity.git",
@@ -1588,6 +1623,17 @@
         "control",
         "invariant",
         "newtype",
+        "prelude"
+      ]
+    },
+    "integers": {
+      "type": "git",
+      "url": "https://github.com/purerl/purescript-integers.git",
+      "rev": "5549373344321575727cc1b3526ee946cff77a43",
+      "dependencies": [
+        "math",
+        "maybe",
+        "numbers",
         "prelude"
       ]
     },
@@ -1720,6 +1766,29 @@
       "url": "https://github.com/purescript/purescript-safe-coerce.git",
       "rev": "e719defd227d932da067a1f0d62a60b3d3ff3637",
       "dependencies": [
+        "unsafe-coerce"
+      ]
+    },
+    "strings": {
+      "type": "git",
+      "url": "https://github.com/purerl/purescript-strings.git",
+      "rev": "82ee15ccdc9d37238e4a57edbb74b135bbe2315a",
+      "dependencies": [
+        "arrays",
+        "control",
+        "either",
+        "enums",
+        "foldable-traversable",
+        "gen",
+        "integers",
+        "maybe",
+        "newtype",
+        "nonempty",
+        "partial",
+        "prelude",
+        "tailrec",
+        "tuples",
+        "unfoldable",
         "unsafe-coerce"
       ]
     },

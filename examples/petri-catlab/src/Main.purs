@@ -8,35 +8,15 @@ module Main where
 
 import Prelude
 
+import Data.Answer (describe)
 import Data.Array (length) as Array
-import Data.Petri (PetriSpec, Transition, odeLaws, solve, writeText)
+import Data.Petri (PetriSpec, Transition)
+import Data.Petri.Julia (odeLaws, solve, writeText)
+import Data.Petri.Models (seir, sir)
 import Data.String (Pattern(..), Replacement(..), joinWith, replaceAll)
+import Data.Verbs (odeLaws) as V
 import Effect (Effect)
 import Effect.Console (log)
-
--- ── The models (pure typed descriptions) ────────────────────────────────────
-
-sir :: PetriSpec
-sir =
-  { species: [ "S", "I", "R" ]
-  , transitions:
-      [ { name: "inf", inputs: [ "S", "I" ], outputs: [ "I", "I" ], rate: 0.0003 }
-      , { name: "rec", inputs: [ "I" ], outputs: [ "R" ], rate: 0.1 }
-      ]
-  , initial: [ 990.0, 10.0, 0.0 ]
-  }
-
--- SEIR adds a latent Exposed compartment between infection and infectiousness.
-seir :: PetriSpec
-seir =
-  { species: [ "S", "E", "I", "R" ]
-  , transitions:
-      [ { name: "expose", inputs: [ "S", "I" ], outputs: [ "E", "I" ], rate: 0.0004 }
-      , { name: "onset", inputs: [ "E" ], outputs: [ "I" ], rate: 0.2 }
-      , { name: "recover", inputs: [ "I" ], outputs: [ "R" ], rate: 0.1 }
-      ]
-  , initial: [ 990.0, 0.0, 10.0, 0.0 ]
-  }
 
 -- ── Minimal JSON encoding (LaTeX is backslash-heavy: escape \ first, then ") ──
 
@@ -92,3 +72,9 @@ main = do
   let json = "{\"items\":" <> jArrRaw [ itSir, itSeir ] <> "}"
   writeText "petri.js" ("window.PETRI = " <> json <> ";\n")
   log "wrote petri.js for the petri-viz page"
+
+  -- The verb surface: the same call answers `Deferred` on the portable
+  -- denotation (examples/catlab-portable); here, the real functorial laws.
+  log "\n== the verb surface: this runtime's answer =="
+  vLaws <- V.odeLaws sir
+  log ("odeLaws sir: " <> describe (joinWith "   ") vLaws)

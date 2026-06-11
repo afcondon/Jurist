@@ -1,4 +1,4 @@
-# FFI for Data.Migration — Tier-3, Catlab functorial data migration.
+# FFI for Data.Migration.Julia — Tier-3, Catlab functorial data migration.
 #
 # A Δ (pullback) migration along the in_mod functor: a migration functor
 # SchGraph → SchCode sends the plain graph's V↦Module, E↦Call, and src/tgt to the

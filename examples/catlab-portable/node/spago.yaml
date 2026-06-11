@@ -1,0 +1,31 @@
+package:
+  name: catlab-portable
+  description: >
+    The portable (reference) denotation of the Catlab-family verb surface.
+    Depends only on the pure description cores (petri-core, pattern-core,
+    migration-core) and answer; the production interpreters (AlgebraicPetri,
+    Catlab homomorphism search, Δ migration) don't exist here, so every verb
+    answers `Deferred` — the program type-checks, runs, and renders honestly
+    on the default JavaScript backend (ADR-0007).
+  dependencies:
+    - answer
+    - arrays
+    - console
+    - effect
+    - migration-core
+    - pattern-core
+    - petri-core
+    - prelude
+    - strings
+workspace:
+  extraPackages:
+    answer:
+      path: ../../answer
+    migration-core:
+      path: ../../catlab-migration/core
+    pattern-core:
+      path: ../../catlab-patterns/core
+    petri-core:
+      path: ../../petri-catlab/core
+  packageSet:
+    registry: 57.1.0

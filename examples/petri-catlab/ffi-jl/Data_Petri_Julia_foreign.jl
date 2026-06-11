@@ -1,4 +1,4 @@
-# FFI for Data.Petri — Tier-3, AlgebraicJulia.
+# FFI for Data.Petri.Julia — Tier-3, AlgebraicJulia.
 #
 # PureScript hands across a Petri net as plain arrays (species; per-transition
 # input/output species; initial concentrations; rates). Julia assembles an
@@ -7,7 +7,7 @@
 # the Petri category, not a hand translation — and OrdinaryDiffEq solves it.
 #
 # Qualified library calls throughout — this file is `include`d inside the
-# generated `Data_Petri` module.
+# generated `Data_Petri_Julia` module.
 #
 # Gotcha (validated in a probe first): AlgebraicPetri's transition parser wants a
 # *bare Symbol* for a single input/output species and a *Tuple* for several; a

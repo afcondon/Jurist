@@ -240,3 +240,36 @@ description — heavy cells marked pending — and the Julia leaf fills them in.
 verb taxonomy this implies: *same answer, cruder* (eval/integrate — real pure
 dummies exist), *guess vs proof* (roots/optima — any runtime can answer, only
 Julia can prove), *no dummy possible* (DAE/stiff — the irreducible core).
+
+## Addendum (2026-06-11): every production verb graduated; `Answer` extracted
+
+The remaining six verbs now answer `Deferred` on Node and the BEAM — the
+interpreter matrix on the site has no "not yet stubbed" chips left.
+Restructuring that made it honest (every dashed chip is a real run, not a
+claim):
+
+- **`answer`** (`examples/answer/`) — `Data.Answer` extracted from
+  numexpr-core into its own FFI-free package: the IOU is family-wide, not
+  NumExpr-specific. Referenced by path from every workspace that has a
+  `Data.Verbs`.
+- **`Data.DAESpec`** hoisted into numexpr-core (the pure half of the old
+  `Data.DAESystem`: the row-typed spec, `daeSystem`, the accessors). The
+  julia workspace keeps the foreign half. So `solveDAE` can be *described*
+  anywhere and *solved* only where ModelingToolkit lives.
+- **numexpr `Data.Verbs`** gains `jacobianSource` (now spec-level — it takes
+  the `SystemSpec`, not an MTK handle), `solveDAE` (answers the differential
+  state at `t1`, in row order), and `knapsack`. `VerbsDemo` (still
+  byte-identical ×3) exercises them: Node/BEAM print three more `deferred —`
+  lines; Julia prints the real MTK Jacobian, the pendulum's final state
+  (x² + y² = 1.0 to 7 digits — the rod stayed rigid), and the certified
+  optimum `[18.0, gap 0.0, proven]`.
+- **Catlab examples split** (petri-catlab, catlab-patterns,
+  catlab-migration): each is now `core/` (pure description language + the
+  demo models as shared values — `sir`, `depGraph`/`circular`, `codeGraph`)
+  plus the julia workspace (`Data.X.Julia` foreigns and a `Data.Verbs`
+  wrapping the real call in `Computed`).
+- **`examples/catlab-portable/`** — node and beam workspaces that import the
+  *same model values* from those cores and run `odeLaws` / `matches` /
+  `moduleGraph` against a `Deferred`-answering `Data.Verbs`. Output verified
+  byte-identical between Node and the BEAM (the new stubs avoid `show`ing
+  floats, dodging purerl's verbose float rendering).

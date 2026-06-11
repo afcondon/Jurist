@@ -20,8 +20,11 @@ package:
     - strings
     - foldable-traversable
     - numexpr-core
+    - answer
 workspace:
   extraPackages:
+    answer:
+      path: ../../answer
     numexpr-core:
       path: ../core
   packageSet:

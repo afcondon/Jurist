@@ -1,0 +1,11 @@
+package:
+  name: petri-core
+  description: >
+    The pure half of the Tier-3 Petri-net surface: the typed description
+    (species, transitions with mass-action rates) and the demo models (SIR,
+    SEIR). No foreign imports, so the same description compiles on every
+    PureScript backend — the Julia denotation (AlgebraicPetri, in the parent
+    workspace) computes from it; the portable denotation
+    (examples/catlab-portable) answers Deferred (ADR-0007).
+  dependencies:
+    - prelude

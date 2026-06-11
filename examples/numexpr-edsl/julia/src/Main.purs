@@ -28,7 +28,8 @@ import Data.Ord (abs)
 import Data.String (Pattern(..), Replacement(..), joinWith, replaceAll)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
-import Data.DAESystem (DAESpec, algVars, buildDAEField, daeSystem, dumpFramesJSON, sampleColumns, simplifiedEquationsSource, solveDAE, stateVars) as DAE
+import Data.DAESpec (DAESpec, algVars, daeSystem, stateVars) as DAE
+import Data.DAESystem (buildDAEField, dumpFramesJSON, sampleColumns, simplifiedEquationsSource, solveDAE) as DAE
 import Data.Differentiate (exprLatex, gradientLatex, writeText)
 import Data.MTKSystem (buildField, equationsSource, finalState, jacobianSource, maxComponent, solve) as MTK
 import Data.NumExpr (NumExpr, divide, eval, logE, num, pow, render, sinE, var)

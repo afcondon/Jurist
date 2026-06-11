@@ -7,45 +7,18 @@ module Main where
 
 import Prelude
 
+import Data.Answer (describe)
 import Data.Array (length, nub, sort, (!!)) as Array
 import Data.Foldable (traverse_)
 import Data.Maybe (fromMaybe)
-import Data.Pattern (Edge, Graph, Motif, matches, writeText)
+import Data.Pattern (Motif)
+import Data.Pattern.Julia (matches, writeText)
+import Data.Pattern.Models (circular, depGraph, modules, patterns)
 import Data.String (Pattern(..), Replacement(..), joinWith, replaceAll)
 import Data.Traversable (traverse)
+import Data.Verbs (matches) as V
 import Effect (Effect)
 import Effect.Console (log)
-
--- ── The structure (a typed description) ──────────────────────────────────────
-
-modules :: Array String
-modules = [ "Core", "Parser", "AST", "Eval", "Pretty", "Codegen", "Cli", "Utils" ]
-
-edge :: Int -> Int -> Edge
-edge a b = { from: a, to: b }
-
--- A → B means "module A depends on module B".
-depGraph :: Graph
-depGraph =
-  { nodes: modules
-  , edges:
-      [ edge 6 0, edge 6 1                       -- Cli → Core, Parser
-      , edge 1 2, edge 2 3, edge 3 1             -- Parser → AST → Eval → Parser  (cycle)
-      , edge 4 5, edge 5 4                       -- Pretty ⇄ Codegen              (mutual)
-      , edge 0 7, edge 1 7                       -- Core, Parser → Utils          (→ diamond w/ Cli)
-      , edge 5 2                                 -- Codegen → AST
-      ]
-  }
-
-patterns :: Array Motif
-patterns =
-  [ { name: "Circular dependency", shape: "a → b → c → a", nodes: 3
-    , edges: [ edge 0 1, edge 1 2, edge 2 0 ] }
-  , { name: "Mutual dependency", shape: "a ⇄ b", nodes: 2
-    , edges: [ edge 0 1, edge 1 0 ] }
-  , { name: "Diamond dependency", shape: "a → (b, c) → d", nodes: 4
-    , edges: [ edge 0 1, edge 0 2, edge 1 3, edge 2 3 ] }
-  ]
 
 -- ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -104,3 +77,10 @@ main = do
       <> "}"
   writeText "patterns.js" ("window.PATTERNS = " <> json <> ";\n")
   log "wrote patterns.js for the pattern-viz page"
+
+  -- The verb surface: the same call answers `Deferred` on the portable
+  -- denotation (examples/catlab-portable); here, the real homomorphisms.
+  log "\n== the verb surface: this runtime's answer =="
+  vm <- V.matches depGraph circular
+  log ("matches depGraph circular: "
+    <> describe (\ms -> show (Array.length ms) <> " homomorphisms") vm)

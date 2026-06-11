@@ -5,6 +5,7 @@
         "path": "./",
         "core": {
           "dependencies": [
+            "answer",
             "arrays",
             "console",
             "effect",
@@ -534,12 +535,22 @@
       }
     },
     "extra_packages": {
+      "answer": {
+        "path": "../../answer"
+      },
       "numexpr-core": {
         "path": "../core"
       }
     }
   },
   "packages": {
+    "answer": {
+      "type": "local",
+      "path": "../../answer",
+      "dependencies": [
+        "prelude"
+      ]
+    },
     "arrays": {
       "type": "registry",
       "version": "7.3.0",

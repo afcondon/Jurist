@@ -23,14 +23,14 @@
   <div class="cap">The production interpreters — the same descriptions, given more meaning</div>
   <div class="igrid">
     <div class="ibox">
-      <code>jacobianSource mtk</code>
+      <code>jacobianSource lorenz</code>
       <div class="note">analytic Jacobian — ModelingToolkit</div>
-      <span class="chip">node</span><span class="chip">beam</span><span class="chip jl">julia</span>
+      <span class="chip def">node</span><span class="chip def">beam</span><span class="chip jl">julia</span>
     </div>
     <div class="ibox">
       <code>solveDAE dp s0 a0 ps 0.0 20.0</code>
       <div class="note">index-1 DAE, implicit stiff solve — ModelingToolkit</div>
-      <span class="chip">node</span><span class="chip">beam</span><span class="chip jl">julia</span>
+      <span class="chip def">node</span><span class="chip def">beam</span><span class="chip jl">julia</span>
     </div>
     <div class="ibox">
       <code>gradientLatex vars vars f</code>
@@ -45,22 +45,22 @@
     <div class="ibox">
       <code>knapsack weights values cap</code>
       <div class="note">global optimum, proven — JuMP · HiGHS</div>
-      <span class="chip">node</span><span class="chip">beam</span><span class="chip jl">julia</span>
+      <span class="chip def">node</span><span class="chip def">beam</span><span class="chip jl">julia</span>
     </div>
     <div class="ibox">
       <code>odeLaws sir</code>
       <div class="note">mass-action ODEs, by functor — AlgebraicPetri</div>
-      <span class="chip">node</span><span class="chip">beam</span><span class="chip jl">julia</span>
+      <span class="chip def">node</span><span class="chip def">beam</span><span class="chip jl">julia</span>
     </div>
     <div class="ibox">
       <code>matches depGraph motif</code>
       <div class="note">homomorphism search — Catlab</div>
-      <span class="chip">node</span><span class="chip">beam</span><span class="chip jl">julia</span>
+      <span class="chip def">node</span><span class="chip def">beam</span><span class="chip jl">julia</span>
     </div>
     <div class="ibox">
       <code>moduleGraph codeGraph</code>
       <div class="note">Δ data migration — Catlab</div>
-      <span class="chip">node</span><span class="chip">beam</span><span class="chip jl">julia</span>
+      <span class="chip def">node</span><span class="chip def">beam</span><span class="chip jl">julia</span>
     </div>
   </div>
 
@@ -68,8 +68,7 @@
     <span class="chip on">solid</span> computed on that runtime &nbsp;·&nbsp;
     <span class="chip def">dashed</span> a typed placeholder: the verb runs and
     type-checks there, answering <code>Deferred</code> — a description of what the
-    production interpreter will compute — never fake data &nbsp;·&nbsp;
-    <span class="chip">faint</span> not yet stubbed
+    production interpreter will compute — never fake data
   </p>
 
   <p class="interp">

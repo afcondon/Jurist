@@ -8,47 +8,17 @@ module Main where
 
 import Prelude
 
+import Data.Answer (describe)
 import Data.Array (filter, length, nub, (!!)) as Array
 import Data.Foldable (traverse_)
 import Data.Maybe (fromMaybe)
-import Data.Migration (CodeGraph, Edge, Func, moduleGraph, writeText)
+import Data.Migration (Func)
+import Data.Migration.Julia (moduleGraph, writeText)
+import Data.Migration.Models (codeGraph, funcs, modules)
 import Data.String (Pattern(..), Replacement(..), joinWith, replaceAll)
+import Data.Verbs (moduleGraph) as V
 import Effect (Effect)
 import Effect.Console (log)
-
--- ── The typed structure ──────────────────────────────────────────────────────
-
-modules :: Array String
-modules = [ "Auth", "Db", "Api", "Util" ]
-
-fn :: String -> Int -> Func
-fn name inMod = { name, inMod }
-
-funcs :: Array Func
-funcs =
-  [ fn "login" 0, fn "hashPwd" 0
-  , fn "query" 1, fn "connect" 1
-  , fn "handleReq" 2, fn "route" 2
-  , fn "log" 3, fn "validate" 3
-  ]
-
-edge :: Int -> Int -> Edge
-edge from to = { from, to }
-
-codeGraph :: CodeGraph
-codeGraph =
-  { modules
-  , funcs
-  , calls:
-      [ edge 0 2, edge 0 3                       -- Auth → Db   (×2)
-      , edge 0 6, edge 1 6                       -- Auth → Util (×2)
-      , edge 2 6                                 -- Db → Util   (×1)
-      , edge 4 0, edge 5 1                       -- Api → Auth  (×2)
-      , edge 5 2, edge 4 2, edge 4 3             -- Api → Db    (×3)
-      , edge 4 6                                 -- Api → Util  (×1)
-      , edge 0 1, edge 2 3                       -- intra-module: Auth, Db
-      ]
-  }
 
 -- ── Aggregate the migrated multigraph into weighted edges ────────────────────
 
@@ -114,3 +84,10 @@ main = do
       <> "}"
   writeText "migration.js" ("window.MIGRATION = " <> json <> ";\n")
   log "wrote migration.js for the migration-viz page"
+
+  -- The verb surface: the same call answers `Deferred` on the portable
+  -- denotation (examples/catlab-portable); here, the real migrated graph.
+  log "\n== the verb surface: this runtime's answer =="
+  vg <- V.moduleGraph codeGraph
+  log ("moduleGraph codeGraph: "
+    <> describe (\es -> show (Array.length es) <> " migrated edges") vg)

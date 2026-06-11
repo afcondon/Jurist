@@ -6,6 +6,8 @@ package:
     described in PureScript; Catlab finds every occurrence. Self-contained purejl
     workspace with its own (Catlab-only) julia-env.
   dependencies:
+    - answer
+    - pattern-core
     - prelude
     - effect
     - console
@@ -15,6 +17,9 @@ package:
     - strings
     - foldable-traversable
 workspace:
+  extraPackages:
+    answer:
+      path: ../answer
   packageSet:
     registry: 57.1.0
   backend:

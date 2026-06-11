@@ -7,6 +7,8 @@ package:
     julia-env (Catlab + AlgebraicPetri + OrdinaryDiffEq), isolated from the
     numexpr-edsl MTK/JuMP env.
   dependencies:
+    - answer
+    - petri-core
     - prelude
     - effect
     - console
@@ -16,6 +18,9 @@ package:
     - strings
     - foldable-traversable
 workspace:
+  extraPackages:
+    answer:
+      path: ../answer
   packageSet:
     registry: 57.1.0
   backend:

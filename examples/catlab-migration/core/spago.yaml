@@ -1,0 +1,11 @@
+package:
+  name: migration-core
+  description: >
+    The pure half of the Tier-3 functorial-data-migration surface: the typed
+    code-graph description (modules, functions typed into modules, calls) and
+    the demo model. No foreign imports, so it compiles on every PureScript
+    backend — the Julia denotation (Catlab, in the parent workspace) computes
+    from it; the portable denotation (examples/catlab-portable) answers
+    Deferred (ADR-0007).
+  dependencies:
+    - prelude

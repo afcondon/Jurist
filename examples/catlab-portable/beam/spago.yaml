@@ -1,0 +1,30 @@
+package:
+  name: catlab-portable
+  description: >
+    The portable (reference) denotation of the Catlab-family verb surface, on
+    the BEAM via purs-backend-erl. Same sources as the node/ workspace, same
+    pure description cores; every verb answers `Deferred` (ADR-0007).
+  dependencies:
+    - answer
+    - arrays
+    - console
+    - effect
+    - migration-core
+    - pattern-core
+    - petri-core
+    - prelude
+    - strings
+workspace:
+  extraPackages:
+    answer:
+      path: ../../answer
+    migration-core:
+      path: ../../catlab-migration/core
+    pattern-core:
+      path: ../../catlab-patterns/core
+    petri-core:
+      path: ../../petri-catlab/core
+  packageSet:
+    url: https://raw.githubusercontent.com/purerl/package-sets/erl-0.15.3-20220629/packages.json
+  backend:
+    cmd: "../../numexpr-edsl/beam/node_modules/.bin/purs-backend-erl"

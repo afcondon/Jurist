@@ -1,0 +1,11 @@
+package:
+  name: pattern-core
+  description: >
+    The pure half of the Tier-3 homomorphism-search surface: typed graph and
+    motif descriptions plus the demo models (a module dependency graph; the
+    circular / mutual / diamond motifs). No foreign imports, so it compiles on
+    every PureScript backend — the Julia denotation (Catlab, in the parent
+    workspace) computes from it; the portable denotation
+    (examples/catlab-portable) answers Deferred (ADR-0007).
+  dependencies:
+    - prelude

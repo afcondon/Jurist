@@ -1,39 +1,21 @@
--- | Tier-3 (AlgebraicJulia): a typed **Petri net** surface whose dynamics Julia
--- | derives *functorially*. A `PetriSpec` is pure structure — species, and
--- | transitions with input/output species (multiplicity by repetition) and a
--- | mass-action rate. PureScript never writes a differential equation; it crosses
--- | the seam once as a description, and **AlgebraicPetri** applies the functor
--- | from the category of (open) Petri nets to vector fields — mass-action
--- | kinetics — to produce the ODE system, which OrdinaryDiffEq then solves.
--- |
--- | This is squarely AlgebraicJulia territory: the semantics is a functor, not a
--- | hand-written translation, and (next increment) open nets compose, so a model
--- | built by gluing parts has dynamics that are the composite of the parts'. The
--- | JS/WASM world has no applied-category-theory stack to hand a description to.
-module Data.Petri
-  ( Transition
-  , PetriSpec
-  , solve
+-- | The **Julia denotation** of the Petri-net surface: the description (from
+-- | core's `Data.Petri`) crosses the seam once as plain arrays, and
+-- | **AlgebraicPetri** applies the functor from the category of (open) Petri
+-- | nets to vector fields — mass-action kinetics — to produce the ODE system,
+-- | which OrdinaryDiffEq then solves. The semantics is a functor, not a
+-- | hand-written translation, and (next increment) open nets compose, so a
+-- | model built by gluing parts has dynamics that are the composite of the
+-- | parts'.
+module Data.Petri.Julia
+  ( solve
   , odeLaws
   , writeText
   ) where
 
 import Prelude
 
+import Data.Petri (PetriSpec)
 import Effect (Effect)
-
--- | A named reaction: input and output species (a species repeated = higher
--- | multiplicity) and a mass-action rate constant.
-type Transition =
-  { name :: String, inputs :: Array String, outputs :: Array String, rate :: Number }
-
--- | A Petri net: species, transitions, and one initial concentration per species
--- | (in `species` order).
-type PetriSpec =
-  { species :: Array String
-  , transitions :: Array Transition
-  , initial :: Array Number
-  }
 
 foreign import solveJ
   :: Array String

@@ -6,6 +6,8 @@ package:
     functor — the other ACSet superpower, producing a Hylograph-shaped result.
     Self-contained purejl workspace, own Catlab julia-env.
   dependencies:
+    - answer
+    - migration-core
     - prelude
     - effect
     - console
@@ -15,6 +17,9 @@ package:
     - strings
     - foldable-traversable
 workspace:
+  extraPackages:
+    answer:
+      path: ../answer
   packageSet:
     registry: 57.1.0
   backend:

@@ -5,14 +5,27 @@
         "path": "./",
         "core": {
           "dependencies": [
+            "answer",
             "arrays",
             "console",
             "effect",
             "foldable-traversable",
             "maybe",
+            "petri-core",
             "prelude",
             "strings",
             "tuples"
+          ]
+        },
+        "test": {
+          "dependencies": []
+        }
+      },
+      "petri-core": {
+        "path": "core",
+        "core": {
+          "dependencies": [
+            "prelude"
           ]
         },
         "test": {
@@ -529,9 +542,20 @@
         "zipperarray": "2.0.0"
       }
     },
-    "extra_packages": {}
+    "extra_packages": {
+      "answer": {
+        "path": "../answer"
+      }
+    }
   },
   "packages": {
+    "answer": {
+      "type": "local",
+      "path": "../answer",
+      "dependencies": [
+        "prelude"
+      ]
+    },
     "arrays": {
       "type": "registry",
       "version": "7.3.0",

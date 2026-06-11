@@ -27,6 +27,12 @@ examples/numexpr-edsl/*/node_modules/
 examples/numexpr-edsl/beam/ebin/
 erl_crash.dump
 
+# catlab-portable is split into per-backend workspaces like numexpr-edsl
+examples/catlab-portable/*/output/
+examples/catlab-portable/*/output-erl/
+examples/catlab-portable/*/.spago/
+examples/catlab-portable/*/ebin/
+
 # Julia env: commit Project.toml (reproducible deps), ignore the huge,
 # Julia-version-pinned Manifest (resolved by `Pkg.instantiate`)
 examples/*/julia-env/Manifest.toml

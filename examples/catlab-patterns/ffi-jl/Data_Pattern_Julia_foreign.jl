@@ -1,4 +1,4 @@
-# FFI for Data.Pattern — Tier-3, Catlab homomorphism search.
+# FFI for Data.Pattern.Julia — Tier-3, Catlab homomorphism search.
 #
 # PureScript hands across a graph and a pattern as edge-lists (0-based). Both
 # become Catlab `Graph` ACSets; `homomorphisms(P, G; monic=true)` finds every
@@ -7,7 +7,7 @@
 # pattern→graph vertex map.
 #
 # Qualified library calls throughout — this file is `include`d inside the
-# generated `Data_Pattern` module. Catlab is 1-based; PureScript is 0-based, so we
+# generated `Data_Pattern_Julia` module. Catlab is 1-based; PureScript is 0-based, so we
 # add 1 on the way in and subtract 1 on the way out.
 
 import Catlab   # bind `Catlab`; submodules referenced as Catlab.Graphs / .CategoricalAlgebra

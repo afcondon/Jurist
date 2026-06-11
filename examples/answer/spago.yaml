@@ -1,0 +1,11 @@
+package:
+  name: answer
+  description: >
+    The Answer ADT — the typed IOU shared by every Jurist eDSL family. A
+    production verb evaluated on a runtime without its production interpreter
+    answers `Deferred` (a description of what will be computed), never fake
+    data; on the Julia denotation the same verb answers `Computed`. One tiny
+    backend-agnostic package (prelude only) referenced by path from the
+    numexpr-edsl and Catlab example workspaces (ADR-0007).
+  dependencies:
+    - prelude

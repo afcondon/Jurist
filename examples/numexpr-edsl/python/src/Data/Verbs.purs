@@ -1,13 +1,14 @@
--- | The portable verb surface, **reference denotation**: typed placeholders.
+-- | The portable verb surface, **Python denotation: the middle tier**.
 -- |
 -- | Each workspace supplies its own `Data.Verbs` with the same signatures —
--- | module-level backend selection, the same trick as core's per-backend math
--- | shims, one level up. Here (Node, and identically on the BEAM) the
--- | production interpreters don't exist, so every verb answers `Deferred`
--- | with a rendering of the description it would consume: the host can hold,
--- | type-check, display and pipeline the computation; the answers arrive when
--- | the same program runs on the Julia denotation (`julia/src/Data/Verbs.purs`,
--- | which wraps the real interpreters in `Computed`).
+-- | module-level backend selection. Python sits between the reference tier
+-- | (Node/BEAM: everything `Deferred`) and Julia (everything `Computed`):
+-- | sympy is a real CAS, so the symbolic-differentiation verbs answer
+-- | `Computed` here, with real (sympy-rendered) LaTeX. The verbs whose
+-- | production semantics Python cannot honestly supply stay `Deferred`:
+-- | `provenRoots` promises *certified* enclosures (scipy guesses are not
+-- | proofs), and scipy has no DAE/algebraic-variable support. The gradient
+-- | of the verb matrix, made visible in one module.
 module Data.Verbs
   ( exprLatex
   , gradientLatex
@@ -39,18 +40,15 @@ import Effect (Effect)
 import Prim.RowList (class RowToList)
 import Type.Proxy (Proxy(..))
 
+foreign import exprLatexImpl :: Array String -> NumExpr -> String
+foreign import gradientLatexImpl :: Array String -> Array String -> NumExpr -> Array String
+
 exprLatex :: Array String -> NumExpr -> Effect (Answer String)
-exprLatex _ f = pure
-  (Deferred ("LaTeX of [" <> render f <> "] — Latexify, on the Julia runtime"))
+exprLatex vars f = pure (Computed (exprLatexImpl vars f))
 
 gradientLatex
   :: Array String -> Array String -> NumExpr -> Effect (Answer (Array String))
-gradientLatex _ wrt f = pure
-  ( Deferred
-      ( "∇[" <> render f <> "] wrt " <> show wrt
-          <> " — Symbolics · Latexify, on the Julia runtime"
-      )
-  )
+gradientLatex declare wrt f = pure (Computed (gradientLatexImpl declare wrt f))
 
 provenRoots
   :: String -> Number -> Number -> NumExpr -> Effect (Answer (Array (Array Number)))

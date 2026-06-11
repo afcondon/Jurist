@@ -175,9 +175,15 @@ Status is **Proposed** because only Tier 1 is built; Tier 2+ will promote it.
 > two banner lines naming the runtime — same IEEE-754 doubles, same JS number
 > formatting, same `deferred —` verb renders. One typed `lorenz` description,
 > four runtimes (Julia / Node / BEAM / Python), one orbit. The Python column is
-> the matrix's natural *middle* tier — its sympy/scipy production verbs
-> (differentiate `Computed`, integrate via lambdify+Radau) are designed in
-> `purescript-python-new/docs/python-shaped-libraries.md` and come next.
+> the matrix's natural *middle* tier — and its first production verbs landed
+> the same day: `exprLatex`/`gradientLatex` answer `Computed` via sympy (the
+> NumExpr tag-tuple walks once into a sympy expression; the showpiece gradient
+> prints `20 x - y + \frac{1}{x} | - x + \cos(y)`, real CAS output on the
+> Python runtime), while `provenRoots` (certification), `solveDAE`, `knapsack`
+> and `validateUnits` stay honestly `Deferred`. One `VerbsDemo` run now shows
+> the guess-vs-proof gradient across tiers. The remaining middle-tier verbs
+> (lambdify+Radau integrate, sympy polynomial-case root proofs) are designed
+> in `purescript-python-new/docs/python-shaped-libraries.md`.
 
 > **Progress (2026-06-10): "descriptions *back*" — two Julia-only demos on the
 > same eDSL.** The doctrine's return half is usually a *handle* to Julia-owned

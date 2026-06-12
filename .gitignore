@@ -77,3 +77,12 @@ examples/catlab-migration/migration.js
 
 # ad-hoc site bundles (e.g. for phone transfer)
 site.zip
+
+# stability-atlas is split into per-workspace builds like numexpr-edsl
+# (the committed web/public/index.js bundle follows the site/ precedent
+# of committing generated demo artifacts)
+examples/stability-atlas/*/output/
+examples/stability-atlas/*/output-jl/
+examples/stability-atlas/*/.spago/
+examples/stability-atlas/*/node_modules/
+examples/stability-atlas/*/julia-env/Manifest.toml

@@ -1,0 +1,23 @@
+package:
+  name: atlas-core
+  description: >
+    Backend-agnostic core of the stability atlas: Atlas.Json (a pure-PS JSON
+    ADT, printer, and parser — the wire codec itself is portable) and
+    Atlas.Protocol (the typed wire contract: ClientMsg/ServerMsg + codecs).
+    No foreign imports at all, so the SAME module compiles to JS in the
+    browser and to Julia in the service — the typed-wire-contract demo of
+    ADR-0007 / julia-hosted-purescript.md View 2. Schema drift between client
+    and server is a compile error, not a runtime surprise.
+  dependencies:
+    - prelude
+    - arrays
+    - strings
+    - integers
+    - numbers
+    - either
+    - maybe
+    - tuples
+    - lists
+    - foldable-traversable
+    - effect
+    - console

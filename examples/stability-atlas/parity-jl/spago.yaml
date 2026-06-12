@@ -1,0 +1,18 @@
+package:
+  name: atlas-parity-jl
+  description: >
+    Julia (purejl) runner for the wire-contract parity tests: the SAME
+    Atlas.Protocol.Tests as parity-node, compiled to Julia. Output must be
+    byte-identical with the Node run.
+  dependencies:
+    - prelude
+    - effect
+    - atlas-core
+workspace:
+  extraPackages:
+    atlas-core:
+      path: ../core
+  packageSet:
+    registry: 57.1.0
+  backend:
+    cmd: "true"

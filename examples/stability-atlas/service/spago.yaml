@@ -1,0 +1,21 @@
+package:
+  name: atlas-service
+  description: >
+    The stability-atlas service (purejl): a PS-on-Julia process serving the
+    Atlas.Protocol WebSocket. Depends on atlas-core for the wire contract —
+    the same module the browser compiles to JS. FFI shims in ffi-jl/; Julia
+    packages in julia-env/. See docs/stability-atlas-showcase.md.
+  dependencies:
+    - prelude
+    - effect
+    - console
+    - either
+    - atlas-core
+workspace:
+  extraPackages:
+    atlas-core:
+      path: ../core
+  packageSet:
+    registry: 57.1.0
+  backend:
+    cmd: "true"

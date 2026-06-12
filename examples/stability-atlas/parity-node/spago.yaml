@@ -1,0 +1,16 @@
+package:
+  name: atlas-parity-node
+  description: >
+    Node runner for the wire-contract parity tests: atlas-core's
+    Atlas.Protocol.Tests on the stock JavaScript backend (the reference
+    semantics). Diffed byte-for-byte against parity-jl's output.
+  dependencies:
+    - prelude
+    - effect
+    - atlas-core
+workspace:
+  extraPackages:
+    atlas-core:
+      path: ../core
+  packageSet:
+    registry: 57.1.0

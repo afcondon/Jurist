@@ -1,0 +1,37 @@
+package:
+  name: atlas-web
+  description: >
+    Browser frontend of the stability atlas: Halogen app, canvas heat map
+    painting progressive SweepRows blocks as they stream in. Depends on
+    atlas-core for the wire contract — the SAME Atlas.Protocol/Atlas.Json
+    the service compiles to Julia, here compiled to JS. Schema drift is a
+    compile error on both ends.
+  dependencies:
+    - prelude
+    - effect
+    - console
+    - arrays
+    - either
+    - maybe
+    - tuples
+    - integers
+    - numbers
+    - foreign
+    - transformers
+    - foldable-traversable
+    - halogen
+    - halogen-subscriptions
+    - js-timers
+    - canvas
+    - web-socket
+    - web-events
+    - web-uievents
+    - web-html
+    - web-dom
+    - atlas-core
+workspace:
+  extraPackages:
+    atlas-core:
+      path: ../core
+  packageSet:
+    registry: 57.1.0

@@ -115,6 +115,64 @@
   }
   .orrery-head button:hover { background: var(--ink); color: var(--paper); }
   .orrery-head .drift { font-size: 12px; color: var(--muted); margin-left: auto; }
+  .meter { margin-top: 36px; }
+  .meter-lede {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--muted);
+    max-width: 72ch;
+    margin: 0 0 16px;
+  }
+  .key { margin-bottom: 36px; }
+  .key-lede {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink);
+    max-width: 72ch;
+    margin: 0 0 24px;
+  }
+  .key-lede strong { font-weight: 600; }
+  .key canvas {
+    display: block;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+  }
+  .key-caption {
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--muted);
+    max-width: 72ch;
+    margin: 12px 0 0;
+  }
+  .key-caption strong { color: var(--ink); font-weight: 600; }
+  .multiples { margin-top: 36px; }
+  .mini-rowlabel {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 16px 0 6px;
+  }
+  .mini-row, .mini-caprow {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 6px;
+  }
+  .mini-caprow { margin-top: 6px; }
+  canvas.mini {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    background: #eceae3;
+    border: 1px solid var(--rule);
+    cursor: pointer;
+  }
+  canvas.mini:hover { border-color: var(--ink); }
+  .mini-caprow .cap { font-size: 10px; line-height: 1.4; color: var(--muted); }
+  .mini-caprow .cap strong { color: var(--accent); font-weight: 700; }
+  .mini-caprow .cap .ok { color: #1a6b4a; }
+  .mini-caprow .cap .lost { color: var(--ink); }
 </style>
 </head>
 <body>

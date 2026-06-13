@@ -136,10 +136,34 @@ completion. The trajectory is Zone A.
   Marginalia server registration (SDI-compatible: port from env, literal
   port in startCommand, absolute cd), possible site/ section.
 
-## Status (2026-06-12, end of build session 1)
+## Status (2026-06-12, after build session 2)
 
-M0–M4 complete; M5 partial (FLI ✓, registration ✓; honesty meter, μ
-slider, site section pending). Measured on the MBP (6 Julia threads):
+M0–M4 complete; M5 partial (FLI ✓, registration ✓, honesty meter ✓; μ
+slider, site section pending).
+
+**The honesty meter (session 2).** When an orbit streams in, the browser
+re-runs it with the same `Atlas.Dynamics` — compiled to JavaScript on
+this end, to Julia on the other — in lockstep with the incoming frames
+(same dt, same stride, same loss check), plus a 4×-dt control run. A
+log-scale strip chart plots relative Jacobi drift for all three; a
+headline reports the max component-wise difference between the browser
+mirror and the streamed frames. Measured: **bit-identical (max |Δ| = 0)**
+on both a lost orbit (a=0.8007, e=0.183 — the early-termination path
+mirrors too) and a 30-period survivor (a=0.45, e=0.05, 11,928 RK4
+steps). The 4×-dt control sits ~2.5 decades above — the (4×)⁴ = 256×
+signature of RK4's order. Drift belongs to the integrator's dial, not
+the runtime.
+
+One change ran ahead of the meter: `asteroidPeriod` (and the kernel's
+three mirrored dt lines) now spell a^1.5 as `a * sqrt a`. sqrt is
+correctly rounded by IEEE 754 on every runtime; pow is only ~1 ulp per
+libm — and dt is the one number where an ulp forks a chaotic trajectory.
+The shared integration path is now exactly-rounded operations only,
+which is what makes the 0 achievable at all. (The wire was already
+safe: `show`-printed shortest-roundtrip numbers parse back to the same
+bits.)
+
+Measured on the MBP (6 Julia threads), session 1:
 
 - Full sweep 240×150 @ 150 periods: **~14 s in Julia**, 13 progressive
   blocks, first block ~1.2 s warm. Preview 120×75: ~3.5 s warm. FLI

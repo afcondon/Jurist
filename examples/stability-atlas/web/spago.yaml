@@ -19,6 +19,7 @@ package:
     - foreign
     - transformers
     - foldable-traversable
+    - random
     - halogen
     - halogen-subscriptions
     - js-timers

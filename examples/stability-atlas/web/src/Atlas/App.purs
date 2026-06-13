@@ -282,11 +282,11 @@ type State =
   , frames :: Array Frame
   , trajLive :: Boolean
   , animIx :: Int
-  , frameView :: FrameView
   , fli :: Boolean
   , meter :: Maybe Meter
   , minis :: Array Mini
   , minisPainted :: Boolean
+  , selectedPick :: Maybe Int
   }
 
 data Action
@@ -298,8 +298,7 @@ data Action
   | SetHorizon String
   | Rerun
   | ToggleFli
-  | ToggleFrameView
-  | SelectPick Selection
+  | SelectPick Int
   | Tick
 
 component :: forall query input output. H.Component query input output Aff
@@ -316,11 +315,11 @@ component =
         , frames: []
         , trajLive: false
         , animIx: 0
-        , frameView: Rotating
         , fli: false
         , meter: Nothing
         , minis: []
         , minisPainted: false
+        , selectedPick: Nothing
         }
     , render
     , eval: H.mkEval H.defaultEval
@@ -411,17 +410,18 @@ render st =
     , HH.div [ HP.class_ (HH.ClassName "orrery") ]
         [ HH.div [ HP.class_ (HH.ClassName "orrery-head") ]
             [ HH.h2_ [ HH.text "Orrery" ]
-            , HH.button [ HE.onClick \_ -> ToggleFrameView ]
-                [ HH.text case st.frameView of
-                    Rotating -> "rotating frame (Jupiter pinned) — switch"
-                    Inertial -> "inertial frame — switch"
-                ]
             , HH.span [ HP.class_ (HH.ClassName "drift") ] [ HH.text driftText ]
             ]
-        , HH.canvas
-            [ HP.id "orrery-canvas"
-            , HP.width 420
-            , HP.height 420
+        , HH.p [ HP.class_ (HH.ClassName "key-lede") ] [ HH.text orreryLede ]
+        , HH.div [ HP.class_ (HH.ClassName "orrery-pair") ]
+            [ HH.figure_
+                [ HH.canvas [ HP.id "orrery-rot", HP.width (floor orrerySize), HP.height (floor orrerySize) ]
+                , HH.figcaption_ [ HH.text "Rotating — Jupiter pinned" ]
+                ]
+            , HH.figure_
+                [ HH.canvas [ HP.id "orrery-ine", HP.width (floor orrerySize), HP.height (floor orrerySize) ]
+                , HH.figcaption_ [ HH.text "Inertial — seen from the fixed stars" ]
+                ]
             ]
         ]
     , HH.div [ HP.class_ (HH.ClassName "meter") ]
@@ -461,10 +461,19 @@ render st =
       0 -> ""
       n -> " — block " <> show n
   selectionText = case st.selection of
-    Nothing -> "Click a pixel to stream that orbit into the orrery below."
-    Just s -> "Selected: a = " <> toStringWith (fixed 4) s.a
-      <> " (" <> toStringWith (fixed 2) (s.a * 5.2035) <> " AU), e = "
-      <> toStringWith (fixed 3) s.e
+    Nothing ->
+      "Click any thumbnail below to stream that orbit into the orrery — or click a point in the atlas above to dial in your own."
+    Just s ->
+      let coords = "a = " <> toStringWith (fixed 4) s.a
+            <> " (" <> toStringWith (fixed 2) (s.a * 5.2035) <> " AU), e = "
+            <> toStringWith (fixed 3) s.e
+      in case st.selectedPick of
+        Just i -> "Selected #" <> show (i + 1) <> ": " <> coords
+          <> ". Click another thumbnail to compare, or click a point in the atlas to move it."
+        Nothing -> "Selected from the atlas: " <> coords
+          <> ". Or click one of the numbered thumbnails below."
+  orreryLede =
+    "Both views show the same streamed orbit at once — the rotating frame (Jupiter held fixed) and the inertial frame (the view from the fixed stars). A shape that's a clean rosette on the left is an ordinary precessing ellipse on the right: same orbit, same data, different camera."
   horizonOption v =
     HH.option [ HP.value v, HP.selected (v == toStringWith (fixed 0) st.horizon) ] [ HH.text v ]
   resonanceMark r =
@@ -474,16 +483,17 @@ render st =
         , HP.style ("left:" <> toStringWith (fixed 2) (frac * 100.0) <> "%")
         ]
         [ HH.text r.label ]
-  miniCanvas pre i m =
+  miniCanvas pre i _ =
     HH.canvas
       [ HP.id ("mini-" <> pre <> "-" <> show i)
-      , HP.class_ (HH.ClassName "mini")
+      , HP.classes ([ HH.ClassName "mini" ] <> selectedClass i)
       , HP.width (floor miniSize)
       , HP.height (floor miniSize)
-      , HE.onClick \_ -> SelectPick { a: m.a, e: m.e }
+      , HE.onClick \_ -> SelectPick i
       ]
+  selectedClass i = if st.selectedPick == Just i then [ HH.ClassName "selected" ] else []
   miniCap i m =
-    HH.div [ HP.class_ (HH.ClassName "cap") ]
+    HH.div [ HP.classes ([ HH.ClassName "cap" ] <> selectedClass i) ]
       [ HH.strong_ [ HH.text (show (i + 1)) ]
       , HH.text (" a " <> toStringWith (fixed 2) m.a <> " · e " <> toStringWith (fixed 2) m.e)
       , HH.br_
@@ -550,7 +560,7 @@ handleAction = case _ of
           { frames = s.frames <> f.frames
           , meter = map (\m -> Array.foldl meterStep m f.frames) s.meter
           }
-        H.liftEffect (paintOrrery st.frameView st.frames (Array.length st.frames - 1))
+        H.liftEffect (paintBothOrreries st.frames (Array.length st.frames - 1))
         H.liftEffect (for_ st.meter paintMeter)
       TrajDone -> H.modify_ _ { trajLive = false }
       ProtocolError e -> H.liftEffect (warn ("service error: " <> e))
@@ -569,6 +579,7 @@ handleAction = case _ of
       let e = s.eMin + (s.eMax - s.eMin) * (1.0 - py / canvasH)
       H.modify_ _
         { selection = Just { a, e }
+        , selectedPick = Nothing
         , frames = []
         , animIx = 0
         , trajLive = true
@@ -593,23 +604,18 @@ handleAction = case _ of
     H.modify_ _ { phase = PreviewRunning, spec = spec, blocks = 0, serverMs = Nothing }
     sendMsg (RequestSweep spec)
 
-  ToggleFrameView -> do
-    st <- H.modify \s -> s
-      { frameView = case s.frameView of
-          Rotating -> Inertial
-          Inertial -> Rotating
-      }
-    H.liftEffect (paintOrrery st.frameView st.frames st.animIx)
-
-  SelectPick sel -> do
-    H.modify_ _
-      { selection = Just sel
-      , frames = []
-      , animIx = 0
-      , trajLive = true
-      , meter = Just (initMeter 9.54e-4 sel.a sel.e)
-      }
-    sendMsg (RequestTrajectory { a: sel.a, e: sel.e, horizonPeriods: trajHorizonPeriods, mu: 9.54e-4, frameStride: trajStride })
+  SelectPick i -> do
+    st <- H.get
+    for_ (Array.index st.minis i) \m -> do
+      H.modify_ _
+        { selection = Just { a: m.a, e: m.e }
+        , selectedPick = Just i
+        , frames = []
+        , animIx = 0
+        , trajLive = true
+        , meter = Just (initMeter 9.54e-4 m.a m.e)
+        }
+      sendMsg (RequestTrajectory { a: m.a, e: m.e, horizonPeriods: trajHorizonPeriods, mu: 9.54e-4, frameStride: trajStride })
 
   Tick -> do
     st <- H.get
@@ -626,7 +632,7 @@ handleAction = case _ of
     when (n > 1 && not st.trajLive) do
       let ix = mod (st.animIx + max 1 (n / 450)) n
       H.modify_ _ { animIx = ix }
-      H.liftEffect (paintOrrery st.frameView st.frames ix)
+      H.liftEffect (paintBothOrreries st.frames ix)
   where
   sendMsg :: ClientMsg -> H.HalogenM State Action () output Aff Unit
   sendMsg msg = do
@@ -678,12 +684,23 @@ paintBlock spec block = do
             lerp lo hi = floor (lo + (hi - lo) * pow t 0.8)
         in "rgb(" <> show (lerp 244.0 193.0) <> "," <> show (lerp 242.0 84.0) <> "," <> show (lerp 236.0 44.0) <> ")"
 
--- | Draw the orrery: bodies, the streamed trail, the current-frame dot —
--- | in the rotating frame (Jupiter pinned) or the inertial one (the
+orrerySize :: Number
+orrerySize = 340.0
+
+-- | Paint both orrery panels from the same streamed trajectory: the
+-- | rotating frame and the inertial frame side by side, so the two
+-- | readings of one orbit are always visible together.
+paintBothOrreries :: Array Frame -> Int -> Effect Unit
+paintBothOrreries frames ix = do
+  paintOrrery "orrery-rot" Rotating frames ix
+  paintOrrery "orrery-ine" Inertial frames ix
+
+-- | Draw one orrery panel: bodies, the streamed trail, the current-frame
+-- | dot — in the rotating frame (Jupiter pinned) or the inertial one (the
 -- | osculating Kepler ellipse appears, precessing).
-paintOrrery :: FrameView -> Array Frame -> Int -> Effect Unit
-paintOrrery view frames ix = do
-  mCanvas <- GC.getCanvasElementById "orrery-canvas"
+paintOrrery :: String -> FrameView -> Array Frame -> Int -> Effect Unit
+paintOrrery canvasId view frames ix = do
+  mCanvas <- GC.getCanvasElementById canvasId
   for_ mCanvas \canvas -> do
     ctx <- GC.getContext2D canvas
     GC.setFillStyle ctx "#eceae3"
@@ -719,8 +736,8 @@ paintOrrery view frames ix = do
     GC.setFillStyle ctx "#1a6b4a"
     GC.fillRect ctx { x: pNow.px - 3.0, y: pNow.py - 3.0, width: 6.0, height: 6.0 }
   where
-  size = 420.0
-  scale = 150.0
+  size = orrerySize
+  scale = orrerySize * 0.357     -- ≈150 at the old 420px size
   center = size / 2.0
   mu = 9.54e-4
 

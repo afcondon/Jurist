@@ -219,6 +219,9 @@
   var eqInt = {
     eq: eqIntImpl
   };
+  var eq = function(dict) {
+    return dict.eq;
+  };
 
   // output/Data.Ordering/index.js
   var LT = /* @__PURE__ */ (function() {
@@ -453,6 +456,24 @@
       }
       ;
       throw new Error("Failed pattern match at Data.Maybe (line 288, column 1 - line 288, column 46): " + [v.constructor.name]);
+    };
+  };
+  var eqMaybe = function(dictEq) {
+    var eq2 = eq(dictEq);
+    return {
+      eq: function(x) {
+        return function(y) {
+          if (x instanceof Nothing && y instanceof Nothing) {
+            return true;
+          }
+          ;
+          if (x instanceof Just && y instanceof Just) {
+            return eq2(x.value0)(y.value0);
+          }
+          ;
+          return false;
+        };
+      }
     };
   };
   var applyMaybe = {
@@ -7270,6 +7291,10 @@
   var element2 = /* @__PURE__ */ (function() {
     return element(Nothing.value);
   })();
+  var figcaption = /* @__PURE__ */ element2("figcaption");
+  var figcaption_ = /* @__PURE__ */ figcaption([]);
+  var figure = /* @__PURE__ */ element2("figure");
+  var figure_ = /* @__PURE__ */ figure([]);
   var h1 = /* @__PURE__ */ element2("h1");
   var h1_ = /* @__PURE__ */ h1([]);
   var h2 = /* @__PURE__ */ element2("h2");
@@ -7408,6 +7433,14 @@
   var width2 = /* @__PURE__ */ prop3("width");
   var id2 = /* @__PURE__ */ prop22("id");
   var height2 = /* @__PURE__ */ prop3("height");
+  var classes = /* @__PURE__ */ (function() {
+    var $32 = prop22("className");
+    var $33 = joinWith(" ");
+    var $34 = map(functorArray)(unwrap3);
+    return function($35) {
+      return $32($33($34($35)));
+    };
+  })();
   var class_ = /* @__PURE__ */ (function() {
     var $36 = prop22("className");
     return function($37) {
@@ -7504,10 +7537,11 @@
   var toUnfoldable4 = /* @__PURE__ */ toUnfoldable(unfoldableArray);
   var $$void5 = /* @__PURE__ */ $$void(functorEffect);
   var foldM3 = /* @__PURE__ */ foldM(monadEffect);
+  var eq12 = /* @__PURE__ */ eq(/* @__PURE__ */ eqMaybe(eqInt));
+  var append12 = /* @__PURE__ */ append(semigroupArray);
   var value3 = /* @__PURE__ */ value2(isPropString);
   var map15 = /* @__PURE__ */ map(functorArray);
   var type_4 = /* @__PURE__ */ type_3(isPropInputType);
-  var append12 = /* @__PURE__ */ append(semigroupArray);
   var bind12 = /* @__PURE__ */ bind(bindHalogenM);
   var get2 = /* @__PURE__ */ get(monadStateHalogenM);
   var for_3 = /* @__PURE__ */ for_(applicativeHalogenM)(foldableMaybe);
@@ -7636,13 +7670,6 @@
     ToggleFli2.value = new ToggleFli2();
     return ToggleFli2;
   })();
-  var ToggleFrameView = /* @__PURE__ */ (function() {
-    function ToggleFrameView2() {
-    }
-    ;
-    ToggleFrameView2.value = new ToggleFrameView2();
-    return ToggleFrameView2;
-  })();
   var SelectPick = /* @__PURE__ */ (function() {
     function SelectPick2(value0) {
       this.value0 = value0;
@@ -7727,122 +7754,134 @@
     ;
     throw new Error("Failed pattern match at Atlas.App (line 205, column 14 - line 210, column 79): " + [v.constructor.name]);
   };
-  var paintOrrery = function(view) {
-    return function(frames) {
-      return function(ix) {
-        var center = 420 / 2;
-        var project = function(v) {
-          return function(t) {
-            return function(w) {
-              if (v instanceof Rotating) {
-                return {
-                  px: center + w.wx * 150,
-                  py: center - w.wy * 150
-                };
-              }
-              ;
-              if (v instanceof Inertial) {
-                return {
-                  px: center + (w.wx * cos(t) - w.wy * sin(t)) * 150,
-                  py: center - (w.wx * sin(t) + w.wy * cos(t)) * 150
-                };
-              }
-              ;
-              throw new Error("Failed pattern match at Atlas.App (line 730, column 19 - line 735, column 8): " + [v.constructor.name]);
-            };
-          };
-        };
-        var projectF = function(v) {
-          return function(f) {
-            return project(v)(f.t)({
-              wx: f.x,
-              wy: f.y
-            });
-          };
-        };
-        return function __do2() {
-          var mCanvas = getCanvasElementById("orrery-canvas")();
-          return for_1(mCanvas)(function(canvas2) {
-            return function __do3() {
-              var ctx = getContext2D(canvas2)();
-              setFillStyle(ctx)("#eceae3")();
-              fillRect(ctx)({
-                x: 0,
-                y: 0,
-                width: 420,
-                height: 420
-              })();
-              var cur = fromMaybe({
-                t: 0,
-                x: 0,
-                y: 0,
-                vx: 0,
-                vy: 0,
-                jacobi: 0
-              })(index(frames)(ix));
-              var sunP = project(view)(cur.t)({
-                wx: -954e-6,
-                wy: 0
-              });
-              var jupP = project(view)(cur.t)({
-                wx: 1 - 954e-6,
-                wy: 0
-              });
-              var rh = pow(954e-6 / 3)(1 / 3) * 150;
-              setStrokeStyle(ctx)("#c1542c")();
-              setLineWidth(ctx)(0.75)();
-              strokeRect(ctx)({
-                x: jupP.px - rh,
-                y: jupP.py - rh,
-                width: 2 * rh,
-                height: 2 * rh
-              })();
-              (function() {
-                var v = head(frames);
-                if (v instanceof Nothing) {
-                  return unit;
+  var orrerySize = 340;
+  var paintOrrery = function(canvasId) {
+    return function(view) {
+      return function(frames) {
+        return function(ix) {
+          var scale2 = orrerySize * 0.357;
+          var center = orrerySize / 2;
+          var project = function(v) {
+            return function(t) {
+              return function(w) {
+                if (v instanceof Rotating) {
+                  return {
+                    px: center + w.wx * scale2,
+                    py: center - w.wy * scale2
+                  };
                 }
                 ;
-                if (v instanceof Just) {
-                  setStrokeStyle(ctx)("#14213d")();
-                  setLineWidth(ctx)(1)();
-                  beginPath(ctx)();
-                  var p0 = projectF(view)(v.value0);
-                  moveTo(ctx)(p0.px)(p0.py)();
-                  for_22(frames)(function(f) {
-                    var p2 = projectF(view)(f);
-                    return lineTo(ctx)(p2.px)(p2.py);
-                  })();
-                  return stroke(ctx)();
+                if (v instanceof Inertial) {
+                  return {
+                    px: center + (w.wx * cos(t) - w.wy * sin(t)) * scale2,
+                    py: center - (w.wx * sin(t) + w.wy * cos(t)) * scale2
+                  };
                 }
                 ;
-                throw new Error("Failed pattern match at Atlas.App (line 700, column 5 - line 711, column 22): " + [v.constructor.name]);
-              })();
-              setFillStyle(ctx)("#d9a521")();
-              fillRect(ctx)({
-                x: sunP.px - 5,
-                y: sunP.py - 5,
-                width: 10,
-                height: 10
-              })();
-              setFillStyle(ctx)("#c1542c")();
-              fillRect(ctx)({
-                x: jupP.px - 3.5,
-                y: jupP.py - 3.5,
-                width: 7,
-                height: 7
-              })();
-              var pNow = projectF(view)(cur);
-              setFillStyle(ctx)("#1a6b4a")();
-              return fillRect(ctx)({
-                x: pNow.px - 3,
-                y: pNow.py - 3,
-                width: 6,
-                height: 6
-              })();
+                throw new Error("Failed pattern match at Atlas.App (line 747, column 19 - line 752, column 8): " + [v.constructor.name]);
+              };
             };
-          })();
+          };
+          var projectF = function(v) {
+            return function(f) {
+              return project(v)(f.t)({
+                wx: f.x,
+                wy: f.y
+              });
+            };
+          };
+          return function __do2() {
+            var mCanvas = getCanvasElementById(canvasId)();
+            return for_1(mCanvas)(function(canvas2) {
+              return function __do3() {
+                var ctx = getContext2D(canvas2)();
+                setFillStyle(ctx)("#eceae3")();
+                fillRect(ctx)({
+                  x: 0,
+                  y: 0,
+                  width: orrerySize,
+                  height: orrerySize
+                })();
+                var cur = fromMaybe({
+                  t: 0,
+                  x: 0,
+                  y: 0,
+                  vx: 0,
+                  vy: 0,
+                  jacobi: 0
+                })(index(frames)(ix));
+                var sunP = project(view)(cur.t)({
+                  wx: -954e-6,
+                  wy: 0
+                });
+                var jupP = project(view)(cur.t)({
+                  wx: 1 - 954e-6,
+                  wy: 0
+                });
+                var rh = pow(954e-6 / 3)(1 / 3) * scale2;
+                setStrokeStyle(ctx)("#c1542c")();
+                setLineWidth(ctx)(0.75)();
+                strokeRect(ctx)({
+                  x: jupP.px - rh,
+                  y: jupP.py - rh,
+                  width: 2 * rh,
+                  height: 2 * rh
+                })();
+                (function() {
+                  var v = head(frames);
+                  if (v instanceof Nothing) {
+                    return unit;
+                  }
+                  ;
+                  if (v instanceof Just) {
+                    setStrokeStyle(ctx)("#14213d")();
+                    setLineWidth(ctx)(1)();
+                    beginPath(ctx)();
+                    var p0 = projectF(view)(v.value0);
+                    moveTo(ctx)(p0.px)(p0.py)();
+                    for_22(frames)(function(f) {
+                      var p2 = projectF(view)(f);
+                      return lineTo(ctx)(p2.px)(p2.py);
+                    })();
+                    return stroke(ctx)();
+                  }
+                  ;
+                  throw new Error("Failed pattern match at Atlas.App (line 717, column 5 - line 728, column 22): " + [v.constructor.name]);
+                })();
+                setFillStyle(ctx)("#d9a521")();
+                fillRect(ctx)({
+                  x: sunP.px - 5,
+                  y: sunP.py - 5,
+                  width: 10,
+                  height: 10
+                })();
+                setFillStyle(ctx)("#c1542c")();
+                fillRect(ctx)({
+                  x: jupP.px - 3.5,
+                  y: jupP.py - 3.5,
+                  width: 7,
+                  height: 7
+                })();
+                var pNow = projectF(view)(cur);
+                setFillStyle(ctx)("#1a6b4a")();
+                return fillRect(ctx)({
+                  x: pNow.px - 3,
+                  y: pNow.py - 3,
+                  width: 6,
+                  height: 6
+                })();
+              };
+            })();
+          };
         };
+      };
+    };
+  };
+  var paintBothOrreries = function(frames) {
+    return function(ix) {
+      return function __do2() {
+        paintOrrery("orrery-rot")(Rotating.value)(frames)(ix)();
+        return paintOrrery("orrery-ine")(Inertial.value)(frames)(ix)();
       };
     };
   };
@@ -7871,7 +7910,7 @@
                 };
               }
               ;
-              throw new Error("Failed pattern match at Atlas.App (line 998, column 21 - line 1003, column 8): " + [view.constructor.name]);
+              throw new Error("Failed pattern match at Atlas.App (line 1015, column 21 - line 1020, column 8): " + [view.constructor.name]);
             };
           };
         };
@@ -7914,7 +7953,7 @@
                   })();
                 }
                 ;
-                throw new Error("Failed pattern match at Atlas.App (line 959, column 5 - line 969, column 84): " + [view.constructor.name]);
+                throw new Error("Failed pattern match at Atlas.App (line 976, column 5 - line 986, column 84): " + [view.constructor.name]);
               })();
               (function() {
                 var v = head(m.pts);
@@ -7937,14 +7976,14 @@
                   return setGlobalAlpha(ctx)(1)();
                 }
                 ;
-                throw new Error("Failed pattern match at Atlas.App (line 971, column 5 - line 984, column 34): " + [v.constructor.name]);
+                throw new Error("Failed pattern match at Atlas.App (line 988, column 5 - line 1001, column 34): " + [v.constructor.name]);
               })();
               for_1(last(m.pts))(function(pe) {
                 var qe = project(pe.t)(pe.x)(pe.y);
                 return function __do4() {
                   setFillStyle(ctx)((function() {
-                    var $105 = m.verdict >= 1;
-                    if ($105) {
+                    var $106 = m.verdict >= 1;
+                    if ($106) {
                       return "#1a6b4a";
                     }
                     ;
@@ -8005,7 +8044,7 @@
             };
           }
           ;
-          throw new Error("Failed pattern match at Atlas.App (line 795, column 30 - line 803, column 20): " + [v.constructor.name]);
+          throw new Error("Failed pattern match at Atlas.App (line 812, column 30 - line 820, column 20): " + [v.constructor.name]);
         };
       };
     };
@@ -8273,8 +8312,8 @@
                 ;
                 var t$prime = t + dt2;
                 var s$prime = rk4Step(mu)(dt2)(s);
-                var $109 = lost(s$prime);
-                if ($109) {
+                var $110 = lost(s$prime);
+                if ($110) {
                   $tco_done = true;
                   return {
                     s: s$prime,
@@ -8305,8 +8344,8 @@
               var $tco_done1 = false;
               var $tco_result;
               function $tco_loop(s, t, acc) {
-                var $110 = t >= horizon;
-                if ($110) {
+                var $111 = t >= horizon;
+                if ($111) {
                   $tco_done1 = true;
                   return {
                     verdict: 1,
@@ -8381,7 +8420,7 @@
           return "rgb(" + (show3(lerp(244)(193)) + ("," + (show3(lerp(242)(84)) + ("," + (show3(lerp(236)(44)) + ")")))));
         }
         ;
-        throw new Error("Failed pattern match at Atlas.App (line 671, column 3 - line 679, column 118): " + [v.constructor.name]);
+        throw new Error("Failed pattern match at Atlas.App (line 677, column 3 - line 685, column 118): " + [v.constructor.name]);
       };
       var paintRow = function(ctx) {
         return function(cw) {
@@ -8475,31 +8514,48 @@
     })();
     var selectionText = (function() {
       if (st.selection instanceof Nothing) {
-        return "Click a pixel to stream that orbit into the orrery below.";
+        return "Click any thumbnail below to stream that orbit into the orrery \u2014 or click a point in the atlas above to dial in your own.";
       }
       ;
       if (st.selection instanceof Just) {
-        return "Selected: a = " + (toStringWith(fixed(4))(st.selection.value0.a) + (" (" + (toStringWith(fixed(2))(st.selection.value0.a * 5.2035) + (" AU), e = " + toStringWith(fixed(3))(st.selection.value0.e)))));
+        var coords2 = "a = " + (toStringWith(fixed(4))(st.selection.value0.a) + (" (" + (toStringWith(fixed(2))(st.selection.value0.a * 5.2035) + (" AU), e = " + toStringWith(fixed(3))(st.selection.value0.e)))));
+        if (st.selectedPick instanceof Just) {
+          return "Selected #" + (show3(st.selectedPick.value0 + 1 | 0) + (": " + (coords2 + ". Click another thumbnail to compare, or click a point in the atlas to move it.")));
+        }
+        ;
+        if (st.selectedPick instanceof Nothing) {
+          return "Selected from the atlas: " + (coords2 + ". Or click one of the numbered thumbnails below.");
+        }
+        ;
+        throw new Error("Failed pattern match at Atlas.App (line 470, column 10 - line 474, column 64): " + [st.selectedPick.constructor.name]);
       }
       ;
-      throw new Error("Failed pattern match at Atlas.App (line 463, column 19 - line 467, column 36): " + [st.selection.constructor.name]);
+      throw new Error("Failed pattern match at Atlas.App (line 463, column 19 - line 474, column 64): " + [st.selection.constructor.name]);
     })();
+    var selectedClass = function(i2) {
+      var $122 = eq12(st.selectedPick)(new Just(i2));
+      if ($122) {
+        return ["selected"];
+      }
+      ;
+      return [];
+    };
     var resonanceMark = function(r) {
       var frac = (r.a - 0.3) / (0.85 - 0.3);
       return span2([class_("mark"), style("left:" + (toStringWith(fixed(2))(frac * 100) + "%"))])([text(r.label)]);
     };
     var miniCap = function(i2) {
       return function(m) {
-        return div2([class_("cap")])([strong_([text(show3(i2 + 1 | 0))]), text(" a " + (toStringWith(fixed(2))(m.a) + (" \xB7 e " + toStringWith(fixed(2))(m.e)))), br_, span2([class_((function() {
-          var $119 = m.verdict >= 1;
-          if ($119) {
+        return div2([classes(append12(["cap"])(selectedClass(i2)))])([strong_([text(show3(i2 + 1 | 0))]), text(" a " + (toStringWith(fixed(2))(m.a) + (" \xB7 e " + toStringWith(fixed(2))(m.e)))), br_, span2([class_((function() {
+          var $123 = m.verdict >= 1;
+          if ($123) {
             return "ok";
           }
           ;
           return "lost";
         })())])([text((function() {
-          var $120 = m.verdict >= 1;
-          if ($120) {
+          var $124 = m.verdict >= 1;
+          if ($124) {
             return "survived";
           }
           ;
@@ -8509,12 +8565,9 @@
     };
     var miniCanvas = function(pre2) {
       return function(i2) {
-        return function(m) {
-          return canvas([id2("mini-" + (pre2 + ("-" + show3(i2)))), class_("mini"), width2(floor2(miniSize)), height2(floor2(miniSize)), onClick(function(v) {
-            return new SelectPick({
-              a: m.a,
-              e: m.e
-            });
+        return function(v) {
+          return canvas([id2("mini-" + (pre2 + ("-" + show3(i2)))), classes(append12(["mini"])(selectedClass(i2))), width2(floor2(miniSize)), height2(floor2(miniSize)), onClick(function(v1) {
+            return new SelectPick(i2);
           })]);
         };
       };
@@ -8530,8 +8583,8 @@
       ;
       if (st.meter instanceof Just) {
         return "browser vs Julia at the same dt: " + (function() {
-          var $123 = st.meter.value0.maxDiff === 0;
-          if ($123) {
+          var $127 = st.meter.value0.maxDiff === 0;
+          if ($127) {
             return "bit-identical across " + (show3(st.meter.value0.frames) + " frames (max |\u0394| = 0)");
           }
           ;
@@ -8571,19 +8624,7 @@
       return Rerun.value;
     })])([text("re-run sweep")]), label_([input([type_4(InputCheckbox.value), checked2(st.fli), onChecked(function(v) {
       return ToggleFli.value;
-    })]), text(" chaos layer (FLI) \u2014 colours survivors by Lyapunov growth, ~2\xD7 slower")]), span2([class_("status")])([text(phaseLabel(st.phase) + statusDetail)])]), div2([class_("plot")])([div2([class_("resonance-rail")])(map15(resonanceMark)(resonances)), canvas([id2("atlas-canvas"), ref2("atlas-canvas"), width2(floor2(canvasW)), height2(floor2(canvasH)), onClick(CanvasClick.create)]), div2([class_("x-axis")])([span_([text("a = 0.30 (1.56 AU)")]), span_([text("semi-major axis")]), span_([text("a = 0.85 (4.42 AU)")])]), div2([class_("y-axis")])([span_([text("e = 0.35")]), span_([text("eccentricity")]), span_([text("e = 0")])])]), p([class_("selection")])([text(selectionText)]), div2([class_("multiples")])([div2([class_("orrery-head")])([h2_([text("Eight orbits, two ways")])]), p([class_("key-lede")])([text("Eight asteroids picked at random across the belt \u2014 the red squares on the atlas above \u2014 each integrated right here in your browser by the same "), strong_([text("Atlas.Dynamics")]), text(". Top of each pair is the "), strong_([text("inertial frame")]), text(" (the view from the fixed stars), where every orbit is a near-identical Kepler ellipse. Below it is the "), strong_([text("rotating frame")]), text(" (co-rotating with Jupiter), where the same orbits reveal their character: resonant ones close into petalled rosettes, quasi-periodic ones fill a band, and the doomed ones wander off before the window ends. Same physics, same data \u2014 only the camera differs. Click any to stream it from Julia into the orrery below.")]), div2([class_("mini-rowlabel")])([text("Inertial \u2014 seen from the fixed stars")]), div2([class_("mini-row")])(mapWithIndex2(miniCanvas("i"))(st.minis)), div2([class_("mini-rowlabel")])([text("Rotating \u2014 co-rotating with Jupiter")]), div2([class_("mini-row")])(mapWithIndex2(miniCanvas("r"))(st.minis)), div2([class_("mini-caprow")])(mapWithIndex2(miniCap)(st.minis))]), div2([class_("orrery")])([div2([class_("orrery-head")])([h2_([text("Orrery")]), button([onClick(function(v) {
-      return ToggleFrameView.value;
-    })])([text((function() {
-      if (st.frameView instanceof Rotating) {
-        return "rotating frame (Jupiter pinned) \u2014 switch";
-      }
-      ;
-      if (st.frameView instanceof Inertial) {
-        return "inertial frame \u2014 switch";
-      }
-      ;
-      throw new Error("Failed pattern match at Atlas.App (line 415, column 27 - line 417, column 58): " + [st.frameView.constructor.name]);
-    })())]), span2([class_("drift")])([text(driftText)])]), canvas([id2("orrery-canvas"), width2(420), height2(420)])]), div2([class_("meter")])([div2([class_("orrery-head")])([h2_([text("Honesty meter")]), span2([class_("drift")])([text(meterText)])]), p([class_("meter-lede")])([text("The orbit above was computed by Julia. This browser re-runs it with the same Atlas.Dynamics module \u2014 compiled to JavaScript here, to Julia there. Ink line: Jacobi drift of the Julia stream. Green squares: the browser at the same step size \u2014 they sit exactly on the ink when the two runtimes agree to the last bit. Rust line: the browser at 4\xD7 the step size, for scale \u2014 that gap is what numerical error looks like; the runtimes contribute none.")]), canvas([id2("meter-canvas"), width2(floor2(meterW)), height2(floor2(meterH))])])]);
+    })]), text(" chaos layer (FLI) \u2014 colours survivors by Lyapunov growth, ~2\xD7 slower")]), span2([class_("status")])([text(phaseLabel(st.phase) + statusDetail)])]), div2([class_("plot")])([div2([class_("resonance-rail")])(map15(resonanceMark)(resonances)), canvas([id2("atlas-canvas"), ref2("atlas-canvas"), width2(floor2(canvasW)), height2(floor2(canvasH)), onClick(CanvasClick.create)]), div2([class_("x-axis")])([span_([text("a = 0.30 (1.56 AU)")]), span_([text("semi-major axis")]), span_([text("a = 0.85 (4.42 AU)")])]), div2([class_("y-axis")])([span_([text("e = 0.35")]), span_([text("eccentricity")]), span_([text("e = 0")])])]), p([class_("selection")])([text(selectionText)]), div2([class_("multiples")])([div2([class_("orrery-head")])([h2_([text("Eight orbits, two ways")])]), p([class_("key-lede")])([text("Eight asteroids picked at random across the belt \u2014 the red squares on the atlas above \u2014 each integrated right here in your browser by the same "), strong_([text("Atlas.Dynamics")]), text(". Top of each pair is the "), strong_([text("inertial frame")]), text(" (the view from the fixed stars), where every orbit is a near-identical Kepler ellipse. Below it is the "), strong_([text("rotating frame")]), text(" (co-rotating with Jupiter), where the same orbits reveal their character: resonant ones close into petalled rosettes, quasi-periodic ones fill a band, and the doomed ones wander off before the window ends. Same physics, same data \u2014 only the camera differs. Click any to stream it from Julia into the orrery below.")]), div2([class_("mini-rowlabel")])([text("Inertial \u2014 seen from the fixed stars")]), div2([class_("mini-row")])(mapWithIndex2(miniCanvas("i"))(st.minis)), div2([class_("mini-rowlabel")])([text("Rotating \u2014 co-rotating with Jupiter")]), div2([class_("mini-row")])(mapWithIndex2(miniCanvas("r"))(st.minis)), div2([class_("mini-caprow")])(mapWithIndex2(miniCap)(st.minis))]), div2([class_("orrery")])([div2([class_("orrery-head")])([h2_([text("Orrery")]), span2([class_("drift")])([text(driftText)])]), p([class_("key-lede")])([text("Both views show the same streamed orbit at once \u2014 the rotating frame (Jupiter held fixed) and the inertial frame (the view from the fixed stars). A shape that's a clean rosette on the left is an ordinary precessing ellipse on the right: same orbit, same data, different camera.")]), div2([class_("orrery-pair")])([figure_([canvas([id2("orrery-rot"), width2(floor2(orrerySize)), height2(floor2(orrerySize))]), figcaption_([text("Rotating \u2014 Jupiter pinned")])]), figure_([canvas([id2("orrery-ine"), width2(floor2(orrerySize)), height2(floor2(orrerySize))]), figcaption_([text("Inertial \u2014 seen from the fixed stars")])])])]), div2([class_("meter")])([div2([class_("orrery-head")])([h2_([text("Honesty meter")]), span2([class_("drift")])([text(meterText)])]), p([class_("meter-lede")])([text("The orbit above was computed by Julia. This browser re-runs it with the same Atlas.Dynamics module \u2014 compiled to JavaScript here, to Julia there. Ink line: Jacobi drift of the Julia stream. Green squares: the browser at the same step size \u2014 they sit exactly on the ink when the two runtimes agree to the last bit. Rust line: the browser at 4\xD7 the step size, for scale \u2014 that gap is what numerical error looks like; the runtimes contribute none.")]), canvas([id2("meter-canvas"), width2(floor2(meterW)), height2(floor2(meterH))])])]);
   };
   var advanceFine = function(m) {
     var rHillSq = pow(m.mu / 3)(2 / 3);
@@ -8606,8 +8647,8 @@
           var r2sq = dx2 * dx2 + s$prime.y * s$prime.y;
           var dx1 = s$prime.x + m.mu;
           var r1sq = dx1 * dx1 + s$prime.y * s$prime.y;
-          var $130 = r1sq > escapeRadius * escapeRadius || r2sq < rHillSq;
-          if ($130) {
+          var $133 = r1sq > escapeRadius * escapeRadius || r2sq < rHillSq;
+          if ($133) {
             $tco_done = true;
             return {
               s: s$prime,
@@ -8703,7 +8744,7 @@
             return pure5(unit);
           }
           ;
-          throw new Error("Failed pattern match at Atlas.App (line 639, column 7 - line 641, column 28): " + [v.constructor.name]);
+          throw new Error("Failed pattern match at Atlas.App (line 645, column 7 - line 647, column 28): " + [v.constructor.name]);
         });
       };
     };
@@ -8746,17 +8787,17 @@
                 return ws;
               }))(function(socket) {
                 return discard22(modify_3(function(v2) {
-                  var $139 = {};
-                  for (var $140 in v2) {
-                    if ({}.hasOwnProperty.call(v2, $140)) {
-                      $139[$140] = v2[$140];
+                  var $142 = {};
+                  for (var $143 in v2) {
+                    if ({}.hasOwnProperty.call(v2, $143)) {
+                      $142[$143] = v2[$143];
                     }
                     ;
                   }
                   ;
-                  $139.socket = new Just(socket);
-                  $139.minis = minis;
-                  return $139;
+                  $142.socket = new Just(socket);
+                  $142.minis = minis;
+                  return $142;
                 }))(function() {
                   return liftEffect3(paintKey);
                 });
@@ -8770,19 +8811,19 @@
         return bind12(get2)(function(st) {
           var spec = previewSpec(st.horizon)(st.fli);
           return discard22(modify_3(function(v12) {
-            var $144 = {};
-            for (var $145 in v12) {
-              if ({}.hasOwnProperty.call(v12, $145)) {
-                $144[$145] = v12[$145];
+            var $147 = {};
+            for (var $148 in v12) {
+              if ({}.hasOwnProperty.call(v12, $148)) {
+                $147[$148] = v12[$148];
               }
               ;
             }
             ;
-            $144.phase = PreviewRunning.value;
-            $144.spec = spec;
-            $144.blocks = 0;
-            $144.serverMs = Nothing.value;
-            return $144;
+            $147.phase = PreviewRunning.value;
+            $147.spec = spec;
+            $147.blocks = 0;
+            $147.serverMs = Nothing.value;
+            return $147;
           }))(function() {
             return sendMsg(new RequestSweep(spec));
           });
@@ -8798,16 +8839,16 @@
         if (v1 instanceof Right) {
           if (v1.value0 instanceof SweepRows) {
             return bind12(modify5(function(s) {
-              var $150 = {};
-              for (var $151 in s) {
-                if ({}.hasOwnProperty.call(s, $151)) {
-                  $150[$151] = s[$151];
+              var $153 = {};
+              for (var $154 in s) {
+                if ({}.hasOwnProperty.call(s, $154)) {
+                  $153[$154] = s[$154];
                 }
                 ;
               }
               ;
-              $150.blocks = s.blocks + 1 | 0;
-              return $150;
+              $153.blocks = s.blocks + 1 | 0;
+              return $153;
             }))(function(st) {
               return liftEffect3(paintBlock(st.spec)(v1.value0.value0));
             });
@@ -8818,35 +8859,35 @@
               if (st.phase instanceof PreviewRunning) {
                 var spec = fullSpec(st.horizon)(st.fli);
                 return discard22(modify_3(function(v2) {
-                  var $155 = {};
-                  for (var $156 in v2) {
-                    if ({}.hasOwnProperty.call(v2, $156)) {
-                      $155[$156] = v2[$156];
+                  var $158 = {};
+                  for (var $159 in v2) {
+                    if ({}.hasOwnProperty.call(v2, $159)) {
+                      $158[$159] = v2[$159];
                     }
                     ;
                   }
                   ;
-                  $155.phase = FullRunning.value;
-                  $155.spec = spec;
-                  $155.blocks = 0;
-                  return $155;
+                  $158.phase = FullRunning.value;
+                  $158.spec = spec;
+                  $158.blocks = 0;
+                  return $158;
                 }))(function() {
                   return sendMsg(new RequestSweep(spec));
                 });
               }
               ;
               return discard22(modify_3(function(v2) {
-                var $158 = {};
-                for (var $159 in v2) {
-                  if ({}.hasOwnProperty.call(v2, $159)) {
-                    $158[$159] = v2[$159];
+                var $161 = {};
+                for (var $162 in v2) {
+                  if ({}.hasOwnProperty.call(v2, $162)) {
+                    $161[$162] = v2[$162];
                   }
                   ;
                 }
                 ;
-                $158.phase = Done2.value;
-                $158.serverMs = new Just(v1.value0.value0.elapsedMs);
-                return $158;
+                $161.phase = Done2.value;
+                $161.serverMs = new Just(v1.value0.value0.elapsedMs);
+                return $161;
               }))(function() {
                 return liftEffect3(paintPickMarkers(st.spec)(st.minis));
               });
@@ -8855,21 +8896,21 @@
           ;
           if (v1.value0 instanceof TrajFrames) {
             return bind12(modify5(function(s) {
-              var $162 = {};
-              for (var $163 in s) {
-                if ({}.hasOwnProperty.call(s, $163)) {
-                  $162[$163] = s[$163];
+              var $165 = {};
+              for (var $166 in s) {
+                if ({}.hasOwnProperty.call(s, $166)) {
+                  $165[$166] = s[$166];
                 }
                 ;
               }
               ;
-              $162.frames = append12(s.frames)(v1.value0.value0.frames);
-              $162.meter = map16(function(m) {
+              $165.frames = append12(s.frames)(v1.value0.value0.frames);
+              $165.meter = map16(function(m) {
                 return foldl2(meterStep)(m)(v1.value0.value0.frames);
               })(s.meter);
-              return $162;
+              return $165;
             }))(function(st) {
-              return discard22(liftEffect3(paintOrrery(st.frameView)(st.frames)(length(st.frames) - 1 | 0)))(function() {
+              return discard22(liftEffect3(paintBothOrreries(st.frames)(length(st.frames) - 1 | 0)))(function() {
                 return liftEffect3(for_1(st.meter)(paintMeter));
               });
             });
@@ -8877,16 +8918,16 @@
           ;
           if (v1.value0 instanceof TrajDone) {
             return modify_3(function(v2) {
-              var $166 = {};
-              for (var $167 in v2) {
-                if ({}.hasOwnProperty.call(v2, $167)) {
-                  $166[$167] = v2[$167];
+              var $169 = {};
+              for (var $170 in v2) {
+                if ({}.hasOwnProperty.call(v2, $170)) {
+                  $169[$170] = v2[$170];
                 }
                 ;
               }
               ;
-              $166.trajLive = false;
-              return $166;
+              $169.trajLive = false;
+              return $169;
             });
           }
           ;
@@ -8894,24 +8935,24 @@
             return liftEffect3(warn("service error: " + v1.value0.value0));
           }
           ;
-          throw new Error("Failed pattern match at Atlas.App (line 534, column 18 - line 556, column 70): " + [v1.value0.constructor.name]);
+          throw new Error("Failed pattern match at Atlas.App (line 544, column 18 - line 566, column 70): " + [v1.value0.constructor.name]);
         }
         ;
-        throw new Error("Failed pattern match at Atlas.App (line 532, column 24 - line 556, column 70): " + [v1.constructor.name]);
+        throw new Error("Failed pattern match at Atlas.App (line 542, column 24 - line 566, column 70): " + [v1.constructor.name]);
       }
       ;
       if (v instanceof SocketClosed) {
         return modify_3(function(v12) {
-          var $172 = {};
-          for (var $173 in v12) {
-            if ({}.hasOwnProperty.call(v12, $173)) {
-              $172[$173] = v12[$173];
+          var $175 = {};
+          for (var $176 in v12) {
+            if ({}.hasOwnProperty.call(v12, $176)) {
+              $175[$176] = v12[$176];
             }
             ;
           }
           ;
-          $172.phase = SocketLost.value;
-          return $172;
+          $175.phase = SocketLost.value;
+          return $175;
         });
       }
       ;
@@ -8925,23 +8966,24 @@
                 var a2 = st.spec.aMin + (st.spec.aMax - st.spec.aMin) * (px / canvasW);
                 var e = st.spec.eMin + (st.spec.eMax - st.spec.eMin) * (1 - py / canvasH);
                 return discard22(modify_3(function(v12) {
-                  var $175 = {};
-                  for (var $176 in v12) {
-                    if ({}.hasOwnProperty.call(v12, $176)) {
-                      $175[$176] = v12[$176];
+                  var $178 = {};
+                  for (var $179 in v12) {
+                    if ({}.hasOwnProperty.call(v12, $179)) {
+                      $178[$179] = v12[$179];
                     }
                     ;
                   }
                   ;
-                  $175.selection = new Just({
+                  $178.selection = new Just({
                     a: a2,
                     e
                   });
-                  $175.frames = [];
-                  $175.animIx = 0;
-                  $175.trajLive = true;
-                  $175.meter = new Just(initMeter(954e-6)(a2)(e));
-                  return $175;
+                  $178.selectedPick = Nothing.value;
+                  $178.frames = [];
+                  $178.animIx = 0;
+                  $178.trajLive = true;
+                  $178.meter = new Just(initMeter(954e-6)(a2)(e));
+                  return $178;
                 }))(function() {
                   return sendMsg(new RequestTrajectory({
                     a: a2,
@@ -8960,21 +9002,6 @@
       if (v instanceof SetHorizon) {
         if (v.value0 === "50") {
           return modify_3(function(v2) {
-            var $180 = {};
-            for (var $181 in v2) {
-              if ({}.hasOwnProperty.call(v2, $181)) {
-                $180[$181] = v2[$181];
-              }
-              ;
-            }
-            ;
-            $180.horizon = 50;
-            return $180;
-          });
-        }
-        ;
-        if (v.value0 === "300") {
-          return modify_3(function(v2) {
             var $183 = {};
             for (var $184 in v2) {
               if ({}.hasOwnProperty.call(v2, $184)) {
@@ -8983,22 +9010,37 @@
               ;
             }
             ;
-            $183.horizon = 300;
+            $183.horizon = 50;
             return $183;
           });
         }
         ;
+        if (v.value0 === "300") {
+          return modify_3(function(v2) {
+            var $186 = {};
+            for (var $187 in v2) {
+              if ({}.hasOwnProperty.call(v2, $187)) {
+                $186[$187] = v2[$187];
+              }
+              ;
+            }
+            ;
+            $186.horizon = 300;
+            return $186;
+          });
+        }
+        ;
         return modify_3(function(v2) {
-          var $186 = {};
-          for (var $187 in v2) {
-            if ({}.hasOwnProperty.call(v2, $187)) {
-              $186[$187] = v2[$187];
+          var $189 = {};
+          for (var $190 in v2) {
+            if ({}.hasOwnProperty.call(v2, $190)) {
+              $189[$190] = v2[$190];
             }
             ;
           }
           ;
-          $186.horizon = 150;
-          return $186;
+          $189.horizon = 150;
+          return $189;
         });
       }
       ;
@@ -9006,19 +9048,19 @@
         return bind12(get2)(function(st) {
           var spec = previewSpec(st.horizon)(st.fli);
           return discard22(modify_3(function(v12) {
-            var $190 = {};
-            for (var $191 in v12) {
-              if ({}.hasOwnProperty.call(v12, $191)) {
-                $190[$191] = v12[$191];
+            var $193 = {};
+            for (var $194 in v12) {
+              if ({}.hasOwnProperty.call(v12, $194)) {
+                $193[$194] = v12[$194];
               }
               ;
             }
             ;
-            $190.phase = PreviewRunning.value;
-            $190.spec = spec;
-            $190.blocks = 0;
-            $190.serverMs = Nothing.value;
-            return $190;
+            $193.phase = PreviewRunning.value;
+            $193.spec = spec;
+            $193.blocks = 0;
+            $193.serverMs = Nothing.value;
+            return $193;
           }))(function() {
             return sendMsg(new RequestSweep(spec));
           });
@@ -9027,89 +9069,70 @@
       ;
       if (v instanceof ToggleFli) {
         return bind12(modify5(function(s) {
-          var $193 = {};
-          for (var $194 in s) {
-            if ({}.hasOwnProperty.call(s, $194)) {
-              $193[$194] = s[$194];
+          var $196 = {};
+          for (var $197 in s) {
+            if ({}.hasOwnProperty.call(s, $197)) {
+              $196[$197] = s[$197];
             }
             ;
           }
           ;
-          $193.fli = !s.fli;
-          return $193;
+          $196.fli = !s.fli;
+          return $196;
         }))(function(st) {
           var spec = previewSpec(st.horizon)(st.fli);
           return discard22(modify_3(function(v12) {
-            var $196 = {};
-            for (var $197 in v12) {
-              if ({}.hasOwnProperty.call(v12, $197)) {
-                $196[$197] = v12[$197];
+            var $199 = {};
+            for (var $200 in v12) {
+              if ({}.hasOwnProperty.call(v12, $200)) {
+                $199[$200] = v12[$200];
               }
               ;
             }
             ;
-            $196.phase = PreviewRunning.value;
-            $196.spec = spec;
-            $196.blocks = 0;
-            $196.serverMs = Nothing.value;
-            return $196;
+            $199.phase = PreviewRunning.value;
+            $199.spec = spec;
+            $199.blocks = 0;
+            $199.serverMs = Nothing.value;
+            return $199;
           }))(function() {
             return sendMsg(new RequestSweep(spec));
           });
         });
       }
       ;
-      if (v instanceof ToggleFrameView) {
-        return bind12(modify5(function(s) {
-          var $200 = {};
-          for (var $201 in s) {
-            if ({}.hasOwnProperty.call(s, $201)) {
-              $200[$201] = s[$201];
-            }
-            ;
-          }
-          ;
-          $200.frameView = (function() {
-            if (s.frameView instanceof Rotating) {
-              return Inertial.value;
-            }
-            ;
-            if (s.frameView instanceof Inertial) {
-              return Rotating.value;
-            }
-            ;
-            throw new Error("Failed pattern match at Atlas.App (line 598, column 21 - line 600, column 31): " + [s.frameView.constructor.name]);
-          })();
-          return $200;
-        }))(function(st) {
-          return liftEffect3(paintOrrery(st.frameView)(st.frames)(st.animIx));
-        });
-      }
-      ;
       if (v instanceof SelectPick) {
-        return discard22(modify_3(function(v12) {
-          var $203 = {};
-          for (var $204 in v12) {
-            if ({}.hasOwnProperty.call(v12, $204)) {
-              $203[$204] = v12[$204];
-            }
-            ;
-          }
-          ;
-          $203.selection = new Just(v.value0);
-          $203.frames = [];
-          $203.animIx = 0;
-          $203.trajLive = true;
-          $203.meter = new Just(initMeter(954e-6)(v.value0.a)(v.value0.e));
-          return $203;
-        }))(function() {
-          return sendMsg(new RequestTrajectory({
-            a: v.value0.a,
-            e: v.value0.e,
-            horizonPeriods: trajHorizonPeriods,
-            mu: 954e-6,
-            frameStride: trajStride
-          }));
+        return bind12(get2)(function(st) {
+          return for_3(index(st.minis)(v.value0))(function(m) {
+            return discard22(modify_3(function(v12) {
+              var $202 = {};
+              for (var $203 in v12) {
+                if ({}.hasOwnProperty.call(v12, $203)) {
+                  $202[$203] = v12[$203];
+                }
+                ;
+              }
+              ;
+              $202.selection = new Just({
+                a: m.a,
+                e: m.e
+              });
+              $202.selectedPick = new Just(v.value0);
+              $202.frames = [];
+              $202.animIx = 0;
+              $202.trajLive = true;
+              $202.meter = new Just(initMeter(954e-6)(m.a)(m.e));
+              return $202;
+            }))(function() {
+              return sendMsg(new RequestTrajectory({
+                a: m.a,
+                e: m.e,
+                horizonPeriods: trajHorizonPeriods,
+                mu: 954e-6,
+                frameStride: trajStride
+              }));
+            });
+          });
         });
       }
       ;
@@ -9126,16 +9149,16 @@
                 };
               })))(function() {
                 return modify_3(function(v2) {
-                  var $207 = {};
-                  for (var $208 in v2) {
-                    if ({}.hasOwnProperty.call(v2, $208)) {
-                      $207[$208] = v2[$208];
+                  var $206 = {};
+                  for (var $207 in v2) {
+                    if ({}.hasOwnProperty.call(v2, $207)) {
+                      $206[$207] = v2[$207];
                     }
                     ;
                   }
                   ;
-                  $207.minisPainted = true;
-                  return $207;
+                  $206.minisPainted = true;
+                  return $206;
                 });
               });
             });
@@ -9144,25 +9167,25 @@
             return when1(n > 1 && !st.trajLive)((function() {
               var ix = mod2(st.animIx + max1(1)(div1(n)(450)) | 0)(n);
               return discard22(modify_3(function(v12) {
-                var $210 = {};
-                for (var $211 in v12) {
-                  if ({}.hasOwnProperty.call(v12, $211)) {
-                    $210[$211] = v12[$211];
+                var $209 = {};
+                for (var $210 in v12) {
+                  if ({}.hasOwnProperty.call(v12, $210)) {
+                    $209[$210] = v12[$210];
                   }
                   ;
                 }
                 ;
-                $210.animIx = ix;
-                return $210;
+                $209.animIx = ix;
+                return $209;
               }))(function() {
-                return liftEffect3(paintOrrery(st.frameView)(st.frames)(ix));
+                return liftEffect3(paintBothOrreries(st.frames)(ix));
               });
             })());
           });
         });
       }
       ;
-      throw new Error("Failed pattern match at Atlas.App (line 498, column 16 - line 629, column 59): " + [v.constructor.name]);
+      throw new Error("Failed pattern match at Atlas.App (line 508, column 16 - line 635, column 52): " + [v.constructor.name]);
     };
   })();
   var component = /* @__PURE__ */ (function() {
@@ -9179,11 +9202,11 @@
           frames: [],
           trajLive: false,
           animIx: 0,
-          frameView: Rotating.value,
           fli: false,
           meter: Nothing.value,
           minis: [],
-          minisPainted: false
+          minisPainted: false,
+          selectedPick: Nothing.value
         };
       },
       render,

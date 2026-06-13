@@ -105,8 +105,13 @@ jacobi mu s =
       - s.vy * s.vy
 
 -- | Kepler period of the asteroid's osculating orbit (Jupiter's is 2π).
+-- | a^1.5 is spelled `a * sqrt a`, not `pow a 1.5`: sqrt is correctly
+-- | rounded by IEEE 754 on every runtime, pow is only ~1 ulp per libm —
+-- | and this number sets dt, where one ulp forks chaotic trajectories.
+-- | The whole integration path must stay on exactly-rounded operations
+-- | for the browser-vs-Julia honesty meter to read 0.
 asteroidPeriod :: Number -> Number
-asteroidPeriod a = 2.0 * pi * pow a 1.5
+asteroidPeriod a = 2.0 * pi * (a * sqrt a)
 
 -- | Fixed-step resolution: steps per asteroid period (accuracy/cost dial,
 -- | shared by oracle and kernel so cross-checks line up). 120 is enough

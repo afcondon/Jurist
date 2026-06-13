@@ -116,7 +116,7 @@ function _survival_fli(mu::Float64, a::Float64, e::Float64, horizon::Float64, st
     vx = 0.0
     vy = Base.sqrt((1.0 - mu) * (1.0 + e) / rp) - x
     px, py, pvx, pvy = 0.5, 0.5, 0.5, 0.5
-    dt = 2.0 * pi * a^1.5 / stepsPerPeriod
+    dt = 2.0 * pi * (a * Base.sqrt(a)) / stepsPerPeriod   # a*sqrt(a), not a^1.5: sqrt is exactly rounded everywhere, pow is not — mirrors Atlas.Dynamics.asteroidPeriod
     rHillSq = (mu / 3.0)^(2.0 / 3.0)
     rEscSq = 9.0
     t = 0.0
@@ -153,7 +153,7 @@ function _survival(mu::Float64, a::Float64, e::Float64, horizon::Float64, stepsP
     y = 0.0
     vx = 0.0
     vy = Base.sqrt((1.0 - mu) * (1.0 + e) / rp) - x
-    dt = 2.0 * pi * a^1.5 / stepsPerPeriod
+    dt = 2.0 * pi * (a * Base.sqrt(a)) / stepsPerPeriod   # a*sqrt(a), not a^1.5: sqrt is exactly rounded everywhere, pow is not — mirrors Atlas.Dynamics.asteroidPeriod
     rHillSq = (mu / 3.0)^(2.0 / 3.0)
     rEscSq = 9.0
     t = 0.0
@@ -254,7 +254,7 @@ function _run_traj(spec, @nospecialize(emit))
     y = 0.0
     vx = 0.0
     vy = Base.sqrt((1.0 - mu) * (1.0 + e) / rp) - x
-    dt = 2.0 * pi * a^1.5 / stepsPerPeriod
+    dt = 2.0 * pi * (a * Base.sqrt(a)) / stepsPerPeriod   # a*sqrt(a), not a^1.5: sqrt is exactly rounded everywhere, pow is not — mirrors Atlas.Dynamics.asteroidPeriod
     rHillSq = (mu / 3.0)^(2.0 / 3.0)
     rEscSq = 9.0
 

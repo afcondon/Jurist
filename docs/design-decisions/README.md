@@ -62,7 +62,7 @@ place:
 ## Scope
 
 Jurist is a from-scratch CoreFn → Julia code generator (Haskell; the `purejl`
-binary), sibling of `purescript-python-new`. It consumes the CoreFn JSON that
+binary), sibling of Pythia (`purescript-python`). It consumes the CoreFn JSON that
 `purs` emits when a spago workspace sets `workspace.backend.cmd`, and writes
 one Julia `module` per PureScript module plus a topologically-ordered loader.
 Working today: Hello-World through the core libraries (prelude, effect,

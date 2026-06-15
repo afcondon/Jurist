@@ -5,7 +5,7 @@ description:
   Julia backend for PureScript. Consumes CoreFn JSON (purs --codegen corefn)
   and emits Julia source - one Julia module per PureScript module, a
   topologically-ordered loader, and a small runtime. Sibling of
-  purescript-python-new in the polyglot-PureScript backends effort.
+  Pythia (purescript-python) in the polyglot-PureScript backends effort.
 category: Language
 author: Andrew Condon
 copyright: (c) 2026 Andrew Condon

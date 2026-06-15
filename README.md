@@ -18,7 +18,7 @@ rigorously *proven* roots and optima, and Catlab's applied category theory
 In fact, Jurist isn't a minimal bridge to Julia — it's a **full backend for
 the PureScript language** (`purejl`), peer to the JavaScript, Erlang, and
 other backends, and built in the same way: a from-scratch CoreFn → Julia
-code generator, sibling of `purescript-python-new`. Part of the wider
+code generator, sibling of Pythia (`purescript-python`). Part of the wider
 *polyglot PureScript* effort: if a core tenet of FP is to "make illegal
 states unrepresentable", polyglot-PureScript extends this across multiple
 runtimes — your types should mean the same thing on the Erlang or Go backend

@@ -183,7 +183,7 @@ Status is **Proposed** because only Tier 1 is built; Tier 2+ will promote it.
 > and `validateUnits` stay honestly `Deferred`. One `VerbsDemo` run now shows
 > the guess-vs-proof gradient across tiers. The remaining middle-tier verbs
 > (lambdify+Radau integrate, sympy polynomial-case root proofs) are designed
-> in `purescript-python-new/docs/python-shaped-libraries.md`.
+> in `purescript-python/docs/python-shaped-libraries.md`.
 
 > **Progress (2026-06-10): "descriptions *back*" — two Julia-only demos on the
 > same eDSL.** The doctrine's return half is usually a *handle* to Julia-owned

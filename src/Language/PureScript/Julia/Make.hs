@@ -25,8 +25,8 @@ import Data.Maybe (catMaybes)
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
-import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist, copyFile)
-import System.FilePath ((</>), takeFileName)
+import System.Directory (createDirectoryIfMissing, doesFileExist, copyFile)
+import System.FilePath ((</>), takeFileName, dropExtension)
 import System.FilePath.Glob (glob)
 
 import qualified Language.PureScript as P
@@ -71,11 +71,13 @@ compile opts = do
       TIO.writeFile outFile (moduleFile cfModule)
       putStrLn $ "Compiled: " ++ T.unpack (jlModuleName mn)
 
-    -- Runtime + built-in FFI shims; user shims (ffi-jl/) copied last so they win
+    -- Runtime + built-in FFI shims; user shims copied last so they win.
+    -- User foreigns are resolved per-module: co-located next to the .purs
+    -- (via CoreFn modulePath) first, then the legacy ffi-jl/ dir as fallback.
     generateRuntime (outputDir opts)
     forM_ builtinForeigns $ \(name, content) ->
       TIO.writeFile (outputDir opts </> name) content
-    copyUserForeigns (outputDir opts)
+    forM_ mods (copyUserForeign (outputDir opts))
 
     -- Warn about reachable modules with foreign imports but no shim on disk
     let mainMod = find (\m -> CoreFn.moduleName m == P.ModuleName "Main") mods
@@ -174,16 +176,35 @@ loaderFile _mods ordered _byName = T.unlines $
   ]
   ++ [ "include(\"" <> T.pack (jlFileName mn) <> "\")" | mn <- ordered ]
 
--- | Copy user-supplied FFI shims from ./ffi-jl into the output directory
-copyUserForeigns :: FilePath -> IO ()
-copyUserForeigns outDir = do
-  let ffiDir = "ffi-jl"
-  exists <- doesDirectoryExist ffiDir
-  when exists $ do
-    files <- glob (ffiDir </> "*.jl")
-    forM_ files $ \f -> do
-      copyFile f (outDir </> takeFileName f)
-      putStrLn $ "FFI (user): " ++ takeFileName f
+-- | Copy the user-supplied FFI shim for a single module into the output
+-- directory, named for the module's @include@ target (@jlForeignFileName@).
+--
+-- Resolution order, matching how purs locates a co-located @Foo.js@:
+--
+--   1. Co-located next to the @.purs@: @dropExtension (modulePath m) <> ".jl"@
+--      (e.g. @src\/Runtime.purs@ -> @src\/Runtime.jl@). The backend is invoked
+--      from the project root, so the relative @modulePath@ resolves directly.
+--   2. Fallback to the legacy flat @ffi-jl\/\<jlForeignFileName mn>@ directory,
+--      preserving back-compat for the examples and the conformance suite.
+--
+-- Modules with no foreign imports are skipped.
+copyUserForeign :: FilePath -> CoreFn.Module CoreFn.Ann -> IO ()
+copyUserForeign outDir m =
+  when (not (null (CoreFn.moduleForeign m))) $ do
+    let mn = CoreFn.moduleName m
+        dest = outDir </> jlForeignFileName mn
+        colocated = dropExtension (CoreFn.modulePath m) <> ".jl"
+        ffiFallback = "ffi-jl" </> jlForeignFileName mn
+    coloExists <- doesFileExist colocated
+    if coloExists
+      then do
+        copyFile colocated dest
+        putStrLn $ "FFI (user, co-located): " ++ takeFileName colocated
+      else do
+        fallbackExists <- doesFileExist ffiFallback
+        when fallbackExists $ do
+          copyFile ffiFallback dest
+          putStrLn $ "FFI (user, ffi-jl): " ++ takeFileName ffiFallback
 
 -- | Runtime support module
 generateRuntime :: FilePath -> IO ()

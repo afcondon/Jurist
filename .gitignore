@@ -86,3 +86,4 @@ examples/stability-atlas/*/output-jl/
 examples/stability-atlas/*/.spago/
 examples/stability-atlas/*/node_modules/
 examples/stability-atlas/*/julia-env/Manifest.toml
+.direnv/

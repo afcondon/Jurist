@@ -35,6 +35,7 @@ TEST_MODULES = [
     "Test.Arrays",
     "Test.Dictionaries",
     "Test.Effects",
+    "Test.Formatting",
     "Test.Exceptions",
     "Test.Numbers",
     "Test.OrderedCollections",

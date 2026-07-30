@@ -169,6 +169,33 @@ def _collect_from(pkg_root: Path, modules: dict[str, dict]) -> None:
             }
 
 
+# A foreign file can exist and raise on every call. Both Pythia and Jurist
+# ship exactly that for Data.String.Regex, and an index that counts a file's
+# existence reports it as covered — a false positive, and the most dangerous
+# kind, since it is the one a reader would rely on. Backends already mark
+# these in the shim's own comment; the marker is the contract.
+STUB_MARKER = "NOT YET IMPLEMENTED"
+
+
+# module -> {backend keys whose shim is a declared stub}
+STUBS: dict[str, set[str]] = defaultdict(set)
+
+
+def _record_stubs(key: str, style: str, pattern: str, text: str) -> None:
+    """Mark modules whose shim exists but declares itself unimplemented."""
+    if style != "per-module":
+        # A flat prelude has no per-module block to inspect; a stub there
+        # would have to be found some other way. Say so rather than assume.
+        return
+    # Slice the catalogue at each foreign-file name; the text up to the next
+    # one is that module's shim.
+    marks = [(m.start(), m.group(1)) for m in re.finditer(pattern, text)]
+    for i, (pos, mod) in enumerate(marks):
+        end = marks[i + 1][0] if i + 1 < len(marks) else len(text)
+        if STUB_MARKER in text[pos:end]:
+            STUBS[mod.replace("_", ".")].add(key)
+
+
 def collect_backend_coverage(root: Path, backend: dict, known: set[str]) -> set[str]:
     """Modules (dotted names) for which this backend supplies a foreign."""
     path = root / backend["repo"] / backend["foreigns"]
@@ -178,9 +205,11 @@ def collect_backend_coverage(root: Path, backend: dict, known: set[str]) -> set[
         return set()
     text = path.read_text(encoding="utf-8", errors="replace")
     hits = re.findall(backend["pattern"], text)
+    _record_stubs(backend["key"], backend["style"], backend["pattern"], text)
 
     if backend["style"] == "per-module":
         return {h.replace("_", ".") for h in hits}
+
 
     # flat-prelude: symbols are `Module_underscored_functionName`, and both
     # halves use underscores, so resolve by longest matching module prefix.
@@ -199,6 +228,8 @@ def collect_backend_coverage(root: Path, backend: dict, known: set[str]) -> set[
 def status_for(mod: str, info: dict, backend_key: str, coverage: dict[str, set[str]]) -> str:
     if not info["needs_foreign"]:
         return "portable"
+    if backend_key in STUBS.get(mod, ()):
+        return "STUB"
     return "provided" if mod in coverage[backend_key] else "MISSING"
 
 
@@ -241,6 +272,8 @@ def render(modules: dict[str, dict], coverage: dict[str, set[str]]) -> str:
     w("| **provided** | needs a foreign, and this backend supplies one |")
     w("| **MISSING** | needs a foreign and this backend has none — *any program"
       " importing it fails* |")
+    w("| **STUB** | a shim exists but declares itself unimplemented and raises"
+      " on every call — worse than MISSING, because it looks covered |")
     w("")
 
     # ---- headline ----------------------------------------------------------
@@ -255,14 +288,17 @@ def render(modules: dict[str, dict], coverage: dict[str, set[str]]) -> str:
       f" **{foreign} need a")
     w("foreign implementation**.")
     w("")
-    w("| backend | runtime | provided | MISSING | coverage of the foreign surface |")
-    w("|---|---|---:|---:|---:|")
+    w("| backend | runtime | provided | STUB | MISSING | working coverage |")
+    w("|---|---|---:|---:|---:|---:|")
     for b in BACKENDS:
-        prov = sum(1 for m, i in modules.items()
-                   if i["needs_foreign"] and m in coverage[b["key"]])
-        miss = foreign - prov
+        states = [status_for(m, i, b["key"], coverage)
+                  for m, i in modules.items() if i["needs_foreign"]]
+        prov = states.count("provided")
+        stub = states.count("STUB")
+        miss = states.count("MISSING")
         pct = (100.0 * prov / foreign) if foreign else 0.0
-        w(f"| {b['name']} | {b['runtime']} | {prov} | **{miss}** | {pct:.0f}% |")
+        w(f"| {b['name']} | {b['runtime']} | {prov} | **{stub}** | **{miss}** |"
+          f" {pct:.0f}% |")
     w("")
     w("The portable column is the interesting one: **it is the same for every"
       " backend**, and it")
@@ -279,7 +315,8 @@ def render(modules: dict[str, dict], coverage: dict[str, set[str]]) -> str:
     any_missing = False
     for b in BACKENDS:
         miss = sorted(m for m, i in modules.items()
-                      if i["needs_foreign"] and m not in coverage[b["key"]])
+                      if i["needs_foreign"]
+                      and status_for(m, i, b["key"], coverage) != "provided")
         if not miss:
             w(f"**{b['name']} ({b['runtime']})** — nothing missing from the"
               " corpus's dependency closure.")
@@ -293,7 +330,11 @@ def render(modules: dict[str, dict], coverage: dict[str, set[str]]) -> str:
         w(f"**{b['name']} ({b['runtime']})** — {len(miss)} {noun}:")
         w("")
         for pkg in sorted(by_pkg):
-            w(f"- `{pkg}` — " + ", ".join(f"`{m}`" for m in sorted(by_pkg[pkg])))
+            entries = []
+            for m in sorted(by_pkg[pkg]):
+                mark = " *(stub — raises)*" if b["key"] in STUBS.get(m, ()) else ""
+                entries.append(f"`{m}`{mark}")
+            w(f"- `{pkg}` — " + ", ".join(entries))
         w("")
     if not any_missing:
         w("Nothing is missing on any backend, within this universe. That is a"
@@ -343,8 +384,9 @@ def render(modules: dict[str, dict], coverage: dict[str, set[str]]) -> str:
         cells = []
         for k in keys:
             s = status_for(mod, info, k, coverage)
-            cells.append("·" if s == "portable" else
-                         ("provided" if s == "provided" else "**MISSING**"))
+            cells.append({"portable": "·",
+                          "provided": "provided",
+                          "STUB": "**STUB**"}.get(s, "**MISSING**"))
         w(f"| `{mod}` | {info['package']} | " + " | ".join(cells) + " |")
     w("")
     w("`·` = portable: no foreign anywhere, so there is nothing for a backend"

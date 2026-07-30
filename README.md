@@ -28,7 +28,7 @@ as they do in the browser.
 
 Family-level docs (the backend comparison table, instructions for adding
 purerl/purepy/psgo columns to the differential matrix) live in the
-polyglot site repo: `purescript-polyglot/docs/backends/`.
+polyglot site repo: `afc-work/docs/backends/`.
 
 ## Status
 

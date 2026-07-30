@@ -30,4 +30,16 @@ echo "==> differential suite (test-suite)"
   python3 run_tests.py
 )
 
+
+# Report, not a gate: regenerating here is what stops the index going stale,
+# since it is read off the backends' own source. Requires the sibling repos and
+# a resolved package set; skipped rather than failed when either is absent.
+echo "==> portability index (report)"
+if python3 bin/portability-index.py -o /dev/null 2>/dev/null; then
+  python3 bin/portability-index.py -o "$ROOT/../../docs/kb/reference/portability-index.md" \
+    || echo "note: index generated but not written (docs repo not found)"
+else
+  echo "note: skipped — sibling backends or resolved package set not available"
+fi
+
 echo "==> conformance lane GREEN"

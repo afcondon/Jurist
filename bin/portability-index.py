@@ -79,11 +79,16 @@ BACKENDS = [
 ]
 
 # Where to find the resolved package sources — the universe of modules the
-# corpus actually depends on. Any backend's test-suite will do; they resolve
-# the same registry package set.
+# corpora actually depend on. The UNION of all three, not the first one found:
+# the backends' test suites do not depend on the same packages, and scanning
+# only one hides exactly the gaps this index exists to surface. (Gnomon's
+# Test.Transformers failed on missing Effect.Exception foreigns while an
+# index built from Pythia's set alone reported it 100% covered, because
+# `exceptions` was not in Pythia's closure at all.)
 PACKAGE_SOURCE_CANDIDATES = [
     "purescript-python/test-suite/.spago/p",
     "purescript-julia/test-suite/.spago/p",
+    "purescript-go/test-suite/.spago/p",
 ]
 
 # Observed divergences, mapped from the corpora's KNOWN_DIVERGENCES to the
@@ -118,9 +123,15 @@ def module_name_from_path(src_root: Path, purs: Path) -> str:
     return ".".join(purs.relative_to(src_root).with_suffix("").parts)
 
 
-def collect_modules(pkg_root: Path) -> dict[str, dict]:
-    """Every module in the resolved package set, with its upstream foreign status."""
+def collect_modules(pkg_roots: list[Path]) -> dict[str, dict]:
+    """Every module across the resolved package sets, with its foreign status."""
     modules: dict[str, dict] = {}
+    for pkg_root in pkg_roots:
+        _collect_from(pkg_root, modules)
+    return modules
+
+
+def _collect_from(pkg_root: Path, modules: dict[str, dict]) -> None:
     for pkg_dir in sorted(pkg_root.iterdir()):
         if not pkg_dir.is_dir():
             continue
@@ -138,7 +149,6 @@ def collect_modules(pkg_root: Path) -> dict[str, dict]:
                 # stem — the rule the whole FFI system runs on.
                 "needs_foreign": purs.with_suffix(".js").exists(),
             }
-    return modules
 
 
 def collect_backend_coverage(root: Path, backend: dict, known: set[str]) -> set[str]:
@@ -261,7 +271,8 @@ def render(modules: dict[str, dict], coverage: dict[str, set[str]]) -> str:
         by_pkg: dict[str, list[str]] = defaultdict(list)
         for m in miss:
             by_pkg[modules[m]["package"]].append(m)
-        w(f"**{b['name']} ({b['runtime']})** — {len(miss)} modules:")
+        noun = "module" if len(miss) == 1 else "modules"
+        w(f"**{b['name']} ({b['runtime']})** — {len(miss)} {noun}:")
         w("")
         for pkg in sorted(by_pkg):
             w(f"- `{pkg}` — " + ", ".join(f"`{m}`" for m in sorted(by_pkg[pkg])))
@@ -375,21 +386,17 @@ def main() -> int:
                     help="write markdown here instead of stdout")
     args = ap.parse_args()
 
-    pkg_root = None
-    for candidate in PACKAGE_SOURCE_CANDIDATES:
-        p = args.root / candidate
-        if p.is_dir():
-            pkg_root = p
-            break
-    if pkg_root is None:
+    pkg_roots = [args.root / c for c in PACKAGE_SOURCE_CANDIDATES
+                 if (args.root / c).is_dir()]
+    if not pkg_roots:
         print("error: no resolved package set found. Run `spago build` in a "
               "backend's test-suite first, so .spago/p is populated.",
               file=sys.stderr)
         return 1
 
-    modules = collect_modules(pkg_root)
+    modules = collect_modules(pkg_roots)
     if not modules:
-        print(f"error: no modules found under {pkg_root}", file=sys.stderr)
+        print(f"error: no modules found under {pkg_roots}", file=sys.stderr)
         return 1
 
     coverage = {b["key"]: collect_backend_coverage(args.root, b, set(modules))

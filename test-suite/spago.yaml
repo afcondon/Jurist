@@ -18,6 +18,7 @@ package:
     - lists
     - maybe
     - newtype
+    - ordered-collections
     - numbers
     - partial
     - prelude

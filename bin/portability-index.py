@@ -398,11 +398,28 @@ def render(modules: dict[str, dict], coverage: dict[str, set[str]]) -> str:
     w("")
     w("Stated plainly, because an index that overclaims is worse than none.")
     w("")
-    w("- **Scope is the corpus's dependency closure**, not the whole registry."
-      " A package")
-    w("  outside it may need foreigns that no backend has. Widening the closure"
-      " widens the")
-    w("  index.")
+    w("- **The coverage percentage is circular, and it is the number most"
+      " likely to be")
+    w("  misread.** The universe is the *corpus's own dependency closure* —"
+      " the set of")
+    w("  libraries these backends are already asked to compile — so a backend"
+      " that has kept")
+    w("  up with its own corpus will always score near 100%. **98% is not"
+      " '98% of")
+    w("  PureScript'; it is '98% of what we already compile'.** The question"
+      " this index")
+    w("  answers is \"are the foreigns present for the code we build?\", never"
+      " \"how much of")
+    w("  the registry works?\". That second number does not exist yet: it needs"
+      " a sweep over")
+    w("  packages *outside* the closure (backend-viability Gate B5), and until"
+      " it is run,")
+    w("  no claim about registry coverage is supported by anything here.")
+    w("- Related: a package outside the closure may need foreigns no backend"
+      " has, and would")
+    w("  not appear as MISSING — it would not appear at all. **Absence from"
+      " this index is")
+    w("  not evidence of support.**")
     w("- **\"provided\" is not \"correct\".** It means an implementation exists."
       " The differential")
     w("  corpus tests behaviour for the modules it exercises; a provided"

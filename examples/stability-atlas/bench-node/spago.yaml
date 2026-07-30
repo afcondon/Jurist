@@ -1,0 +1,16 @@
+package:
+  name: atlas-bench-node
+  description: >
+    Node runner for the runtime-advantage measurement: atlas-core's
+    Atlas.Bench on the stock JavaScript backend. The SAME source as
+    bench-jl — the only variable is the runtime.
+  dependencies:
+    - prelude
+    - effect
+    - atlas-core
+workspace:
+  extraPackages:
+    atlas-core:
+      path: ../core
+  packageSet:
+    registry: 57.1.0

@@ -1,0 +1,17 @@
+package:
+  name: atlas-bench-jl
+  description: >
+    Julia (purejl) runner for the runtime-advantage measurement: the SAME
+    Atlas.Bench as bench-node, compiled to Julia.
+  dependencies:
+    - prelude
+    - effect
+    - atlas-core
+workspace:
+  extraPackages:
+    atlas-core:
+      path: ../core
+  packageSet:
+    registry: 57.1.0
+  backend:
+    cmd: "true"

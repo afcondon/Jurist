@@ -30,22 +30,37 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 
-TEST_MODULES = [
-    "Test.ADTs",
-    "Test.Arrays",
-    "Test.Dictionaries",
-    "Test.Effects",
-    "Test.Formatting",
-    "Test.Exceptions",
-    "Test.Numbers",
-    "Test.OrderedCollections",
-    "Test.PatternMatch",
-    "Test.Recursion",
-    "Test.RecursiveBindings",
-    "Test.STTests",
-    "Test.Strings",
-    "Test.Uncurried",
-]
+# Modules are DISCOVERED from src/Test/, never listed by hand.
+#
+# A hand-maintained list is the runner-completeness hazard: a module gets
+# written, never added to the list, and the suite reports green over source it
+# has not compiled. That is exactly how Test.Maps sat unexecuted in the Gnomon
+# corpus, and how one module went unlisted here. Discovery makes adding a
+# corpus module a one-file operation and makes skipping one impossible by
+# accident.
+#
+# Only deliberate exclusions are named, and each one has to say why.
+EXCLUDED_MODULES = {
+    # Benchmarks: they measure rather than assert, print no TEST lines, and
+    # their runtime would dominate the lane. They belong to the performance
+    # lane, not the differential one.
+    "Test.BenchFib",
+    "Test.BenchFold",
+    "Test.BenchLocal",
+    "Test.BenchLoop",
+}
+
+
+def discover_test_modules():
+    found = sorted(
+        f"Test.{p.stem}" for p in (HERE / "src" / "Test").glob("*.purs")
+    )
+    if not found:
+        sys.exit("no Test.*.purs found under src/Test — wrong working directory?")
+    return [m for m in found if m not in EXCLUDED_MODULES]
+
+
+TEST_MODULES = discover_test_modules()
 
 # Deliberate divergences (module, test-name), documented in the README:
 # - ASTRAL-: JS counts UTF-16 code units; the Julia backend counts

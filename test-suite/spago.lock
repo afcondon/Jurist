@@ -11,6 +11,7 @@
             "effect",
             "either",
             "enums",
+            "exceptions",
             "foldable-traversable",
             "functions",
             "integers",
@@ -665,6 +666,17 @@
         "prelude",
         "tuples",
         "unfoldable"
+      ]
+    },
+    "exceptions": {
+      "type": "registry",
+      "version": "6.1.0",
+      "integrity": "sha256-nRrr+N0wk0TUFOWLR7e1n1oxcXo/X345bQUtoY9lW6A=",
+      "dependencies": [
+        "effect",
+        "either",
+        "maybe",
+        "prelude"
       ]
     },
     "exists": {

@@ -104,6 +104,24 @@ DIVERGENCES = {
             "the whole character rather than half a surrogate pair.",
         ),
     ],
+    "Effect.Exception": [
+        (
+            "pythia",
+            "`stack` is Nothing for a constructed Error — Python attaches a "
+            "traceback only once an exception has been raised, where JS "
+            "captures one at construction. A caught error does carry one.",
+        ),
+        (
+            "jurist",
+            "`stack` is always Nothing — Julia has a backtrace only inside a "
+            "catch, never on an exception value.",
+        ),
+        (
+            "gnomon",
+            "`stack` is always Nothing — Go has a stack only while panicking, "
+            "never on an error value.",
+        ),
+    ],
     "Data.Int": [
         (
             "pythia",

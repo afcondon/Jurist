@@ -35,6 +35,7 @@ TEST_MODULES = [
     "Test.Arrays",
     "Test.Dictionaries",
     "Test.Effects",
+    "Test.Exceptions",
     "Test.Numbers",
     "Test.OrderedCollections",
     "Test.PatternMatch",
@@ -55,6 +56,10 @@ KNOWN_DIVERGENCES = {
     ("Test.Strings", "ASTRAL-cu-take-emoji"),
     ("Test.Recursion", "INT64-sumTo-1e6"),
     ("Test.Recursion", "INT64-fact-20"),
+    # STACK-: JS captures a stack when an Error is CONSTRUCTED; Julia attaches
+    # no backtrace to an exception value at all (one exists only inside a
+    # catch). `Maybe` is the honest type for this.
+    ("Test.Exceptions", "STACK-present-on-construction"),
 }
 
 TEST_LINE = re.compile(r"^TEST ([^:]+): (.*)$")

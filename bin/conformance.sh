@@ -4,6 +4,22 @@
 # canary and the cross-backend differential suite; exits non-zero if either
 # drifts. CI calls this; a contributor can run it locally before pushing.
 #
+# Jurist has TWO implementations (ADR-0009), and the lanes below answer
+# different questions:
+#
+#   1. The DIFFERENTIAL suite — the same FFI-free source on JS and Julia,
+#      diffed byte-for-byte, through the ORACLE (`purejl`). Answers "does this
+#      mean the same thing on both runtimes?", and is what any correctness
+#      claim rests on. The representation canary guards the ADR-0001 table it
+#      depends on.
+#   2. The OPTIMIZER lane — backend-jl/ consuming
+#      purescript-backend-optimizer's IR. Same corpus, different path through
+#      the compiler.
+#   3. The NO-FORK check — backend-jl must not carry its own copy of the
+#      runtime or of any foreign shim. Gnomon kept two Go runtimes, they
+#      diverged by two symbols, and only a red CI found it; the cheap gate is
+#      to assert the second copy does not exist.
+#
 # Prereqs on PATH: stack, purs, spago, julia, node, python3.
 set -euo pipefail
 
@@ -30,6 +46,22 @@ echo "==> differential suite (test-suite)"
   python3 run_tests.py
 )
 
+echo "==> optimizer lane: backend-jl over the shared corpus"
+if [[ -d ../purescript-backend-optimizer ]]; then
+  ( cd backend-jl && ./run_conformance.sh --skip-purejl )
+else
+  echo "    SKIPPED — ../purescript-backend-optimizer not checked out."
+  echo "    The optimizer lane needs it as a local sibling (see backend-jl/README.md)."
+fi
+
+echo "==> no-fork check: backend-jl owns no runtime and no foreign shims"
+strays="$(find backend-jl -name 'purejl_runtime.jl' -o -name '*_foreign.jl' 2>/dev/null || true)"
+if [[ -n "$strays" ]]; then
+  echo "$strays"
+  echo "::error::backend-jl must consume the oracle lane's runtime and shims, not carry copies (ADR-0009)"
+  exit 1
+fi
+echo "    none, as required"
 
 # Report, not a gate: regenerating here is what stops the index going stale,
 # since it is read off the backends' own source. Requires the sibling repos and

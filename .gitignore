@@ -87,3 +87,9 @@ examples/stability-atlas/*/.spago/
 examples/stability-atlas/*/node_modules/
 examples/stability-atlas/*/julia-env/Manifest.toml
 .direnv/
+
+# backend-jl (the optimizer-consumer lane, ADR-0009)
+backend-jl/output/
+backend-jl/output-jl-opt/
+backend-jl/.spago/
+backend-jl/spago.lock

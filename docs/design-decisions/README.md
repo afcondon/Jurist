@@ -58,6 +58,7 @@ place:
 | 0006 | [Module-per-module layout, topological loader, lazy-thunk runtime](0006-module-layout-loader.md) | Accepted |
 | 0007 | [Julia-shaped libraries: descriptions across, handles back](0007-julia-shaped-libraries.md) | Proposed |
 | 0008 | [Same-seed differential fuzzing](0008-differential-fuzzing.md) | Proposed |
+| 0009 | [Two implementations: `purejl` the oracle, `backend-jl` the optimizer consumer](0009-two-implementations.md) | Accepted |
 
 ## Scope
 
@@ -69,6 +70,13 @@ Working today: Hello-World through the core libraries (prelude, effect,
 console, refs, st, arrays incl. `Data.Array.ST`, strings, foldable-traversable,
 integers, numbers, unfoldable, enums); self-tail-call TCO; a cross-backend
 differential suite at 422/426 byte-identical with the reference JS backend.
+
+Since 2026-07-31 the repo holds a **second implementation**, `backend-jl/` — a
+PureScript consumer of `purescript-backend-optimizer`'s IR ([0009](0009-two-implementations.md)).
+`purejl` remains the correctness oracle; the second lane exists so the two can
+be diffed against each other over the same corpus, and so TCO, inlining and
+dead-code elimination are tracked upstream rather than re-solved three times
+across the backend family.
 
 The authoritative, up-to-date status lives in the repo
 [`README.md`](../../README.md); these records capture *why* the backend is

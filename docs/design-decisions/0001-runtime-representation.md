@@ -73,6 +73,24 @@ Top-level mutually-recursive value bindings go through a lazy-thunk runtime
   tag-tuples need no type pre-declaration pass over the whole program and keep
   the generator simple. The cost is that pattern matching indexes tuples
   rather than dispatching on types; revisit if it ever bounds performance.
+
+  > **Progress (2026-07-31): it now bounds performance, and the trigger is
+  > identified.** `tests/purs/passing/TCOCase` builds a 10,000-deep
+  > `data Data = One | More Data` and times out at 180 s on **both** lanes
+  > (`purejl` and `backend-jl` — so it is the representation, not either code
+  > generator). Timing the generated program at reduced depths gives 0.5 / 1.0 /
+  > 2.7 / 11.2 / 51.2 s at depth 20 / 50 / 100 / 200 / 400 — about 4.5× per
+  > doubling. The structural reason is that Julia tuples are **concretely
+  > typed**, so a recursive ADT's *type* nests as deep as its *value*:
+  > `typeof` renders as 1,513 / 3,013 / 6,013 characters at depth 100 / 200 /
+  > 400, i.e. the type's size is linear in the value's depth. A hand-written
+  > build-and-walk of the same shape in plain Julia is much cheaper than the
+  > generated program, so the depth-growing type is necessary but not
+  > sufficient to explain the whole factor; the remainder is uncharacterised.
+  > A struct-per-constructor encoding would give each constructor one fixed
+  > type regardless of depth, which is the property tag-tuples lack. This is
+  > the revisit trigger this bullet asked for; see
+  > [0009](0009-two-implementations.md).
 - **Int as Julia `Int` matching the host (32- or 64-bit) or as a wrapped
   32-bit type.** Rejected: `Int64` is the honest Julia integer and the thing
   numeric code wants; the divergence from JS int32 is documented rather than

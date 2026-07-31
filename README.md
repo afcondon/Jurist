@@ -41,6 +41,25 @@ functions, **arrays** (incl. `Data.Array.ST`), **st**, **strings**
 (`Record.Unsafe`, `Record.Builder`, `Record.Unsafe.Union`). `Data.String.Regex`
 ships as a loud-failure stub (no real PCRE mapping yet).
 
+### Two implementations, on purpose
+
+Since 2026-07-31 this repo holds **two** code generators
+([ADR-0009](docs/design-decisions/0009-two-implementations.md)):
+
+- **`purejl`** (`src/`, Haskell, raw CoreFn) — the correctness **oracle**.
+  Every claim below rests on it.
+- **`backend-jl`** (`backend-jl/`, PureScript) — a consumer of
+  [`purescript-backend-optimizer`](https://github.com/aristanetworks/purescript-backend-optimizer)'s
+  optimized IR, so TCO, inlining and dead-code elimination are tracked upstream
+  rather than re-solved in three backends. It emits module bodies only: the
+  runtime and every foreign shim come from `purejl` and are consumed
+  unmodified, and `bin/conformance.sh` fails if a second copy ever appears.
+
+Two lanes that must agree over the same corpus is what makes "conformant" a
+checkable claim rather than a hope — the same argument
+[ADR-0004](docs/design-decisions/0004-differential-conformance.md) makes for
+JS-vs-Julia, applied to Julia-vs-Julia.
+
 ### Representation choices
 
 | PureScript | Julia |
@@ -81,8 +100,10 @@ verified to 10⁸ iterations.
 
 ### Known v1 limitations
 
-- Mutual recursion is not trampolined (matches the JS backend, where
-  `MonadRec` is the idiom for unbounded non-self recursion).
+- Mutual recursion is not trampolined *by `purejl`* (matches the JS backend,
+  where `MonadRec` is the idiom for unbounded non-self recursion). The
+  `backend-jl` lane below does trampoline the direct case; what still escapes
+  both is a join point — a member defined in a `where` nested inside another.
 - Int is `Int64`, not wrapped to 32-bit JS semantics (`Data.Int.Bits`
   and `Data.Int.pow` do apply JS `ToInt32` wrapping).
 - `Data.String.CodeUnits` treats "code units" as codepoints (Julia
@@ -202,13 +223,14 @@ thought of. `purescript/purescript`'s `tests/purs/passing` is the suite the
 compiler team wrote to *define the language*:
 
 ```
-339/347 = 97.7%   tests/purs/passing @ v0.15.15   (purs-corpus/run_corpus.py)
+341/347 = 98.3%   tests/purs/passing @ v0.15.15   purejl      (the oracle)
+342/347 = 98.6%   tests/purs/passing @ v0.15.15   backend-jl  (ADR-0009)
 ```
 
-Pythia and Gnomon score **exactly the same 339/347**, and 4 of the 6 remaining
-causes are common to more than one backend — the failures are in the shared
-model, not in this lowering. Full analysis:
-`docs/kb/reference/purs-corpus-b4-results.md` in the `docs` repo.
+Both measured 2026-07-31, same day and same harness
+(`purs-corpus/run_corpus.py`). Most of the remaining causes are common to more
+than one backend — they are in the shared model, not in this lowering. Full
+analysis: `docs/kb/reference/purs-corpus-b4-results.md` in the `docs` repo.
 
 The headline from first contact was **`CODEGEN_ERR` = 0**: across 364 tests
 probing rank-N types, functional dependencies, instance chains, `Coercible`

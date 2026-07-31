@@ -50,6 +50,17 @@ not trampolined** — it matches the JS backend, where `MonadRec` /
 - A full mutual-recursion trampoline is a tracked frontier (it is a larger
   code-generator change; see the README's limitations and a future ADR).
 
+> **Progress (2026-07-31):** the frontier is now half-closed, in the *other*
+> lane. `backend-jl` ([0009](0009-two-implementations.md)) emits this same
+> dispatch-loop shape, and for a group of more than one member adds a leading
+> branch register so the members share one loop — so DIRECT mutual tail
+> recursion trampolines there. It needed no runtime change: the `while` is the
+> runtime. What still escapes both lanes is a *join point* — a member defined in
+> a `where` nested inside another, which the optimizer marks as its own
+> self-loop (`TCOMutRec`'s `tco1`). `purejl` itself is unchanged; this note
+> records that the decision above is now a statement about the oracle lane
+> rather than about Jurist as a whole.
+
 ## Alternatives considered
 
 - **In-place mutation of the loop parameters** (the most obvious "while loop"

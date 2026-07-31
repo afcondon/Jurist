@@ -176,7 +176,7 @@ The suite compiles ten `Test.*` modules once with
 ```bash
 cd test-suite
 python3 run_tests.py            # build both backends + compare
-# 422/426 identical, 4 known divergences, 0 failures, 0 module errors
+# 556/561 identical, 5 known divergences, 0 failures, 0 module errors
 ```
 
 Coverage: ADTs and pattern matching (literal/array/record/nested
@@ -190,10 +190,29 @@ notation boundaries), typeclass dictionary dispatch, Effect and ST
 combinators, `Data.Function.Uncurried` round-trips, and recursion
 (trampolined TCO at 10⁶ depth, closure capture inside loops, MonadRec).
 
-The four known divergences are the documented representation choices:
-two `ASTRAL-` tests (UTF-16 code units vs codepoints) and two `INT64-`
+The five known divergences are the documented representation choices:
+two `ASTRAL-` tests (UTF-16 code units vs codepoints), two `INT64-`
 tests (JS wraps Int arithmetic to int32 — the JS values there are the
-*overflowed* ones).
+*overflowed* ones), and one `STACK-` test.
+
+### And against the compiler's own test suite
+
+That corpus is one **we wrote**, so it can only prove parity on cases someone
+thought of. `purescript/purescript`'s `tests/purs/passing` is the suite the
+compiler team wrote to *define the language*:
+
+```
+339/347 = 97.7%   tests/purs/passing @ v0.15.15   (purs-corpus/run_corpus.py)
+```
+
+Pythia and Gnomon score **exactly the same 339/347**, and 4 of the 6 remaining
+causes are common to more than one backend — the failures are in the shared
+model, not in this lowering. Full analysis:
+`docs/kb/reference/purs-corpus-b4-results.md` in the `docs` repo.
+
+The headline from first contact was **`CODEGEN_ERR` = 0**: across 364 tests
+probing rank-N types, functional dependencies, instance chains, `Coercible`
+and typelevel symbols, nothing made the code generator refuse or crash.
 
 The suite has already paid for itself: it caught an inverted
 length-tiebreak in `ordArrayImpl` (prefix-equal arrays compared

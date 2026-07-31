@@ -34,7 +34,7 @@ import qualified Language.PureScript.CoreFn as CoreFn
 import qualified Language.PureScript.CoreFn.FromJSON as CoreFn
 
 import Language.PureScript.Julia.CodeGen (generateModuleJl)
-import Language.PureScript.Julia.CodeGen.Common (jlModuleName, jlFileName, jlForeignFileName)
+import Language.PureScript.Julia.CodeGen.Common (jlModuleName, jlModuleAlias, jlFileName, jlForeignFileName)
 import Language.PureScript.Julia.Foreigns (builtinForeigns)
 
 data CompileOptions = CompileOptions
@@ -126,7 +126,10 @@ moduleFile cfModule =
        , "module " <> jlModuleName mn
        , "import ..PurejlRuntime: _runtime_lazy, _js_number_string"
        ]
-       ++ [ "import .." <> jlModuleName depMn | depMn <- imports ]
+         -- Aliased into the reserved module namespace so a user identifier
+         -- cannot collide with an imported module (tests/purs/passing/4174).
+       ++ [ "import .." <> jlModuleName depMn <> " as " <> jlModuleAlias depMn
+          | depMn <- imports ]
        ++ (if hasForeign
              then [ "include(\"" <> T.pack (jlForeignFileName mn) <> "\")" ]
              else [])

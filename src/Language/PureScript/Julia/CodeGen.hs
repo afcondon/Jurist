@@ -486,7 +486,7 @@ generateModuleJl cfModule = T.unlines $ map (generateBinding []) (CoreFn.moduleD
       in case qb of
         P.ByModuleName mn
           | mn == currentModule -> maybeCallLazyThunk name
-          | otherwise -> jlModuleName mn <> "." <> name
+          | otherwise -> jlModuleAlias mn <> "." <> name
         P.BySourcePos _ -> maybeCallLazyThunk name
 
 -- | Collect all references to local (same-module or source-pos-qualified)

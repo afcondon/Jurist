@@ -11,6 +11,8 @@
 --
 module Language.PureScript.Julia.CodeGen.Common
   ( jlModuleName
+  , jlModuleAlias
+  , moduleAliasPrefix
   , jlFileName
   , jlForeignFileName
   , toJuliaIdent
@@ -40,6 +42,32 @@ jlModuleName (ModuleName name) =
   in if base `elem` ["Main", "Base", "Core", "PurejlRuntime"]
      then base <> "_"
      else base
+
+-- | The reserved prefix separating the MODULE namespace from the user-value
+-- namespace. See 'jlModuleAlias'.
+moduleAliasPrefix :: Text
+moduleAliasPrefix = "_psmod_"
+
+-- | The local alias an imported module is bound to: @import ..Effect_Console
+-- as _psmod_Effect_Console@.
+--
+-- A generated module's own declaration and filename keep 'jlModuleName'; only
+-- the IMPORT and the qualified reference use the alias. Without it both land
+-- in the importing module's scope and a user identifier can collide with an
+-- imported module — `tests/purs/passing/4174` does it on purpose:
+--
+-- >  import Effect.Console (log)
+-- >  data Effect_Console = Effect_Console
+--
+-- which Julia rejects outright: /cannot assign a value to imported variable
+-- Main.Effect_Console from module Main_/.
+--
+-- 'identToJlName' escapes any user identifier that would land in this
+-- namespace, so the two are provably disjoint. (purerl gets the same guarantee
+-- structurally — module references are atoms, locals are variables — but Julia,
+-- like Python, has one namespace, so the separation has to be built.)
+jlModuleAlias :: ModuleName -> Text
+jlModuleAlias mn = moduleAliasPrefix <> jlModuleName mn
 
 -- | Output filename for a PureScript module
 jlFileName :: ModuleName -> FilePath
@@ -112,6 +140,11 @@ identToJlName ident =
   let name = toJuliaIdent (runIdent' ident)
   in if nameIsJuliaReserved name
      then name <> "_"
+     -- Keep the module-alias namespace disjoint from the user namespace: an
+     -- identifier that would otherwise land in it is pushed out by an extra
+     -- underscore. No 'jlModuleAlias' can produce `_psmod__x`.
+     else if moduleAliasPrefix `T.isPrefixOf` name
+     then moduleAliasPrefix <> "_" <> T.drop (T.length moduleAliasPrefix) name
      else name
 
 -- | Get the raw text from an Ident, handling internal identifiers

@@ -795,9 +795,30 @@ builtinForeigns =
       , "isNaN(n) = Base.isnan(n)"
       , "infinity = Base.Inf"
       , "isFinite(n) = Base.isfinite(n)"
+      -- `Data.Number.fromString` is `parseFloat` behind an isFinite guard,
+      -- and parseFloat is a PREFIX parser, not a whole-string one: it skips
+      -- leading whitespace, takes the longest numeric prefix and ignores the
+      -- rest. So "1.5x" is 1.5, "0x10" is 0 (it stops at the `x`), and
+      -- "1_000" is 1. A strict tryparse rejects all three, and accepts
+      -- "0x10" as 16, which is wrong twice over. Found by Test.Boundaries.
+      , "const _FLOAT_PREFIX = r\"^[[:space:]]*[+-]?(?:Infinity|(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?)\""
+      , "_parse_float(s) = begin"
+      , "    m = Base.match(_FLOAT_PREFIX, s)"
+      , "    m === nothing && return Base.NaN"
+      , "    txt = Base.strip(m.match)"
+      , "    if Base.endswith(txt, \"Infinity\")"
+      , "        Base.startswith(txt, \"-\") ? -Base.Inf : Base.Inf"
+      , "    else"
+      , "        # `parse` THROWS on \"1e400\" where parseFloat answers"
+      , "        # Infinity, so overflow has to come back as a signed"
+      , "        # infinity rather than an exception."
+      , "        v = Base.tryparse(Base.Float64, txt)"
+      , "        v === nothing ? (Base.startswith(txt, \"-\") ? -Base.Inf : Base.Inf) : v"
+      , "    end"
+      , "end"
       , "fromStringImpl(str, isFinite_, just, nothing_) = begin"
-      , "    num = Base.tryparse(Base.Float64, str)"
-      , "    (num !== nothing && isFinite_(num)) ? just(num) : nothing_"
+      , "    num = _parse_float(str)"
+      , "    isFinite_(num) ? just(num) : nothing_"
       , "end"
       , "abs(n) = Base.abs(n)"
       , "acos(n) = (-1.0 <= n <= 1.0) ? Base.acos(n) : Base.NaN"
@@ -811,8 +832,16 @@ builtinForeigns =
       , "log(n) = n < 0.0 ? Base.NaN : Base.log(n)"
       , "max(n1) = n2 -> Base.max(n1, n2)"
       , "min(n1) = n2 -> Base.min(n1, n2)"
+      -- ECMAScript Math.pow is NOT IEEE pow, and the ORDER of its rules is
+      -- the whole of the difference: a zero exponent wins even over a NaN
+      -- base, but a NaN exponent then beats everything else. Julia follows
+      -- IEEE, where `1.0 ^ NaN` is 1.0. Found by Test.Boundaries.
       , "pow(n) = p -> begin"
-      , "    if Base.abs(n) == 1.0 && Base.isinf(p)"
+      , "    if p == 0.0"
+      , "        1.0"
+      , "    elseif Base.isnan(p)"
+      , "        Base.NaN"
+      , "    elseif Base.abs(n) == 1.0 && Base.isinf(p)"
       , "        Base.NaN"
       , "    elseif n < 0.0 && Base.isfinite(p) && !Base.isinteger(p)"
       , "        Base.NaN"

@@ -410,11 +410,15 @@ def render(modules: dict[str, dict], coverage: dict[str, set[str]]) -> str:
       " this index")
     w("  answers is \"are the foreigns present for the code we build?\", never"
       " \"how much of")
-    w("  the registry works?\". That second number does not exist yet: it needs"
-      " a sweep over")
-    w("  packages *outside* the closure (backend-viability Gate B5), and until"
-      " it is run,")
-    w("  no claim about registry coverage is supported by anything here.")
+    w("  the registry works?\". **That second number now exists** \u2014 Gate B5"
+      " ran on")
+    w("  2026-07-31 over the top 100 registry packages and then over the whole"
+      " of package")
+    w("  set 57.1.0; see `b5-package-sweep.md`. It is **93%** of the 411 modules"
+      " in the")
+    w("  top 100's runtime-neutral packages, and 64 of those 82 packages work"
+      " end to end.")
+    w("  Nothing in *this* index supports a registry claim; cite that one.")
     w("- Related: a package outside the closure may need foreigns no backend"
       " has, and would")
     w("  not appear as MISSING — it would not appear at all. **Absence from"

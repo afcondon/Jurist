@@ -65,6 +65,25 @@ and Julia-shaped-library** shims.
   returning `Maybe` and `lu` returning a record); the indefinite-matrix case
   yields `Nothing` with no hand-written tag-tuple anywhere in the shim.
 
+> **Hazard found 2026-07-31 — a shim cannot reach another module's shim.**
+> A shim is `include`d INTO its owning module ([0006](0006-module-layout-loader.md)),
+> so `Effect_Exception_foreign` is a *file*, never a module, and
+> `Effect_Exception_foreign.PSError` does not resolve from anywhere. The
+> `Test.Assert` shim wrote exactly that, which turned every FAILING assertion on
+> Julia into an `UndefVarError` instead of the assertion message. It survived
+> unnoticed because the line only runs when an assertion fails — the corpus's
+> passing tests never reach it, and the differential suite has no failing
+> assertions by construction. Found only when `TCOMutRec` got far enough to fail
+> an assertion for a *different* reason.
+>
+> This is the same shape as the `Base.`-qualification hazard already recorded
+> above, and gets the same rule: **a shim may depend on the runtime and on its
+> own module's generated names, and on nothing else.** Where a shim needs an
+> exception, throw a plain `Base.ErrorException` — under this ADR's doctrine a
+> native Julia exception already IS an `Error`, so `catchException` and
+> `checkThrows` treat the two alike, and it mirrors what the JS foreign does
+> (`throw new Error(message)`).
+
 ## Residual dependency: acknowledged and pinned
 
 "Constructors across" decouples user-shim **authoring** from the encoding —

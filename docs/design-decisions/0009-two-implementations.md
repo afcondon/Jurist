@@ -161,10 +161,10 @@ last iteration's bindings).
 
 ### Two frontiers this measurement names precisely
 
-**Join points.** `TCOMutRec` still fails, with `StackOverflowError`. Its `tco1`
-defines `g` in a `where` *inside* `f`, so the optimizer marks each a separate
-self-loop and the cross-calls between them stay ordinary stack calls. The
-optimizer already computes what is needed — `TcoRole.joins` — and this lane
+**Join points.** ~~`TCOMutRec` still fails, with `StackOverflowError`.~~ Its
+`tco1` defines `g` in a `where` *inside* `f`, so the optimizer marks each a
+separate self-loop and the cross-calls between them stay ordinary stack calls.
+The optimizer already computes what is needed — `TcoRole.joins` — and this lane
 reads only `isLoop`. The shape that fits is already built: a join point is a
 local binding all of whose calls are tail calls from inside the loop, so it can
 become **another member of the same dispatch group** — one more index in the
@@ -175,6 +175,57 @@ enclosing loop's registers and returns, and the caller then `continue`s. That
 works because JavaScript's loop variables are mutable state in an enclosing
 closure. Here the registers are the dispatch function's *parameters*, precisely
 so each iteration gets its own bindings, so nothing can reach in and assign them.
+
+> **Progress (2026-07-31): implemented, on this lane and on `backend-py`.**
+> The sketch above was right about the shape and incomplete about the cost. A
+> join point does become another branch — but folding it in means *lifting it out
+> of the member it was written inside*, and it may have captured variables from
+> there. `tco4`'s `g y' = f (x + 2) y'` reads `f`'s parameter `x`; a jump leaves
+> the frame, so `x` has to travel too.
+>
+> The fix is one idea: **make the register file keyed by LOCAL rather than by
+> position** — one slot per distinct local any branch binds, being every member's
+> parameters plus the free variables the join points captured. `x` then gets one
+> slot whether it arrives as `f`'s parameter or as `g`'s capture. Every branch
+> binds every slot on entry, which costs a few dead assignments and buys the
+> invariant the whole thing rests on: at any jump site every slot is in scope, so
+> a captured variable survives an arbitrary chain of jumps.
+>
+> Free variables are filtered by de Bruijn level against the group's own
+> parameters. Anything bound further out is already reachable by ordinary lexical
+> capture — the dispatch function is emitted *inside* the enclosing scope — and
+> putting it in a register would shadow it. `tco3`'s `g` reads `y0` and `j` from
+> two scopes up and must not.
+>
+> Measured on `TCOMutRec`'s four positive cases, against the JavaScript reference
+> at depth 100,000 (byte-identical), and then at **10,000,000** to show the stack
+> is flat rather than merely deep:
+>
+> ```
+> tco1 20000000   tco2 20000000   tco3 24999997   tco4 20000000
+> ```
+>
+> `tco3` is the one that makes the design earn its keep: its `g` is *both* a
+> self-loop and a join, so it needs to be a branch that can jump to itself and to
+> `f`.
+>
+> **`TCOMutRec` as a whole still fails, and now for a reason that is not ours.**
+> The test also asserts that four *non*-TCO-able shapes MUST overflow
+> (`assertThrows \_ -> ntco2 100000`), and the optimizer inlines `ntco2`'s and
+> `ntco4`'s helper away, turning each into a plain self-tail-loop that completes.
+> The generated Julia for `ntco2` contains no join machinery at all — one branch,
+> no branch register — so this is not the join work: it is
+> `purescript-backend-optimizer`'s inliner moving a frontier the test pins down.
+> Confirmed independently on `backend-py`, a different lowering over the same
+> optimizer, which also completes `ntco2`, while `purepy` (the oracle, no
+> optimizer) overflows exactly as the test demands.
+>
+> That puts `TCOMutRec` where Gnomon's half of it already sits: the
+> `assertThrows` assertions describe a *runtime and optimizer* property rather
+> than PureScript semantics, and belong in the divergence ledger next to `INT64`
+> and `ASTRAL`. The corpus now reports it as `Assertion failed: An error should
+> have been thrown` rather than a stack overflow, which is the failure saying so
+> itself.
 
 **`TCOCase`, and what it says about [0001](0001-runtime-representation.md).**
 Both lanes time out at 180 s, so it is not this lane's doing — but it is worth

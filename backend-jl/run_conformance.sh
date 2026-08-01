@@ -53,14 +53,24 @@ pass=0; ledger=0; bad=0
 for m in $mods; do
   mod="Test.$m"
   rm -rf "$OUT"; mkdir -p "$OUT"
-  (cd "$HERE" && spago run -- --corefn-dir "$SUITE/output" --output-dir "$OUT" --main "$mod" >/dev/null 2>&1)
+  # The emit step and the JS reference step are guarded rather than bare. Both
+  # used to run under `set -e` with their output silenced, so a failure in
+  # either killed the whole lane mid-loop having printed NOTHING about it — the
+  # log simply stopped after the previous module's OK line. That is a gate that
+  # can fail invisibly, which is the same fault as a gate that passes
+  # invisibly. Report it against the module, count it bad, keep going.
+  if ! (cd "$HERE" && spago run -- --corefn-dir "$SUITE/output" --output-dir "$OUT" --main "$mod" >/dev/null 2>"$TMPD/emit_err.txt"); then
+    echo "[$mod] EMIT-ERR: $(grep -v '^$' "$TMPD/emit_err.txt" | tail -1 | head -c 160)"; bad=$((bad+1)); continue
+  fi
   # The shared runtime and every foreign shim, verbatim from the oracle lane.
   cp "$BASE/purejl_runtime.jl" "$OUT/"
   cp "$BASE"/*_foreign.jl "$OUT/" 2>/dev/null || true
   if ! julia "$OUT/main.jl" > "$TMPD/jl_out.txt" 2>"$TMPD/jl_err.txt"; then
     echo "[$mod] RUN-ERR: $(grep -m1 -E 'ERROR|Error' "$TMPD/jl_err.txt" | head -c 160)"; bad=$((bad+1)); continue
   fi
-  node --input-type=module -e "import(\"$SUITE/output/$mod/index.js\").then(x => x.main())" > "$TMPD/js_out.txt" 2>/dev/null
+  if ! node --input-type=module -e "import(\"$SUITE/output/$mod/index.js\").then(x => x.main())" > "$TMPD/js_out.txt" 2>"$TMPD/js_err.txt"; then
+    echo "[$mod] JSREF-ERR: $(grep -v '^$' "$TMPD/js_err.txt" | tail -1 | head -c 160)"; bad=$((bad+1)); continue
+  fi
   nfiles=$(ls "$OUT"/*.jl | wc -l | tr -d ' ')
   if diff -q "$TMPD/js_out.txt" "$TMPD/jl_out.txt" >/dev/null; then
     echo "[$mod] OK identical ($(wc -l <"$TMPD/jl_out.txt"|tr -d ' ') lines, $nfiles files)"; pass=$((pass+1))

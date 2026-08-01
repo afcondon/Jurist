@@ -168,3 +168,60 @@ State them, because the numbers above are seductive:
 3. Measure the tag-tuple cost directly, with a deep `List` fold.
 4. Only then decide ADR-0001, with the requirement clear: **non-parametric,
    `Any`-typed fields**.
+
+---
+
+## Addendum: there is a source-level answer, and it is better than the fix
+
+Asked whether the computations we actually care about should be written in `ST`
+or similar. Measured rather than reasoned about, and the answer is yes —
+emphatically, and for a reason that sharpens the whole diagnosis.
+
+**The pathology is not "Effect is slow". It is specifically *recursion that
+builds a chain of binds*.** `Effect` and `ST` both ship foreign primitives that
+loop **natively in the host**:
+
+```julia
+forE(lo) = hi -> f -> () -> begin
+    for i in lo:(hi - 1); f(i)(); end
+    nothing
+end
+```
+
+`f` here is one closure, called N times. Its type never grows, so Julia
+compiles it once. The bind chain is what nests; a host loop has no chain.
+
+Same program, four ways, N = 1,000:
+
+| variant | wall time | compilations |
+|---|---:|---:|
+| naive recursion | **224 s** | 1,428 — grows with N |
+| `tailRecM` | 0.253 s | 465 — constant |
+| `Effect.forE` | 0.065 s | 426 — constant |
+| `ST.for` (in `ST.run`) | **0.064 s** | 445 — constant |
+
+`ST.for` holds flat to **N = 100,000 in 0.188 s** — a hundred times the work
+that took 224 seconds, done twelve hundred times faster.
+
+Three things follow.
+
+**`ST` is doubly right for a numeric kernel.** It gets the native loop *and*
+real mutation *and* stays pure at the boundary — which is the shape Julia wants
+anyway. "Reach for Julia because it is good at this" and "write it in `ST`" turn
+out to be the same instruction.
+
+**None of this needs a backend change, and all of it is portable.** `ST.for`,
+`forE`, `foreachE` and `tailRecM` are ordinary PureScript, work on every
+backend, and are already inside the safe subset.
+
+**It reprioritises the boxed `Eff`.** Still worth doing — it is what stops
+*naive* code being catastrophic rather than merely slow — but it is no longer
+urgent, and it is not the ceiling: `forE` at 0.065 s beats boxed-`Eff`-with-
+naive-recursion at 0.100 s. The runtime change is a safety net; the source-level
+choice is the performance story.
+
+The cost is that it moves a burden onto the author, who has to know. That is the
+same shape as the portability problem, and it wants the same answer: a knowable
+boundary rather than folklore. Whether `plimsoll` (or something beside it)
+should flag a recursive `Effect` loop as a *performance* hazard the way it flags
+an unportable import is an open and rather appealing question.

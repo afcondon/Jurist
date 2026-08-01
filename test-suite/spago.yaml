@@ -24,6 +24,7 @@ package:
     - numbers
     - partial
     - prelude
+    - record
     - refs
     - st
     - strings

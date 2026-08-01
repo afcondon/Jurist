@@ -123,6 +123,12 @@ KNOWN_DIVERGENCES = {
     ("Test.Boundaries", "char-astral-length"),
     ("Test.Boundaries", "char-astral-take-1"),
     ("Test.Boundaries", "char-astral-take-2"),
+    # NEGZERO, in a real library: `perturbGen` folds float32ToInt32's bit
+    # pattern into QuickCheck's seed, and the sign bit of -0.0 is part of that
+    # pattern. So the sign of a zero changes WHICH TEST CASES QuickCheck
+    # generates. Same single cause as the Test.Boundaries NEGZERO block (#48);
+    # this is what it costs downstream.
+    ("Test.NullableRandom", "perturb-neg-zero"),
 }
 
 TEST_LINE = re.compile(r"^TEST ([^:]+): (.*)$")

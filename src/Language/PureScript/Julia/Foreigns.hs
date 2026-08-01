@@ -955,6 +955,32 @@ builtinForeigns =
       , "_search(just) = nothing_ -> r -> s -> _regex_unimplemented()"
       , "split(r) = s -> _regex_unimplemented()"
       ] )
+  , ( "Effect_Random_foreign.jl", T.unlines
+      [ "# FFI for Effect.Random"
+      , "# `random :: Effect Number` is a VALUE of effect type, so it is a"
+      , "# zero-argument closure, not a function of one argument."
+      , "random = () -> Base.rand()"
+      ] )
+  , ( "Data_Nullable_foreign.jl", T.unlines
+      [ "# FFI for Data.Nullable"
+      , "# JS null maps to `nothing`. Unit is also `nothing`, which is harmless:"
+      , "# the two never meet in a well-typed program, and the JS backend has"
+      , "# exactly the same overlap between null and undefined-as-unit."
+      , "null = nothing"
+      , "# `nullable` is Fn3, so a genuine three-argument function."
+      , "function nullable(a, r, f)"
+      , "    a === nothing ? r : f(a)"
+      , "end"
+      , "notNull(x) = x"
+      ] )
+  , ( "Test_QuickCheck_Gen_foreign.jl", T.unlines
+      [ "# FFI for Test.QuickCheck.Gen"
+      , "# Reinterpret the low 32 bits of a float32 as a signed int32 -- the JS"
+      , "# original round-trips through an ArrayBuffer to do exactly this. It is"
+      , "# a bit pattern, not a numeric conversion: the value is meaningless and"
+      , "# the BITS are the point, because QuickCheck uses it to derive a seed."
+      , "float32ToInt32(n) = Base.Int(Base.reinterpret(Base.Int32, Base.Float32(n)))"
+      ] )
   ]
   where
     arg :: Int -> Text

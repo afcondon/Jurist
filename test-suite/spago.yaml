@@ -21,9 +21,12 @@ package:
     - maybe
     - newtype
     - ordered-collections
+    - nullable
     - numbers
     - partial
     - prelude
+    - quickcheck
+    - random
     - record
     - refs
     - st

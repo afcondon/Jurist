@@ -63,6 +63,19 @@ if [[ -n "$strays" ]]; then
 fi
 echo "    none, as required"
 
+echo "==> performance canary (perf)"
+# Gates on CHECKSUMS — the shapes must compute the same answers on both
+# backends, and a benchmark that is quietly wrong is how a perf suite stays
+# green while what it measures rots. Timing drift is REPORTED, not gated:
+# this lane has no variance history yet and a canary that cries wolf on a
+# busy CI runner gets muted, which is worse than one that is slightly deaf.
+# Add --gate-drift here once the tolerance has been tightened against real
+# observed noise.
+(
+  cd perf
+  python3 run_perf.py
+)
+
 # Report, not a gate: regenerating here is what stops the index going stale,
 # since it is read off the backends' own source. Requires the sibling repos and
 # a resolved package set; skipped rather than failed when either is absent.

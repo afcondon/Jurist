@@ -44,6 +44,11 @@ test-suite/output/
 test-suite/output-jl/
 test-suite/.spago/
 
+# perf (the performance canary) — same shape as test-suite
+perf/output/
+perf/output-jl/
+perf/.spago/
+
 # generated PDFs (print workflow)
 *.pdf
 

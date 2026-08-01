@@ -140,15 +140,50 @@ requirement: the win does not come from *structs*, it comes from being
 **non-parametric with `Any` fields**. A struct-per-constructor encoding with
 typed fields would nest exactly as badly as the tuples do.
 
+### Now measured, not inferred
+
+The paragraph above was written with the type-level fact established and the
+*cost* only inferred from the `Effect` mechanism — listed below as a limit of
+the finding. The performance canary (`perf/`, built the same day) measured it
+within an hour of first running, which is a better argument for the lane than
+anything in its README.
+
+`foldl (+) 0 (List.range 1 n)`, first call, Jurist:
+
+| n | first call | f/s | `fold-array` f/s at the same n |
+|---:|---:|---:|---:|
+| 10 | 216 ms | 17,625× | 2,874× |
+| 25 | 447 ms | 13,001× | 4.0× |
+| 50 | 1.43 s | 17,303× | 1.6× |
+| 100 | 7.11 s | 29,373× | 1.5× |
+| 400 | **235 s** | — | — |
+| 1,600 | did not finish in 10 minutes | — | — |
+
+The signature is that **`f/s` never settles**. `fold-array` computes the same
+sum over the same numbers and returns the same checksum; by n=100 its first
+call is within 1.5× of its steady state, because a `Vector{Int64}` is one
+type at every length. The list is recompiling at every size, for good, and
+the compiler's work grows with the *data*.
+
+Two qualifications, because the table is dramatic and the honest reading is
+narrower:
+
+- **Steady state is not the Julia-specific part.** `fold-list` steady is ~27×
+  `fold-array` on Jurist at n=100 — and ~20× on the JS reference. Walking cons
+  cells costs more than walking a contiguous array on every runtime; that is
+  the data structure. The backend-specific finding is entirely in `f/s`.
+- **A 100-element list is not a workload.** That the measurement cannot go
+  past it *is* the result.
+
 ## Limits of this finding
 
 State them, because the numbers above are seductive:
 
 - **One microbenchmark.** An `Effect` loop over a `Ref`. Not the corpus, not a
   real program, not ADT-heavy code.
-- **The tag-tuple claim is measured only as a type-level fact.** That deep ADTs
-  produce huge types is demonstrated; that this *costs* what the `Effect` case
-  costs is inferred from the same mechanism, not yet measured.
+- ~~**The tag-tuple claim is measured only as a type-level fact.**~~ Closed
+  the same day by the performance canary — see "Now measured, not inferred"
+  above. It costs more than the `Effect` case, not less.
 - **The boxed prototype is a patch to two shims**, not an implementation. Every
   foreign that returns an `Effect` would have to return an `Eff`, and
   `runEffect`-shaped call sites would need to accept both during migration.
@@ -165,7 +200,8 @@ State them, because the numbers above are seductive:
 1. Confirm the corpus reproduces it, and that Pythia and Gnomon do not.
 2. Prototype `Eff` properly in the runtime and re-run the full differential
    suite — correctness first, then the numbers.
-3. Measure the tag-tuple cost directly, with a deep `List` fold.
+3. ~~Measure the tag-tuple cost directly, with a deep `List` fold.~~ **Done**
+   — `perf/`'s `fold-list` shape, table above.
 4. Only then decide ADR-0001, with the requirement clear: **non-parametric,
    `Any`-typed fields**.
 

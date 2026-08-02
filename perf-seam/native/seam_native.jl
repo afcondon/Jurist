@@ -29,7 +29,9 @@ const R_ESC_SQ = 9.0
 const TOL = 1.0e-8
 const MU = 9.54e-4
 const CALLS = 400
+# Must match ffi-jl/Seam_Kernel_foreign.jl's workLadder / payloadWork exactly.
 const HORIZONS = [2.0, 5.0, 15.0, 50.0, 150.0]
+const PAYLOAD_WORK = 15.0
 const PAYLOADS = [1, 16, 128, 1024]
 const SCHEMA = "1"
 
@@ -149,7 +151,7 @@ function run_payload(n_samples)
         t0 = time_ns()
         for i in 0:(CALLS - 1)
             p = params_for(i)
-            xs = solve_orbit_samples(MU, p.a, p.e, 15.0, n_samples)
+            xs = solve_orbit_samples(MU, p.a, p.e, PAYLOAD_WORK, n_samples)
             # Must associate EXACTLY as `Ref.modify_ (_ + Array.foldl (+) 0.0 xs)`
             # does: a per-array subtotal from 0.0, then one add into acc.
             # Neither `sum(xs)` (pairwise) nor accumulating straight into acc

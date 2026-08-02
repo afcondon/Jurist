@@ -44,7 +44,7 @@ import Data.Maybe (Maybe(..))
 import Effect (Effect, forE)
 import Effect.Console (log)
 import Effect.Ref as Ref
-import Seam.Kernel (flushOut, foreignNs, nowNs, resetForeignNs, solveOrbit, solveOrbitSamples)
+import Seam.Kernel (flushOut, foreignNs, nowNs, payloadWork, resetForeignNs, solveOrbit, solveOrbitSamples, workLadder)
 
 -- | Bumped when the emitted line format changes, so a runner reading an old
 -- | corpus fails loudly rather than misparsing it.
@@ -73,11 +73,13 @@ paramsFor i =
   toN :: Int -> Number
   toN = Int.toNumber
 
--- | Work-per-call ladder, in Jupiter periods. Spans roughly 50 us to 2.5 ms
--- | of solver time per call on an M4 — which brackets the regime where the
--- | crossing stops being noise and starts being the bill.
+-- | The ladder comes from the backend (`Seam.Kernel.workLadder`), calibrated
+-- | so every runtime covers the same range of MICROSECONDS of library work
+-- | per call — roughly 170 us to 10 ms — which is the regime where the
+-- | crossing stops being noise and starts being the bill. Hard-coding it here
+-- | would compare different things on different backends.
 horizons :: Array Number
-horizons = [ 2.0, 5.0, 15.0, 50.0, 150.0 ]
+horizons = workLadder
 
 -- | Payload ladder, in samples returned per call. 1 is the thin control;
 -- | 1024 returns 2,048 `Number`s per crossing.
@@ -157,7 +159,7 @@ runPayload nSamples = do
       let p = paramsFor i
       -- Sum rather than retain: holding 400 arrays would measure the
       -- allocator's patience instead of the crossing.
-      let xs = solveOrbitSamples mu p.a p.e 15.0 nSamples
+      let xs = solveOrbitSamples mu p.a p.e payloadWork nSamples
       Ref.modify_ (_ + Array.foldl (+) 0.0 xs) acc
     t1 <- nowNs
     f <- foreignNs

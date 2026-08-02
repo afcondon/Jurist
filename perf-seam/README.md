@@ -84,7 +84,19 @@ because a deformed computation raises foreign *share* and reads as "clean
 architecture, the library dominates".
 
 The payload axis is equally flat: 1.00–1.03× from 2 to 2,048 `Number`s
-returned per crossing.
+returned per crossing — **and that turns out to be a Julia property, not a
+general one.** Fitted per element:
+
+| | per `Number` crossed | a 1,000-element return |
+|---|---:|---:|
+| **Jurist** (purejl) | ~1.9 ns | ~2 µs |
+| **Pythia** (purepy) | ~104 ns | ~104 µs |
+
+Marshalling an `Array Number` costs purepy roughly **53×** what it costs
+purejl, because on Julia it is a contiguous `Vector{Float64}` folded by native
+code and on Python it is a list of boxed floats walked by generated code. So
+"keep the payload narrow" is a real design rule on one runtime and almost
+irrelevant on this one. See `purescript-python/perf-seam/README.md`.
 
 ### The lane falsified its own design assumption
 

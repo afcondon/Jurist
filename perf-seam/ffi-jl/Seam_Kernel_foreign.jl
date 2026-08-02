@@ -108,3 +108,18 @@ solveOrbitSamples(mu) = a -> e -> horizonPeriods -> nSamples -> begin
     _FOREIGN_NS[] += Base.time_ns() - t0
     out
 end
+
+# --- the calibrated ladders --------------------------------------------------
+#
+# The axis under test is MICROSECONDS of library work bought per crossing; the
+# horizon is only the dial that moves it. Each backend calibrates its own
+# ladder to span the same microsecond range, so the shared PureScript stays
+# byte-identical (see Seam.Kernel.workLadder).
+#
+# Measured 2026-08-02: these settings buy 172 / 385 / 1086 / 3476 / 10139 us
+# per call through OrdinaryDiffEq — a 60x range.
+workLadder = [2.0, 5.0, 15.0, 50.0, 150.0]
+
+# ~1086 us per call: the middle of the ladder, so the payload axis varies
+# payload against a representative amount of work rather than an extreme.
+payloadWork = 15.0

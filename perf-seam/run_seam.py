@@ -239,6 +239,29 @@ def main():
         print(f"  Across a 60x range of work per call the tax stayed within"
               f" {best:.2f}x-{worst:.2f}x.")
         print()
+
+        # The payload axis, priced per element. This is the axis that
+        # separates the runtimes: the work axis says roughly the same thing
+        # everywhere, but marshalling an Array Number does not, because
+        # `Array Number` is a native contiguous vector on one runtime and a
+        # list of boxed objects on another.
+        pay = [r for r in results if r["axis"] == "payload"]
+        if len(pay) >= 2:
+            # x is Numbers crossed per call: the foreign returns 2 per sample.
+            xs2 = [2.0 * float(r["param"]) for r in pay]
+            cs2 = [r["crossingUs"] for r in pay]
+            m = len(xs2)
+            sx, sc2 = sum(xs2), sum(cs2)
+            sxx = sum(x * x for x in xs2)
+            sxc = sum(x * y for x, y in zip(xs2, cs2))
+            den2 = m * sxx - sx * sx
+            per_elem_ns = 1000.0 * (m * sxc - sx * sc2) / den2 if den2 else 0.0
+            print(f"  Marshalling, fitted over the payload axis:"
+                  f"  {per_elem_ns:.0f} ns per Number crossed")
+            print(f"  At that rate a 1,000-element return costs"
+                  f" {per_elem_ns:.0f} us per call, so a seam that hands back")
+            print("  a whole result set pays for it in a way a scalar seam never sees.")
+            print()
         d = max(r["distortion"] for r in results)
         verdict = "clean" if d < 1.1 else "DEFORMED — the seam changed how the library is called"
         print(f"  worst structural distortion across all rows  {d:.3f}  ({verdict})")

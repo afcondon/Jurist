@@ -20,6 +20,8 @@ module Seam.Kernel
   , resetForeignNs
   , solveOrbit
   , solveOrbitSamples
+  , workLadder
+  , payloadWork
   ) where
 
 import Data.Unit (Unit)
@@ -84,3 +86,25 @@ foreign import solveOrbitSamples
   -> Number -- ^ horizon, in Jupiter periods
   -> Int -- ^ samples returned
   -> Array Number
+
+-- | The work-per-call ladder, in this problem's own units, **supplied by the
+-- | backend rather than fixed here**.
+-- |
+-- | The axis under test is microseconds of library work bought per crossing,
+-- | and the horizon is only the dial that moves it. Different runtimes need
+-- | very different dial settings to cover the same range of microseconds:
+-- | measured 2026-08-02, one 150-period solve costs ~10 ms through
+-- | OrdinaryDiffEq and ~497 ms through scipy, a factor of fifty. Fixing the
+-- | ladder in this module would either take fifty minutes on the slow backend
+-- | or measure a fifty-times-narrower range on the fast one, and neither is a
+-- | comparison.
+-- |
+-- | So each backend's FFI calibrates its own ladder to span the SAME
+-- | microsecond range, the shared PureScript stays byte-identical, and the
+-- | calibration becomes an explicit documented decision instead of an
+-- | accident of whoever wrote the array.
+foreign import workLadder :: Array Number
+
+-- | The work setting the payload axis holds fixed while the payload varies.
+-- | Backend-supplied for the same reason.
+foreign import payloadWork :: Number

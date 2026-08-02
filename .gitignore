@@ -98,3 +98,8 @@ backend-jl/output/
 backend-jl/output-jl-opt/
 backend-jl/.spago/
 backend-jl/spago.lock
+
+# The seam-tax lane's build products (same rule as examples/ and perf/)
+perf-seam/output/
+perf-seam/output-jl/
+perf-seam/.spago/

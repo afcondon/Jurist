@@ -18,8 +18,8 @@ module Seam.Kernel
   , flushOut
   , foreignNs
   , resetForeignNs
-  , solveOrbit
-  , solveOrbitSamples
+  , callLibrary
+  , callLibraryPayload
   , workLadder
   , payloadWork
   ) where
@@ -48,46 +48,55 @@ foreign import foreignNs :: Effect Number
 
 foreign import resetForeignNs :: Effect Unit
 
--- | Solve ONE orbit through the runtime's own ODE library — an adaptive
--- | high-order integrator with root-found escape and close-encounter events —
--- | and return the survival verdict.
+-- | ONE call into the runtime's own library, returning one `Number`.
 -- |
--- | This module is BYTE-IDENTICAL across the backends that can host the same
--- | physics (OrdinaryDiffEq.jl on Jurist, scipy.integrate on Pythia), exactly
--- | as the canary's shapes and the differential corpus are. Only `ffi-*/` and
--- | the native arm differ, so a difference in the numbers is a difference in
--- | the seam and not in what was asked of it.
+-- | **The callee is deliberately unnamed here.** This module is
+-- | BYTE-IDENTICAL across all three backends, as the canary's shapes and the
+-- | differential corpus are, and each `ffi-*/` binds whatever library is the
+-- | actual reason to be on that runtime: `OrdinaryDiffEq.solve` on Jurist,
+-- | `scipy.integrate.solve_ivp` on Pythia, `compress/gzip` on Gnomon (Go's
+-- | draw being largely its standard library rather than a numerics stack).
+-- |
+-- | Binding different callees is not a weakness of the comparison, because
+-- | what is being measured is the SEAM, and a boundary does not know what is
+-- | on the far side of it. The two runtimes measured first bear that out: the
+-- | fixed crossing came to 6.6 us and 8.0 us against completely different
+-- | libraries.
+-- |
+-- | The first three arguments are shape dials, varied per call so a run is not
+-- | one input repeated; the fourth is the WORK dial, which moves library time
+-- | per call across roughly two orders of magnitude. What they mean concretely
+-- | is the FFI's business.
 -- |
 -- | Deliberately the THINNEST possible payload: four `Number`s in, one out.
 -- | Anything the crossing costs here is call overhead, not marshalling, which
--- | is what makes `solveOrbitSamples` the useful contrast rather than a
+-- | is what makes `callLibraryPayload` the useful contrast rather than a
 -- | duplicate.
 -- |
 -- | `horizonPeriods` is the work dial. It sets how long the solver integrates,
 -- | so it moves work-per-call across roughly two orders of magnitude without
 -- | changing the shape of anything else.
-foreign import solveOrbit
-  :: Number -- ^ mu
-  -> Number -- ^ semi-major axis
-  -> Number -- ^ eccentricity
-  -> Number -- ^ horizon, in Jupiter periods
+foreign import callLibrary
+  :: Number -- ^ shape dial 1
+  -> Number -- ^ shape dial 2
+  -> Number -- ^ shape dial 3
+  -> Number -- ^ WORK dial
   -> Number
 
--- | The same solve, returning `nSamples` points of the trajectory instead of
--- | one verdict.
+-- | The same call, returning `nSamples` samples instead of one scalar.
 -- |
 -- | Same call count, same library, same work — only the payload grows. The
--- | difference between this and `solveOrbit` at equal horizon is therefore
+-- | difference between this and `callLibrary` at equal work is therefore
 -- | marshalling cost per element, isolated from everything else.
-foreign import solveOrbitSamples
-  :: Number -- ^ mu
-  -> Number -- ^ semi-major axis
-  -> Number -- ^ eccentricity
-  -> Number -- ^ horizon, in Jupiter periods
+foreign import callLibraryPayload
+  :: Number -- ^ shape dial 1
+  -> Number -- ^ shape dial 2
+  -> Number -- ^ shape dial 3
+  -> Number -- ^ WORK dial
   -> Int -- ^ samples returned
   -> Array Number
 
--- | The work-per-call ladder, in this problem's own units, **supplied by the
+-- | The work-per-call ladder, in the backend's own units, **supplied by the
 -- | backend rather than fixed here**.
 -- |
 -- | The axis under test is microseconds of library work bought per crossing,

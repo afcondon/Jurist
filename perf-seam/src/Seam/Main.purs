@@ -44,7 +44,7 @@ import Data.Maybe (Maybe(..))
 import Effect (Effect, forE)
 import Effect.Console (log)
 import Effect.Ref as Ref
-import Seam.Kernel (flushOut, foreignNs, nowNs, payloadWork, resetForeignNs, solveOrbit, solveOrbitSamples, workLadder)
+import Seam.Kernel (flushOut, foreignNs, nowNs, callLibrary, callLibraryPayload, payloadWork, resetForeignNs, workLadder)
 
 -- | Bumped when the emitted line format changes, so a runner reading an old
 -- | corpus fails loudly rather than misparsing it.
@@ -61,9 +61,9 @@ mu = 9.54e-4
 calls :: Int
 calls = 400
 
--- | A deterministic (a, e) for call `i`, spread across the belt so the run is
--- | not one orbit repeated. Cheap integer arithmetic — it must not show up in
--- | the measurement, and the native arm computes it identically.
+-- | Deterministic shape dials for call `i`, varied so the run is not one input
+-- | repeated. Cheap integer arithmetic — it must not show up in the
+-- | measurement, and every native arm computes it identically.
 paramsFor :: Int -> { a :: Number, e :: Number }
 paramsFor i =
   { a: 0.35 + 0.5 * toN (mod (i * 37) 101) / 100.0
@@ -140,7 +140,7 @@ runWork horizon = do
     t0 <- nowNs
     forE 0 calls \i -> do
       let p = paramsFor i
-      Ref.modify_ (_ + solveOrbit mu p.a p.e horizon) acc
+      Ref.modify_ (_ + callLibrary mu p.a p.e horizon) acc
     t1 <- nowNs
     f <- foreignNs
     c <- Ref.read acc
@@ -159,7 +159,7 @@ runPayload nSamples = do
       let p = paramsFor i
       -- Sum rather than retain: holding 400 arrays would measure the
       -- allocator's patience instead of the crossing.
-      let xs = solveOrbitSamples mu p.a p.e payloadWork nSamples
+      let xs = callLibraryPayload mu p.a p.e payloadWork nSamples
       Ref.modify_ (_ + Array.foldl (+) 0.0 xs) acc
     t1 <- nowNs
     f <- foreignNs

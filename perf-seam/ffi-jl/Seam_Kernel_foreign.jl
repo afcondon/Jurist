@@ -65,9 +65,12 @@ flushOut = () -> (Base.flush(Base.stdout); nothing)
 
 # --- the seam ----------------------------------------------------------------
 
-# solveOrbit :: Number -> Number -> Number -> Number -> Number
+# callLibrary :: Number -> Number -> Number -> Number -> Number
+# The shared PureScript names the arguments as three shape dials and a work
+# dial; here they are (mu, a, e, horizonPeriods) because the library this
+# backend binds is an ODE solver.
 # Curried: PureScript applies one argument at a time.
-solveOrbit(mu) = a -> e -> horizonPeriods -> begin
+callLibrary(mu) = a -> e -> horizonPeriods -> begin
     t0 = Base.time_ns()
     horizon = horizonPeriods * 2.0 * pi
     prob = OrdinaryDiffEq.ODEProblem(_cr3bp, _init(mu, a, e), (0.0, horizon), mu)
@@ -80,11 +83,11 @@ solveOrbit(mu) = a -> e -> horizonPeriods -> begin
     v
 end
 
-# solveOrbitSamples :: Number -> Number -> Number -> Number -> Int -> Array Number
+# callLibraryPayload :: Number -> Number -> Number -> Number -> Int -> Array Number
 # Same solve, but `nSamples` trajectory points come back instead of one
-# verdict — so the difference against solveOrbit at equal horizon is
+# verdict — so the difference against callLibrary at equal horizon is
 # marshalling per element, with call count and library work held fixed.
-solveOrbitSamples(mu) = a -> e -> horizonPeriods -> nSamples -> begin
+callLibraryPayload(mu) = a -> e -> horizonPeriods -> nSamples -> begin
     t0 = Base.time_ns()
     horizon = horizonPeriods * 2.0 * pi
     n = Base.Int(nSamples)

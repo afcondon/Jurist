@@ -1,0 +1,1 @@
+window.UNITS = {"good":{"consistent":true,"report":["D(v): 1.0 m s⁻²","D(y): 1.0 m s⁻¹"]},"bad":{"consistent":false,"report":["D(v): ✗","D(y): 1.0 m s⁻¹","in eq. #1right, in sum -g - c*(v(t)^2), units [1.0 m s⁻², 1.0 m² s⁻³] do not match."]}};

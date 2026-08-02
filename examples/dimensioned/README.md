@@ -36,4 +36,35 @@ stack exec purejl -- output output-jl
 julia --project=julia-env output-jl/main.jl
 ```
 
+## Frontend (`dimensions-viz/`) — where static knowledge ends
+
+A static page that states the boundary this example is really about, in four
+acts: the type system doing the dimensional algebra (with the verbatim `purs`
+error for `meters 1.0 |+| seconds 2.0`), then the three places the types
+**cannot** reach —
+
+1. **the unit is chosen at runtime** — `inUnits "m"` is a string that could come
+   from a dropdown or a URL, so only DynamicQuantities can refuse it;
+2. **the equations are values** — `numexpr-edsl` increment 9 hands
+   ModelingToolkit an ODE system assembled at run time from a `NumExpr` AST;
+   changing the drag law from `c·v` to `c·v²` changes a *value*, so nothing
+   recompiles and MTK is the only thing that can complain;
+3. **the exponent is not an integer** — `Prim.Int` has no rationals, so
+   `√(s)` is inexpressible and `qSqrt` rejects it (`√(s²) = s` is fine, which
+   is why the pendulum period works).
+
+It reads two generated files, one from each example:
+
+```bash
+cp dimensioned.js dimensions-viz/                    # this example
+cp ../numexpr-edsl/julia/units.js dimensions-viz/    # numexpr-edsl increment 9
+open dimensions-viz/index.html                       # no server needed
+```
+
+> The point is **not** that PureScript lacks dimensional types — it has them,
+> at compile time, on every backend including the browser, which is stronger
+> than what any runtime checker can offer. The point is the boundary: types
+> check what you *write*; they cannot check what you *build*. That is the
+> general shape of the seam, and this is the cleanest place to see it.
+
 Background and the wider units landscape: `docs/units-and-dimensions.md`.

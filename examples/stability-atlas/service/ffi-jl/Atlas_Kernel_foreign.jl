@@ -171,6 +171,18 @@ function _survival(mu::Float64, a::Float64, e::Float64, horizon::Float64, stepsP
     1.0
 end
 
+# --- instrumentation ---------------------------------------------------------
+
+# Wall clock of the last sweep, split at the ONE boundary that matters:
+# `kernel` is time inside the Julia numerics, `emit` is time inside the
+# PureScript callback (Atlas.Protocol.encodeServerMsg + the WS send). The
+# split cannot be inferred from outside — `elapsedMs` on the wire covers
+# both — and it is what `native/compare.jl` needs to attribute cost.
+# Cheap: two time_ns reads per row block (~13 blocks on the full sweep),
+# not per pixel.
+const SWEEP_PERF = Base.Dict{Base.String, Float64}(
+    "kernel" => 0.0, "emit" => 0.0, "total" => 0.0)
+
 # --- foreigns ----------------------------------------------------------------
 
 # runSweepImpl :: SweepSpec -> (RowBlock -> Effect Unit) -> Effect Number
@@ -202,6 +214,7 @@ function _run_sweep(spec, @nospecialize(emit))
     # stays balanced.
     blockRows = Base.max(2 * Threads.nthreads(), Base.cld(rows, 40))
 
+    emit_ns = Base.UInt64(0)
     r0 = 1
     while r0 <= rows
         r1 = Base.min(r0 + blockRows - 1, rows)
@@ -217,10 +230,22 @@ function _run_sweep(spec, @nospecialize(emit))
             end
             block[r - r0 + 1] = rowvals
         end
+        e0 = Base.time_ns()
         emit(Base.Dict{Base.String, Any}("rowStart" => r0 - 1, "rows" => block))()
+        emit_ns += Base.time_ns() - e0
         r0 = r1 + 1
     end
-    return (Base.time_ns() - t0) / 1.0e6
+    total = (Base.time_ns() - t0) / 1.0e6
+    SWEEP_PERF["emit"] = emit_ns / 1.0e6
+    SWEEP_PERF["kernel"] = total - SWEEP_PERF["emit"]
+    SWEEP_PERF["total"] = total
+    Base.println(Base.stderr, "sweep-perf cols=", cols, " rows=", rows,
+        " fli=", withFli,
+        " total_ms=", total,
+        " kernel_ms=", SWEEP_PERF["kernel"],
+        " emit_ms=", SWEEP_PERF["emit"])
+    Base.flush(Base.stderr)
+    return total
 end
 
 # kernelProbe :: Number -> Number -> Int -> State -> State

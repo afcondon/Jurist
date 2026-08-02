@@ -135,6 +135,61 @@ A seam crossing per *row* of a dataframe would not.
 PureScript costs 1–3 % at any realistic granularity, and the boundary itself is
 under 7 µs.
 
+## The foreign-origin gate — a correctness lane inside a perf lane
+
+`src/Seam/ForeignOrigin.purs`, byte-identical with the Pythia lane's copy like
+the rest of `Seam/`, runs before any timing is read. It exists because **this
+is the only place in the repo where a value ENTERS from a foreign library**,
+and that population is one nothing else can cover: the differential corpus
+proves meaning survives translation, but only for values PureScript itself
+constructed, because the corpus deliberately contains no foreign libraries.
+
+A real bug lived in that gap. purepy's `show` printed `np.float64(3997569)` for
+399.7569 — silently, for anything that came back from numpy — because numpy 2.x
+changed scalar `repr` and the runtime parses `repr`. It surfaced here as a
+checksum mismatch, not as a test failure.
+
+Jurist had the same hazard, unfixed, and Julia is the worse case because it has
+more representations of "a real number" than anything else we target, each
+rendered by `Base.string` in its own notation:
+
+```
+Float32(0.1)   ->  "0.1"      but the double it denotes is 0.10000000149011612
+1//2           ->  "1//2"     which is not a number at all
+BigFloat(0.1)  ->  79 digits
+```
+
+Float32 is not exotic — it is the default across imaging, GPU and ML libraries,
+which is much of the reason to be on Julia at all. Fixed with
+`n = Base.Float64(n)` at the head of `_js_number_string`.
+
+The property under test:
+
+```
+show x == show (widen x)      for every x, however x arrived
+```
+
+The rendering of a `Number` may depend on its **value** and must not depend on
+its **representation**. Note it is deliberately *not* `show (asRepresentation r
+v) == show v` — `Float32(0.1)` really is a different number from `0.1`, and
+printing `0.1` for it would be the opposite error.
+
+```bash
+julia --project=julia-env -e 'include("output-jl/loader.jl"); Seam_ForeignOrigin.main()'
+```
+
+Patch the coercion back out of `output-jl/purejl_runtime.jl` and **17 of 40
+renderings fail**, including `3.516298878669501//8796093022208e+30` for
+399.7569. The gate does not bind OrdinaryDiffEq: pinning a regression test to a
+library would make it track that library's release notes, and the hazard needs
+only the type promise, which `asRepresentation` manufactures directly.
+
+**Gnomon needs no such gate**, and the reason is worth stating. psgo unwraps a
+boxed `Number` with a type assertion, so a `float32` arriving where `Number`
+was promised panics by name rather than corrupting anything. It is the same
+property that costs it ~25 ns per `Number` read against Jurist's ~2: the box
+that is expensive on the payload axis is what pays off on the correctness one.
+
 ## Caveats
 
 - One library, one problem shape. `OrdinaryDiffEq.solve` returns a small

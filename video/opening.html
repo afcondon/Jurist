@@ -1,0 +1,155 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Polyglot PureScript — Jurist opening</title>
+<!--
+  Opening title sequence for the Jurist static-pages tour.
+
+  Two slides on a fixed 1920x1080 stage, one deterministic timeline. Record it
+  the same way as the pages: press 0, capture, hold on the final frame. It runs
+  SILENT — narration starts on the cut to the first page.
+
+  Retiming: edit the numbers in T{} only. They are milliseconds and they are
+  the whole timeline; nothing else carries a duration.
+
+  Self-contained on purpose — no CDN, no fonts to fetch. A title card that
+  depends on the network is a title card that can fail on camera.
+-->
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #6b6b6b; --rule: #e3e3e3; --faint: #f0efeb;
+    --accent: #b4341f; --accent-bg: #fbeae6; --paper: #fbfbf9;
+    --good: #1f7a4d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #d8d8d4; }
+  body { display: grid; place-items: center; min-height: 100vh; }
+
+  /* Fixed stage. Record at exactly this size, or scale the whole thing. */
+  .stage {
+    width: 1920px; height: 1080px; background: var(--paper); color: var(--ink);
+    font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    position: relative; overflow: hidden;
+    transform-origin: top left;
+  }
+  .slide {
+    position: absolute; inset: 0; opacity: 0;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 0 170px; transition: opacity 700ms ease;
+  }
+  .slide.on { opacity: 1; }
+
+  .eyebrow {
+    font-size: 21px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin-bottom: 30px;
+  }
+  h1 { font-size: 74px; line-height: 1.1; margin: 0 0 28px; font-weight: 600;
+       letter-spacing: -.02em; max-width: 21ch; text-wrap: balance; }
+  .sub { font-size: 30px; line-height: 1.5; color: var(--muted); max-width: 46ch; margin: 0; }
+  .rule { height: 2px; background: var(--ink); margin: 40px 0; width: 250px; }
+
+  /* ---- slide 2: the architecture diagram -------------------------------
+     Centred rather than left-aligned: at 1920 the three boxes span only
+     about half the frame, and hanging them off the left rail leaves a dead
+     right half that reads as a mistake on camera rather than as space. */
+  #s2 { align-items: center; text-align: center; }
+  .arch { display: flex; align-items: stretch; gap: 34px; margin-top: 26px; }
+  .arch .box { display: flex; flex-direction: column; justify-content: center; text-align: left; }
+  .box {
+    border: 2px solid var(--ink); border-radius: 3px; padding: 26px 32px;
+    background: #fff; min-width: 320px;
+  }
+  .box.seam { border-style: dashed; border-color: var(--accent); background: var(--accent-bg); min-width: 210px; }
+  .box .k { font-size: 19px; letter-spacing: .13em; text-transform: uppercase;
+            color: var(--muted); margin-bottom: 10px; }
+  .box .v { font-size: 31px; font-weight: 600; line-height: 1.25; }
+  .box.seam .k, .box.seam .v { color: var(--accent); }
+  .box .note { font-size: 20px; color: var(--muted); margin-top: 9px; line-height: 1.4; }
+  .arrow { font-size: 40px; color: var(--muted); flex: none; }
+  .mono { font-family: "SF Mono", ui-monospace, Menlo, monospace; }
+  .caption { font-size: 24px; color: var(--muted); margin-top: 46px; max-width: 66ch;
+             line-height: 1.55; text-wrap: balance; }
+  .caption b { color: var(--ink); font-weight: 600; }
+</style>
+
+<div class="stage" id="stage">
+
+  <!-- S1 · series context -->
+  <section class="slide" id="s1">
+    <div class="eyebrow">Polyglot PureScript · 1 of 13</div>
+    <h1>One language, several runtimes</h1>
+    <div class="rule"></div>
+    <p class="sub">
+      A series about compiling PureScript to Julia, Python and Go — and about
+      when doing that is actually the right call.
+    </p>
+  </section>
+
+  <!-- S2 · the architecture -->
+  <section class="slide" id="s2">
+    <div class="eyebrow">The shape of every example</div>
+    <div class="arch">
+      <div class="box">
+        <div class="k">Described once</div>
+        <div class="v">PureScript</div>
+        <div class="note">Types, ADTs, the model itself</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="box seam">
+        <div class="k">Seam</div>
+        <div class="v mono">foreign import</div>
+        <div class="note">A library call. Not your algorithm.</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="box">
+        <div class="k">Derived there</div>
+        <div class="v">Julia</div>
+        <div class="note">Catlab · AlgebraicPetri · Symbolics<br>IntervalRootFinding · JuMP</div>
+      </div>
+    </div>
+    <p class="caption">
+      Nothing on the right is hand-translated. Each page describes a structure
+      in PureScript and gets back something <b>derived</b> — or <b>proved</b> —
+      by a library that has no counterpart in the JavaScript world.
+    </p>
+  </section>
+
+</div>
+
+<script>
+  // ---- the whole timeline. Retime here, nowhere else. --------------------
+  const T = {
+    beforeS1: 600,    // black-ish pause before anything appears
+    s1:      4200,    // hold on the series slide
+    gap:      500,    // both slides down between cuts
+    s2:      7000,    // hold on the architecture slide — the longer read
+    tail:    1200,    // hold the last frame before you stop recording
+  };
+
+  const $ = id => document.getElementById(id);
+  const sleep = ms => new Promise(r => setTimeout(r, ms / (window.SPEED || 1)));
+
+  async function play() {
+    $('s1').classList.remove('on'); $('s2').classList.remove('on');
+    await sleep(T.beforeS1);
+    $('s1').classList.add('on');    await sleep(T.s1);
+    $('s1').classList.remove('on'); await sleep(T.gap);
+    $('s2').classList.add('on');    await sleep(T.s2);
+    await sleep(T.tail);
+    console.log('[OPENING] done — stop recording');
+  }
+
+  // Scale the 1920x1080 stage down to whatever window you have, so you can
+  // rehearse on a laptop. Record at 100% (a 1920x1080 window) for the take.
+  function fit() {
+    const s = Math.min(innerWidth / 1920, innerHeight / 1080, 1);
+    const st = $('stage');
+    st.style.transform = `scale(${s})`;
+    st.style.position = 'absolute';
+    st.style.left = `${(innerWidth - 1920 * s) / 2}px`;
+    st.style.top  = `${(innerHeight - 1080 * s) / 2}px`;
+  }
+  addEventListener('resize', fit); fit();
+
+  addEventListener('keydown', e => { if (e.key === '0') { e.preventDefault(); play(); } });
+  console.log('OPENING ready — press 0 to play. window.SPEED=4 to rehearse.');
+</script>

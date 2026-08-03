@@ -1,17 +1,40 @@
-# Beat sheet — “Describe it once” (the Jurist static pages)
+# Beat sheet — “Write each computation where it belongs”
 
 **Video 1 of the Polyglot PureScript series.** Mode B: static pages plus two
 title slides. No service, no rig, nothing to host.
 
-Draft VO is written to be **paraphrased, not read**. It carries the facts and
-the shape; the words should end up being yours. Every number below is
-ground-truthed in the appendix — those are the things not to improvise.
+---
+
+## The register — read this before the script
+
+The video is **not** a tour of category theory, and it should not try to be.
+It is Andrew's argument, with the exhibits as evidence:
+
+> Every runtime has libraries the others don't. I want to write each
+> computation where it belongs, and keep one typed layer over the top so the
+> whole thing still holds together.
+
+**Two voices, and the switch between them is deliberate.**
+
+*Owned.* The intent, the architecture, the dimensions material, and the limits
+— spoken with full authority, first person.
+
+*Attributed.* The category theory and the numerics. **“Claude tells me that…”**
+is the right form and should be said plainly, without hedging or apology.
+
+**The attribution is the subject, not a caveat.** The reason it is safe to ship
+an implementation you did not write and could not fully audit is the typed
+layer: totality, dimensional correctness, a codec that will not compile if the
+two ends disagree. Say that out loud — it is the most interesting claim in the
+video, and it is the one nobody else is making.
+
+That also fixes the running order. **Open where the authority is real**
+(dimensions), earn the right to be believed, and only then present the
+exhibits you're vouching for at one remove.
 
 ---
 
 ## Master state
-
-Reproduce the run exactly:
 
 ```bash
 cd purescript-backends/purescript-julia
@@ -22,28 +45,34 @@ python3 -m http.server 4181 --bind 127.0.0.1
 |---|---|
 | Slides | `http://127.0.0.1:4181/video/opening.html` |
 | Pages | `http://127.0.0.1:4181/examples/<path>/index.html` |
-| Viewport | **1600 × 1000**, browser chrome hidden. Fixed, because beat targets are pixel offsets — see B-note below. |
-| Driver | `demo-video-scroll-driver.js`, per-page `BEATS[]` given with each beat |
+| Driver | `video/scroll-driver.js` — paste, `DEMO.check()`, press `0` |
+| **Viewport** | **1512 × 889** — Chrome fullscreen on the MBP. Fixed. |
 
-**Fix the viewport before you time anything.** The beat targets are computed
-from element positions, so a different window height moves every landing and
-can collapse two beats into one shot. `DEMO.check()` reports that; run it on
-every page before its take.
+Every beat target below is computed at **1512 × 889**. Change the window and
+they all move; `DEMO.check()` will tell you, but the fix is not to change it.
 
 ---
 
-## The three passes
+## Two verbs, because half these pages don't scroll
 
-As before:
+Measured at 1512 × 889:
 
-1. **Pass 1 — estimate.** These `hold` values are guesses at your pace
-   (~150 wpm, unhurried). I drive the browser; you talk over it in your own
-   words. Nothing here is precious.
-2. **Pass 2 — measure.** You send the VO; I measure each segment and rewrite
-   every `hold` from the real durations.
-3. **Pass 3 — the take.** You read against the retimed driver. One pass.
+| page | screens | scroll | verb |
+|---|---|---|---|
+| dimensions | 2.85 | 1645 px | scroll |
+| petri | 2.80 | 1604 px | scroll |
+| roots | 2.74 | 1548 px | scroll |
+| diff | 2.24 | 1106 px | scroll |
+| schema | 1.54 | 482 px | **focus** |
+| migration | 1.23 | 204 px | **focus** |
+| opt | 1.10 | 86 px | **focus** |
+| patterns | 1.00 | **0 px** | **focus** |
 
-The opening slides run **silent** — narration starts on the cut to Petri.
+Four of these are one-screen posters. Scrolling them produces a jitter or
+nothing at all — as scripted originally, migration went *down 16 px, back up
+to 0, down to 204*. So the driver has a second verb: `focus:` washes the page
+toward blank except the element being discussed, and holds the frame still.
+That is the right grammar for a poster: you are **pointing**, not travelling.
 
 ---
 
@@ -51,237 +80,219 @@ The opening slides run **silent** — narration starts on the cut to Petri.
 
 ### B0 · Opening slides · ~13 s · SILENT
 
-**SHOT** `video/opening.html`, full frame.
-**ACTION** Press `0`. Two slides: series context, then the architecture.
-Hold the final frame, then cut.
+`video/opening.html` — press `0`. Thesis slide, then the architecture. Hold
+the last frame, cut.
 
-> No VO. The architecture slide has to be readable in silence — if it needs
-> narrating, it is too complicated and should be simplified instead.
+> No VO. If the architecture slide needs narrating it is too complicated.
 
 ---
 
-### B1 · Petri nets → functorial dynamics · est. 55 s
+### B1 · Dimensions — the part you own · est. 90 s
 
-**SHOT** `examples/petri-catlab/petri-viz/`
-**ACTION** Title → the SIR net → the derived ODEs → the trajectory.
+**SHOT** `examples/dimensioned/dimensions-viz/`
+**Longest segment in the video, and the one that earns everything after it.**
 
 ```js
 const BEATS = [
-  { at: 'h1',                  hold: 14000 },
-  { at: { sel: 'svg', n: 1 },  hold: 15000, align: 'center' },
-  { at: { sel: '.katex-display', n: 1 }, hold: 16000, align: 'center' },
-  { at: 1.0,                   hold: 10000, align: 'end' },
+  { at: 'h1',                  hold: 18000 },
+  { at: { sel: '.act', n: 1 }, hold: 24000 },
+  { at: { sel: '.act', n: 2 }, hold: 26000 },
+  { at: { sel: '.act', n: 4 }, hold: 22000 },
 ];
 ```
+Verified targets: **16 · 294 · 1036 · 1645**.
 
-> **VO (B1a):** This is a Petri net — susceptible, infected, recovered, and two
-> reactions between them. It's described once, in PureScript. Species and
-> reactions, and that's all: there are no differential equations anywhere in
-> the description.
+> **VO (B1a):** I want to start with something I can vouch for personally,
+> because it sets up everything else.
 >
-> **VO (B1b):** Handed across to Julia's AlgebraicPetri, these equations come
-> back. I didn't write them and I didn't translate them. They're produced by a
-> functor from the category of Petri nets to vector fields — the mass-action
-> dynamics is *derived* from the structure of the net.
+> **VO (B1b):** A physical dimension can live in the type. Adding metres to
+> seconds isn't a runtime error here — it doesn't compile. And it doesn't
+> compile on *any* backend, browser included. So this isn't something
+> PureScript lacks and Julia provides; it's the typed layer doing its job
+> everywhere at once.
 >
-> **VO (B1c):** Then OrdinaryDiffEq integrates them, and the browser draws a
-> trajectory it never computed. What I want to point at is the gap: there's no
-> applied-category-theory stack in the JavaScript world I could have handed
-> that description to.
+> **VO (B1c):** But it only works for what's known at compile time. Read a unit
+> from a config file, or build an equation at runtime, and the type can't
+> follow it there — a runtime checker becomes the only thing that can catch the
+> error. Types check what you *write*. They can't check what you *build*.
+>
+> **VO (B1d):** And the ladder runs out before the end: exponents here are
+> integers, so a dimension involving a square root of time isn't expressible at
+> all. I'd rather show you that than pretend the approach is total.
+
+⚠️ Do **not** imply types would have prevented a famous units disaster.
+`lbf·s` and `N·s` are both mass·length·time⁻¹ — a `Quantity` sees one type and
+the addition type-checks. That is the next video.
 
 ---
 
-### B2 · Functorial data migration · est. 45 s
+### B2 · The switch · est. 25 s · over the last frame of B1
 
-**SHOT** `examples/catlab-migration/migration-viz/`
-**ACTION** Title → the call graph → the migrated module graph.
+No page change. This is where the register changes, and it should be explicit.
 
-```js
-const BEATS = [
-  { at: 'h1',                 hold: 13000 },
-  { at: { sel: 'svg', n: 1 }, hold: 16000, align: 'center' },
-  { at: 1.0,                  hold: 16000, align: 'end' },
-];
-```
-
-> **VO (B2a):** Same move, different structure. Here it's a call graph — eight
-> functions across four modules, thirteen calls between them.
->
-> **VO (B2b):** And here's the module dependency graph, which I did not write
-> either. It's a migration along a functor: every call from `f` to `g` becomes
-> an edge between the module `f` is in and the module `g` is in. Thirteen calls
-> collapse to six module edges, and two of those are self-loops — a module
-> calling itself. The interesting part is that this is a *functor*, with
-> categorical guarantees, rather than a fold I wrote and hoped was right.
+> **VO (B2):** Everything after this point I did not write. I specified what I
+> wanted and Claude designed and implemented it — so when I tell you what these
+> do, I'm telling you what Claude tells me they do. That sounds like a caveat.
+> It's actually the point: the reason I'm willing to ship code I couldn't
+> audit line by line is the layer I've just shown you. The types are the
+> contract.
 
 ---
 
-### B3 · Structural patterns by homomorphism search · est. 50 s
+### B3 · Exact derivatives · est. 40 s
 
-**SHOT** `examples/catlab-patterns/pattern-viz/`
-**ACTION** Title → the graph → each of the three motifs.
-
-```js
-const BEATS = [
-  { at: 'h1',                 hold: 12000 },
-  { at: { sel: 'svg', n: 1 }, hold: 12000, align: 'center' },
-  { at: { sel: 'svg', n: 2 }, hold: 13000, align: 'center' },
-  { at: 1.0,                  hold: 13000, align: 'end' },
-];
-```
-
-> **VO (B3a):** Eight modules, ten dependencies. I want to find three shapes in
-> it: a circular dependency, a mutual dependency, and a diamond.
->
-> **VO (B3b):** Catlab finds each one as the set of graph homomorphisms from
-> the pattern into the graph. That's subgraph matching, generalised — the
-> category does the searching, and the same engine handles all three shapes
-> without knowing what any of them mean.
->
-> **VO (B3c):** One occurrence of each: a three-module cycle, one mutual pair,
-> one diamond.
-
-⚠️ **Do not say “one homomorphism.”** The cycle has **three** homomorphisms and
-**one** occurrence — the three rotations of the same triangle canonicalise
-together. If a terminal is on screen it prints both numbers seconds apart and
-they look contradictory. Say **occurrence**, or explain the rotations; don't
-say the count is three, and don't say it's a bug. (`src/Main.purs:25`.)
-
----
-
-### B4 · Architectural motifs over a typed schema · est. 40 s
-
-**SHOT** `examples/catlab-schema/schema-viz/`
-**ACTION** Title → the schema → the two motifs.
+**SHOT** `examples/numexpr-edsl/diff-viz/` — scroll.
 
 ```js
 const BEATS = [
-  { at: 'h1',                 hold: 14000 },
-  { at: { sel: 'svg', n: 1 }, hold: 13000, align: 'center' },
-  { at: 1.0,                  hold: 13000, align: 'end' },
+  { at: 'h1',                            hold: 14000 },
+  { at: { sel: '.katex-display', n: 2 }, hold: 13000, align: 'center' },
+  { at: 1.0,                             hold: 13000, align: 'end' },
 ];
 ```
 
-> **VO (B4a):** One more turn of the same handle, and this is the one I find
-> most convincing. The code graph is now a typed schema — modules, functions
-> typed *into* modules, calls — as an instance of a Catlab ACSet.
->
-> **VO (B4b):** Each motif is a small instance of that same schema. And because
-> it's typed, the *type structure encodes the rule*: a pattern with two
-> distinct modules can only match genuinely cross-module structure. I'm not
-> filtering results after the fact — the constraint is in the shape I'm
-> searching with.
-
----
-
-### B5 · Exact derivatives, typeset · est. 35 s
-
-**SHOT** `examples/numexpr-edsl/diff-viz/`
-**ACTION** Title → hold on two or three worked derivatives.
-
-```js
-const BEATS = [
-  { at: 'h1',                            hold: 13000 },
-  { at: { sel: '.katex-display', n: 2 }, hold: 12000, align: 'center' },
-  { at: 1.0,                             hold: 11000, align: 'end' },
-];
-```
-
-> **VO (B5):** Change of subject — same shape. Each expression is described
-> once in PureScript as a typed expression tree, handed over, and
-> differentiated symbolically by Julia. The chain rule, quotients and all,
-> derived rather than written — and rendered back as LaTeX. A description goes
+> **VO (B3):** Start with something I can still follow. Each expression is
+> described once in PureScript as a typed tree, handed across, and
+> differentiated symbolically by Julia — the chain rule, quotients and all,
+> derived rather than written, and rendered back as LaTeX. A description goes
 > across; a description comes back.
 
 ---
 
-### B6 · Rigorous roots · est. 50 s — **the strongest beat**
+### B4 · Provably optimal · est. 40 s · **focus**
 
-**SHOT** `examples/numexpr-edsl/roots-viz/`
-**ACTION** Title → the four functions in turn. Slow down here.
+**SHOT** `examples/numexpr-edsl/opt-viz/` — one screen, 86 px of scroll.
 
 ```js
 const BEATS = [
-  { at: 'h1',                 hold: 12000 },
+  { at: 'h1', hold: 13000 },
+  { hold: 13000, focus: { sel: 'section', n: 1 } },
+  { hold: 14000, focus: { sel: 'section', n: 2 } },
+];
+```
+
+> **VO (B4a):** A knapsack. The greedy heuristic — best value-per-weight first
+> — runs in pure PureScript and scores twelve.
+>
+> **VO (B4b):** Handed to a mixed-integer solver, branch-and-bound returns
+> eighteen and closes the gap to zero. Not eighteen-and-probably-the-best:
+> eighteen, with a certificate that nothing better exists. That distinction is
+> the whole reason to leave the browser.
+
+---
+
+### B5 · Rigorous roots · est. 50 s
+
+**SHOT** `examples/numexpr-edsl/roots-viz/` — scroll.
+
+```js
+const BEATS = [
+  { at: 'h1',                     hold: 12000 },
   { at: { sel: 'section', n: 2 }, hold: 13000, align: 'center' },
   { at: { sel: 'section', n: 3 }, hold: 14000, align: 'center' },
-  { at: 1.0,                  hold: 13000, align: 'end' },
+  { at: 1.0,                      hold: 13000, align: 'end' },
 ];
 ```
+Verified targets: **16 · 570 · 1052 · 1548**. B3 lands on “proven to have no
+real roots”, which is the payoff — don't retime past it.
 
-> **VO (B6a):** Four functions, described the same way, handed to Julia's
-> IntervalRootFinding. This doesn't find roots. It *proves* them.
+> **VO (B5a):** Same shape again. Claude tells me this library doesn't find
+> roots, it *proves* them: each one bracketed in a guaranteed enclosure and
+> certified unique.
 >
-> **VO (B6b):** Each root comes back bracketed in a guaranteed enclosure and
-> certified unique. One root for the cubic, three for this one, four for the
-> quartic.
->
-> **VO (B6c):** And this one has none — but look at what that means here. The
-> search is exhaustive, so “none” isn't “I looked and didn't find any.” It's a
-> proof that there are none. That is not a thing I can get from a numerical
-> root-finder in the browser.
+> **VO (B5b):** One root for the cubic, three for this one, four for the
+> quartic. And this one — none. But “none” here isn't “I looked and didn't find
+> any”; the search is exhaustive, so it's a proof that there are none. I can't
+> get that from a numerical root-finder in a browser.
 
 ---
 
-### B7 · Provably optimal · est. 40 s
+### B6 · Structural patterns · est. 45 s · **focus** — zero scroll
 
-**SHOT** `examples/numexpr-edsl/opt-viz/`
-**ACTION** Title → greedy result → solver result.
+**SHOT** `examples/catlab-patterns/pattern-viz/`
 
 ```js
 const BEATS = [
-  { at: 'h1',                     hold: 13000 },
-  { at: { sel: 'section', n: 2 }, hold: 13000, align: 'center' },
-  { at: 1.0,                      hold: 14000, align: 'end' },
+  { at: 'h1', hold: 12000 },
+  { hold: 11000, focus: { sel: '.item', n: 1 } },
+  { hold: 11000, focus: { sel: '.item', n: 2 } },
+  { hold: 11000, focus: { sel: '.item', n: 3 } },
 ];
 ```
 
-> **VO (B7a):** A 0/1 knapsack. The greedy heuristic — take the best
-> value-per-weight item, repeat — is computed in pure PureScript, and it scores
-> twelve.
+> **VO (B6a):** Eight modules, ten dependencies, three shapes to find in them.
 >
-> **VO (B7b):** Handed to JuMP and HiGHS, branch-and-bound returns eighteen,
-> and closes the gap to zero. Not eighteen-and-probably-optimal: eighteen, with
-> a certificate that nothing better exists.
+> **VO (B6b):** A circular dependency — Parser, AST, Eval. **(B6c)** A mutual
+> pair. **(B6d)** A diamond. Claude tells me these are found as graph
+> homomorphisms from the pattern into the graph — subgraph matching
+> generalised, with the category doing the searching. What I can see is that
+> one engine found all three without being told what any of them mean.
+
+✅ The cards say **“1 found”**, which is the occurrence count and is correct.
+The “3 homomorphisms” figure (rotations of the same triangle) only appears in
+terminal output — **keep a terminal out of frame and the contradiction never
+arises.**
 
 ---
 
-### B8 · Dimensions — where this runs out · est. 70 s · **the close**
+### B7 · Functorial migration · est. 35 s · **focus**
 
-**SHOT** `examples/dimensioned/dimensions-viz/`
-**ACTION** Title → act 1 → act 2 → act 4. Longest holds of the video.
+**SHOT** `examples/catlab-migration/migration-viz/` — 204 px; do not scroll it.
 
 ```js
 const BEATS = [
-  { at: 'h1',                  hold: 16000 },
-  { at: { sel: '.act', n: 1 }, hold: 20000 },
-  { at: { sel: '.act', n: 2 }, hold: 18000 },
-  { at: { sel: '.act', n: 4 }, hold: 16000 },
+  { at: 'h1', hold: 12000 },
+  { hold: 12000, focus: { sel: 'svg', n: 1 } },
+  { hold: 11000, focus: { sel: 'svg', n: 2 } },
 ];
 ```
 
-> **VO (B8a):** I want to end on the boundary rather than a victory lap,
-> because the boundary is the interesting part.
->
-> **VO (B8b):** A physical dimension can live in the type. Adding metres to
-> seconds isn't a runtime error here — it doesn't compile, and it doesn't
-> compile on *any* backend, browser included. So this isn't something
-> PureScript lacks.
->
-> **VO (B8c):** But the dimension has to be known when you compile. Read a unit
-> from a config file, or build an equation at runtime, and the type can't
-> follow it there — a runtime checker is the only thing left that can catch
-> the error. Types check what you *write*. They can't check what you *build*.
->
-> **VO (B8d):** And the ladder runs out before the end. Exponents here are
-> integers, so a quantity whose dimension involves a square root of time is
-> simply not expressible. That's where I'll pick this up next time.
+> **VO (B7):** A call graph — eight functions, four modules, thirteen calls.
+> And the module dependency graph, which nobody wrote: thirteen calls collapse
+> to six module edges, two of them self-loops. Claude tells me this is a
+> migration along a functor rather than a fold someone hand-wrote and hoped was
+> right, and that the guarantee is categorical.
 
-⚠️ **Claim discipline for B8.** Do **not** say or imply that types would have
-prevented any famous units disaster. Dimensional analysis catches none of them:
-`lbf·s` and `N·s` are both mass·length·time⁻¹, so a `Quantity` sees one type
-and the addition type-checks. That's the *next* video, and mixing it in here
-would overclaim in exactly the way this series exists to avoid.
+---
+
+### B8 · Petri nets → dynamics · est. 55 s · the visual peak
+
+**SHOT** `examples/petri-catlab/petri-viz/` — scroll.
+
+```js
+const BEATS = [
+  { at: 'h1',                            hold: 15000 },
+  { at: { sel: '.katex-display', n: 1 }, hold: 16000, align: 'center' },
+  { at: 1.0,                             hold: 14000, align: 'end' },
+];
+```
+⚠️ The original beat sheet had a title beat and an SVG beat **43 px apart** —
+29 seconds on one unchanging frame. Merged above; `check()` now warns when two
+beats land within a third of a viewport.
+
+> **VO (B8a):** Susceptible, infected, recovered, and two reactions. Described
+> once in PureScript — species and reactions, and that's all. There are no
+> differential equations in the description.
+>
+> **VO (B8b):** These come back. Claude tells me they're produced by a functor
+> from the category of Petri nets to vector fields — the dynamics *derived*
+> from the structure of the net rather than translated by hand. Then a solver
+> integrates them and the browser draws a trajectory it never computed.
+>
+> **VO (B8c):** And that's the case for the whole exercise: there's no stack
+> like this to hand a description to in the JavaScript world.
+
+---
+
+### B9 · Close · est. 25 s · over the architecture slide
+
+Cut back to `opening.html` slide 2.
+
+> **VO (B9):** So — each computation where it belongs, with one typed layer
+> over the top. That layer is what makes the rest safe to accept: it's why I
+> can hand the hard parts to a library I don't maintain, or an implementer I
+> can't audit, and still believe the result. Next time: why dimensional types
+> would not have saved the Mars Climate Orbiter.
 
 ---
 
@@ -290,31 +301,27 @@ would overclaim in exactly the way this series exists to avoid.
 | | |
 |---|---|
 | Slides | ~13 s |
-| B1–B7 | ~5 min 15 s |
-| B8 | ~1 min 10 s |
-| **Total** | **≈ 6 min 40 s** |
+| B1 + B2 (owned) | ~1 min 55 s |
+| B3–B8 (attributed) | ~4 min 25 s |
+| B9 close | ~25 s |
+| **Total** | **≈ 7 min** |
 
-Comfortably a “quick video”. If it needs shortening, B4 is the one to cut — it
-is the subtlest point and the least visual.
+If it must shrink, cut **B7** — the subtlest point and the least visual.
 
 ---
 
 ## Appendix — ground truth
 
-Verified 2026-08-03 against the page data files. **These are the numbers not to
-improvise.**
+Verified 2026-08-03 against the page data files. **Do not improvise these.**
 
 | Beat | Claim | Source |
 |---|---|---|
-| B2 | 4 modules, 8 functions, **13 calls → 6 module edges**, 2 self-loops | `migration.js` |
-| B3 | 8 nodes, 10 edges; circular / mutual / diamond = **1 occurrence each**, over 3 / 2 / 4 nodes | `patterns.js` |
-| B3 | cycle = **3 homomorphisms, 1 occurrence** (rotations canonicalise) | `src/Main.purs:25` |
-| B4 | 4 modules, 8 functions, 10 calls, **2 motifs** | `schema.js` |
-| B6 | roots = **1, 3, 0, 4** for cubic / sin / `1+x²` / quartic | `roots.js` |
-| B7 | greedy **12.0**, optimal **18.0**, gap 0 | `opt.js` |
-| B8 | `meters 1.0 |+| seconds 2.0` → `TypesDoNotUnify`, “Could not match type 0 with type 1” | captured compiler output on the page |
+| B4 | greedy **12.0**, optimal **18.0**, gap 0 | `opt.js` |
+| B5 | roots **1, 3, 0, 4** — cubic / sin / `1+x²` / quartic | `roots.js` |
+| B6 | 8 nodes, 10 edges; **1 occurrence each**, over 3 / 2 / 4 nodes | `patterns.js` |
+| B7 | 4 modules, 8 functions, **13 calls → 6 module edges**, 2 self-loops | `migration.js` |
+| B1 | `meters 1.0 \|+\| seconds 2.0` → `TypesDoNotUnify`, “Could not match type 0 with type 1” | captured compiler output |
 
-**Unstated on purpose:** no performance claim anywhere. This video is a
-*capability* argument — these libraries have no counterpart in the JS/WASM
-world. Speed is a different video, and the honest answer there is less
-flattering.
+**No performance claim anywhere.** This is a capability argument — these
+libraries have no counterpart in JS/WASM. Speed is a different video and the
+honest answer there is less flattering.

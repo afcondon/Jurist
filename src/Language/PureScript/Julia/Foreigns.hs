@@ -979,7 +979,11 @@ builtinForeigns =
       , "# original round-trips through an ArrayBuffer to do exactly this. It is"
       , "# a bit pattern, not a numeric conversion: the value is meaningless and"
       , "# the BITS are the point, because QuickCheck uses it to derive a seed."
-      , "float32ToInt32(n) = Base.Int(Base.reinterpret(Base.Int32, Base.Float32(n)))"
+      , "# A NaN is canonicalised to 0x7FC00000: its bits are not portable (x86"
+      , "# arithmetic makes the negative default NaN, arm64 the positive one), and"
+      , "# V8 writes 0x7FC00000 into a Float32Array on both. Without this,"
+      , "# perturbGen of a NaN diverged from JS on linux/amd64 only."
+      , "float32ToInt32(n) = (f = Base.Float32(n); Base.isnan(f) ? 2143289344 : Base.Int(Base.reinterpret(Base.Int32, f)))"
       ] )
   ]
   where

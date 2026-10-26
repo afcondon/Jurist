@@ -26,8 +26,8 @@
 -- |
 -- | Representation is `purejl`'s (it has to be -- the foreigns are shared), and it
 -- | is 1-BASED throughout, which is the systematic difference from the Python lane:
--- | ADTs are tag-tuples `("Just", x)` with the tag at index 1 and field *i* at
--- | *i+2*; records and dictionaries are `Dict{String,Any}`; arrays are `Any[]`
+-- | ADTs are `PSData` values (one struct, three inline fields), indexed with the tag at 1 and field
+-- | *i* at *i+2*; records and dictionaries are `Dict{String,Any}`; arrays are `Any[]`
 -- | vectors indexed from 1 while the PureScript API is 0-based; chars are Julia
 -- | `Char`; `Effect a` is a zero-argument closure; a `Ref` is a one-element `Any[]`;
 -- | functions are curried unary closures; `Int` is `Int64` (Jurist ADR-0001's
@@ -120,7 +120,7 @@ type ModuleOutput =
 -- | the name has to resolve in the including module's scope.
 runtimeImport :: String
 runtimeImport =
-  "import ..PurejlRuntime: _runtime_lazy, _js_number_string, _int32, _int_div, _zshr"
+  "import ..PurejlRuntime: _runtime_lazy, _js_number_string, _int32, _int_div, _zshr, PSData, PSEff"
 
 --------------------------------------------------------------------------------
 -- The emit monad
@@ -778,16 +778,16 @@ genExpr env (TcoExpr ann syn) = case syn of
     ps <- traverse (\(Prop k v) -> (\s -> jlStr k <> " => " <> s) <$> genExpr env v) props
     pure ("Base.merge(" <> b <> ", Dict{String,Any}(" <> commaSep ps <> "))")
 
-  -- Tag-tuple: tag at index 1, fields from index 2.
+  -- PSData (purejl's runtime): tag at index 1, fields from index 2.
   CtorSaturated _ _ _ (Ident tag) fields -> do
     fs <- traverse (genExpr env <<< snd) fields
-    pure (tupleLit (Array.cons (jlStr tag) fs))
+    pure (psData tag fs)
 
   CtorDef _ _ (Ident tag) fieldNames -> do
     let names = map (\f -> genPrefix <> "f_" <> mangle f) fieldNames
     pure
-      if Array.null names then tupleLit [ jlStr tag ]
-      else lambdaChain names (tupleLit (Array.cons (jlStr tag) names))
+      if Array.null names then psData tag []
+      else lambdaChain names (psData tag names)
 
   -- A local recursive group the optimizer marked `isLoop` (the `where go = ...`
   -- idiom, and local mutual recursion). The dispatch `function` and the wrappers
@@ -1040,6 +1040,15 @@ genEffect env te@(TcoExpr _ syn) = case syn of
 
 -- | A Julia tuple literal. The trailing comma is required: `("Nothing")` is a
 -- | parenthesised string, `("Nothing",)` is the nullary constructor.
+-- | A constructor value. Not a tuple: see PSData in purejl's runtime.
+psData :: String -> Array String -> String
+psData tag fs =
+  "PSData(" <> commaSep [ jlStr tag, show n, slot 0, slot 1, slot 2, rest ] <> ")"
+  where
+  n = Array.length fs
+  slot i = fromMaybe "nothing" (Array.index fs i)
+  rest = if n > 3 then tupleLit (Array.drop 3 fs) else "()"
+
 tupleLit :: Array String -> String
 tupleLit xs = "(" <> commaSep xs <> ",)"
 

@@ -1,6 +1,6 @@
 # 0001. Runtime representation of PureScript values in Julia
 
-- Status: Accepted
+- Status: Accepted; amended 2026-10-26 (ADT and Effect boxing, see the end)
 - Date: 2026-06-08
 
 (The decision was made when the backend was first built, 2026-06-05; this
@@ -96,3 +96,54 @@ Top-level mutually-recursive value bindings go through a lazy-thunk runtime
   numeric code wants; the divergence from JS int32 is documented rather than
   emulated (except `Data.Int.Bits` / `Data.Int.pow`, which *do* apply JS
   `ToInt32` because their laws demand it).
+
+## Amendment, 2026-10-26: one type at every depth
+
+**Changed:** ADT values are a single runtime struct, `PSData`, and an
+`Effect`/`ST` built by `bind` is boxed in `PSEff`. Both are defined in
+`purejl_runtime.jl`.
+
+| PureScript | Julia (amended) |
+|---|---|
+| ADT values | `PSData(tag, n, f1, f2, f3, rest)`: e.g. `PSData("Just", 1, x, nothing, nothing, ())`. Still indexed tag at `[1]`, fields from `[2]` |
+| `Effect a` / `ST r a` | anything callable with no arguments: a bare 0-arg closure (`pure`, `map`, most shims) or a `PSEff` (`bind`) |
+
+**Why.** The revisit trigger in "Alternatives considered" fired twice, and
+`docs/PERFORMANCE-FINDING-2026-08-01-type-nesting.md` found the mechanism. A
+Julia tuple and a Julia closure are both parametric over what they contain,
+so a recursive value's *type* grows with the value: a `Cons` list's type is
+as long as the list, and a recursive `Effect` loop's type gains a level per
+`bind`. Julia then compiles a fresh specialisation at every size. Both
+structs here are **non-parametric with `Any` fields**, which is the property
+the finding identified.
+
+**Design choices, each measured** (perf canary, julia 1.12.6, M4 Mini; see the PR):
+
+- **One struct for every constructor, not one per arity.** Per-arity structs
+  (`PSData0`…`PSData6`) were *slower*: `fold-list@100` 42 → 66 µs. A
+  dispatch site that sees both `Nil` and `Cons` became polymorphic.
+- **Three fields inline, the rest in a `Tuple`.** Just, Cons, Tuple and Loop
+  are one allocation, not a struct plus a tuple.
+- **Only `bind` is boxed.** `pure` and `map` capture a value, not an effect,
+  so their types don't nest. Boxing them too cost +50 % on `loop-null` for
+  nothing.
+- **A closure with `::Any`-declared captures does not erase the type.**
+  Julia still parametrises the closure on the captured values (tested), so
+  the `PSEff` box is necessary.
+
+**What did not change.** Pattern matching still reads `x[1]` and `x[i+1]`
+(`PSData` defines `getindex`/`length`/`==`/`hash`), so generated matchers
+and any user FFI that indexes an ADT are unchanged. Running an effect is
+still calling it. The tag stays a `String`.
+
+**Cost accepted.** Steady state on `loop-tailrec` (an `Effect` `tailRecM`
+loop: several binds per iteration) is about +24 %, `ffi-call` about +6 %.
+Everything that recurses over data got faster (`fold-list` 3.3×), and
+first-call cost, which is what Julia users actually wait for, fell 13×
+across the canary.
+
+**FFI rule this adds.** Don't test `isa Function` or `isa Tuple` on a
+PureScript value. Build ADTs through the constructors PureScript passes in
+(the JS convention), or `PSData(tag, fields_tuple)`, and run effects by
+calling them. The representation canary (`examples/repr-canary`) asserts
+the new shapes.

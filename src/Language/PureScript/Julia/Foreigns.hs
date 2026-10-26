@@ -200,7 +200,7 @@ builtinForeigns =
   , ( "Effect_foreign.jl", T.unlines
       [ "# FFI for Effect"
       , "pureE(a) = () -> a"
-      , "bindE(a) = f -> () -> f(a())()"
+      , "bindE(a) = f -> PSEff(() -> f(a())())"
       , "untilE(f) = () -> begin"
       , "    while !f(); end"
       , "    nothing"
@@ -610,7 +610,7 @@ builtinForeigns =
       , "# so the codegen references them as while_/for_."
       , "map_(f) = a -> () -> f(a())"
       , "pure_(a) = () -> a"
-      , "bind_(a) = f -> () -> f(a())()"
+      , "bind_(a) = f -> PSEff(() -> f(a())())"
       , "run(f) = f()"
       , "while_(f) = a -> () -> begin"
       , "    while f()"

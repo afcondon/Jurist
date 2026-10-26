@@ -227,7 +227,7 @@ generateRuntime dir = TIO.writeFile (dir </> "purejl_runtime.jl") $ T.unlines
   , "_zshr(n1, n2) = Base.Int(Base.reinterpret(Base.UInt32, Base.Int32(_int32(n1))) >> (n2 & 31))"
   , "# Euclidean division, matching Data_EuclideanRing_foreign.intDiv. A function"
   , "# rather than an inlined conditional so the divisor is evaluated once."
-  , "_int_div(x, y) = y == 0 ? 0 : Base.fld(x, y)"
+  , "_int_div(x, y) = y == 0 ? 0 : (y > 0 ? Base.fld(x, y) : -Base.fld(x, -y))"
   , ""
   , "# JS Number.prototype.toString formatting, built on Julia's shortest-"
   , "# roundtrip repr (same digits, different placement rules). Decimal"

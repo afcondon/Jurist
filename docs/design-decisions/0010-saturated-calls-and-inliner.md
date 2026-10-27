@@ -72,5 +72,11 @@ exactly as `backend-jl` does.
   `"0.0"`, and now writes `(-0.0)`.
 - Generated code is about 21 % larger by lines. `purejl` takes as long as
   before.
+- A method is compiled per concrete argument types, so the risk on Julia
+  was more compilation, which the first-call gate holds to 1.25×. It went
+  the other way: on the Mac Mini, `jl`'s first-call index fell from 65–66×
+  JS to 50–60×, and start-up stayed at about 10.5 s. Steady state is where
+  the change is large: the speed index went from 7.4× JS to 4.1× (numbers in
+  the PR).
 - Only top-level bindings are saturated. A local `let` function, and a call
   through an unknown dictionary, stay curried.

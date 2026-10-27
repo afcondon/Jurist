@@ -33,7 +33,7 @@ import qualified Language.PureScript as P
 import qualified Language.PureScript.CoreFn as CoreFn
 import qualified Language.PureScript.CoreFn.FromJSON as CoreFn
 
-import Language.PureScript.Julia.CodeGen (generateModuleJl)
+import Language.PureScript.Julia.CodeGen (Known, generateModuleJl, knownBindings)
 import Language.PureScript.Julia.CodeGen.Common (jlModuleName, jlModuleAlias, jlFileName, jlForeignFileName)
 import Language.PureScript.Julia.Foreigns (builtinForeigns)
 
@@ -64,11 +64,13 @@ compile opts = do
           return Nothing
         Just (_version, cfModule) -> return (Just cfModule)
 
-    -- Emit each module
+    -- Emit each module. Saturated calls (ADR-0010) need every module's
+    -- arities, so the map is built once over all of them.
+    let known = knownBindings mods
     forM_ mods $ \cfModule -> do
       let mn = CoreFn.moduleName cfModule
           outFile = outputDir opts </> jlFileName mn
-      TIO.writeFile outFile (moduleFile cfModule)
+      TIO.writeFile outFile (moduleFile known cfModule)
       putStrLn $ "Compiled: " ++ T.unpack (jlModuleName mn)
 
     -- Runtime + built-in FFI shims; user shims copied last so they win.
@@ -109,8 +111,8 @@ compile opts = do
     putStrLn "Done!"
 
 -- | Full text of one generated module file
-moduleFile :: CoreFn.Module CoreFn.Ann -> T.Text
-moduleFile cfModule =
+moduleFile :: Known -> CoreFn.Module CoreFn.Ann -> T.Text
+moduleFile known cfModule =
   let mn@(P.ModuleName name) = CoreFn.moduleName cfModule
       isPrimModule (P.ModuleName n) = T.isPrefixOf "Prim" n
       imports = dedupe
@@ -133,7 +135,7 @@ moduleFile cfModule =
        ++ (if hasForeign
              then [ "include(\"" <> T.pack (jlForeignFileName mn) <> "\")" ]
              else [])
-       ++ [ "" , generateModuleJl cfModule , "end" ]
+       ++ [ "" , generateModuleJl known cfModule , "end" ]
 
 dedupe :: Ord a => [a] -> [a]
 dedupe = go Set.empty

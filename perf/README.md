@@ -8,7 +8,7 @@ cost yesterday?*
 cd perf
 python3 run_perf.py                    # build, run, check
 python3 run_perf.py --skip-build --echo # re-run, streaming
-python3 run_perf.py --update-baseline   # re-record (say why in the commit)
+python3 run_perf.py --update-baseline   # re-record THIS machine's baseline (say why)
 ```
 
 ## What it is for
@@ -62,7 +62,9 @@ n=10000:
 | `rel` | steady(shape) / steady(calibration) — cost relative to a plain host loop on the same runtime |
 | `f/s` | first / steady — how much of the first call is compilation |
 
-Machine speed cancels, so the baseline is portable to CI. `f/s` is the
+Machine speed cancels *within a machine*; it does not make the baseline
+portable, and the next section but one says why the baselines are now per
+machine. `f/s` is the
 type-nesting signal in one number: ~1 on a runtime that does not compile per
 call site, and large — and *staying* large as n grows — exactly where
 specialisation is happening.
@@ -140,6 +142,89 @@ tail really looks like; six samples underestimate it.
 A shape that does not complete is recorded as **DNF** rather than crashing
 the lane — see below for why that is a normal outcome here.
 
+## A speed index, and one baseline per machine (2026-10-27)
+
+Two holes in the gate above, found in the October review (REVIEW-2026-10, X3
+c and e):
+
+**A uniform change was invisible.** Every `rel` is divided by the same run's
+`loop-fore`, which this backend compiles too. A code-generator change that
+moves every shape by the same factor moves the denominator by it as well,
+and cancels. In Pythia, a change that made every closure-heavy shape about
+20 % faster passed the gate without a line of output. So each backend now
+also gets a **speed index**: the geometric mean, over its gated shapes, of
+steady(backend) / steady(js) for the same shape in the same run. JS is
+compiled by `purs`, which nothing in this repo touches, so the index moves by
+exactly the size of a uniform change. The index is gated at
+`INDEX_TOLERANCE` = 1.10 either way, and both directions fire: a speedup the
+gate cannot place is still a change that should re-record the baseline on
+purpose.
+
+**The baseline was not portable.** The ratios were described as machine
+independent, and they are not: the first run on GitHub's x86 runners put
+gated JS rows at 2.17x and 0.38x of the M4 baseline with nothing changed,
+because V8 and Julia do not speed up together across CPUs. Baselines now live
+in `baselines/<host>-<cpu>.json`, one per machine, written by
+`--update-baseline` for the machine it runs on. On a machine with none, which
+is every CI runner since a runner's host name is new each run, the drift gate
+prints **NOT RUN** and, on Actions, raises a warning annotation. Checksums
+gate everywhere. The old `baseline.json` was recorded on the MBP and is gone;
+the MBP gets its gate back by recording its own file.
+
+**Rounds and medians.** Every backend runs `--repeat` times (default 3),
+interleaved by round (js, jl, backend-jl, js, …), so a change in machine
+load lands on numerator and denominator alike, and each shape takes the median
+of its rounds. The report prints the per-round indices; if their spread is
+wider than the tolerance the verdict is marked **NOISY**, since that run
+cannot vouch for it either way. Three rounds cost about 70 s here, with the
+build, so Jurist keeps the default.
+
+**The optimizer lane is in the canary.** `backend-jl` runs the same corpus
+(emitted per `Bench.Main` exactly as `backend-jl/run_conformance.sh` does,
+with the oracle lane's runtime and shims), has its own checksums cross-checked
+and its own index. It owns its own code generator, so it needs its own
+guard. When `../purescript-backend-optimizer` is not checked out, the canary
+says the lane was NOT RUN rather than leaving it out of the table.
+
+### The noise behind 1.10 (Mac Mini M4, loaded, 2026-10-27)
+
+Nine back-to-back runs of unchanged code at `--repeat 3`:
+
+| run | jl index | backend-jl index |
+|---|---|---|
+| 0 (with build) | 8.123 | 1.429 |
+| 1 | 8.026 | 1.443 |
+| 2 | 8.014 | 1.439 |
+| 3 | 8.031 | 1.433 |
+| 4 | 8.020 | 1.447 |
+| 5 | 8.138 | 1.445 |
+| 6 | 8.152 | 1.423 |
+| 7 | 7.986 | 1.468 |
+| 8 | 8.072 | 1.448 |
+| **max/min** | **1.021x** | **1.032x** |
+
+The baseline (`baselines/andrews-mac-mini-apple-m4.json`) was recorded
+straight after, at jl 8.010 and backend-jl 1.443.
+
+### Replay: Jurist#3 (PSData/PSEff) through the new gate
+
+The open PR that erases value depth from types, merged locally onto this
+branch and run three times with `--gate-drift`. The gate fails all three runs:
+
+| run | jl index | backend-jl index | per-shape |
+|---|---|---|---|
+| 1 | 0.933x (NOISY: rounds 1.107x apart) | 0.830x MOVED | fold-list@100 0.32x (jl), 0.29x (backend-jl) |
+| 2 | 0.894x MOVED | 0.850x MOVED | fold-list@100 0.30x, 0.25x |
+| 3 | 0.920x ok | 0.826x MOVED | (same) |
+
+Jurist#3 is not a uniform change. On jl, fold-list gets about 3x faster,
+loop-naive about 16 % faster and loop-tailrec about 16 % slower. So jl's index
+moves by about 8 %, close to the bound, while backend-jl, which shares the
+runtime, moves by 17 %. The per-shape gate already catches fold-list, the
+largest of its effects. What the index adds is the verdict on the whole
+backend. If Jurist#3 is taken, it re-records this machine's baseline in the
+same PR.
+
 ## What the first run found (2026-08-01, M4 MBP)
 
 The lane paid for itself before it had a baseline.
@@ -187,6 +272,6 @@ because Julia block-buffers a redirected stdout.
 | `src/Bench/Main.purs` | the harness and the schedule — also shared |
 | `src/Bench/Clock.purs` | the one foreign: a monotonic clock, a stdout flush, and the two FFI probes |
 | `src/Bench/Clock.js`, `ffi-jl/Bench_Clock_foreign.jl` | its implementations |
-| `run_perf.py` | build, run, derive ratios, compare — **per-backend** |
-| `baseline.json` | recorded ratios and checksums |
+| `run_perf.py` | build, run, derive ratios and the speed index, compare — **per-backend** |
+| `baselines/<machine>.json` | one machine's recorded ratios, speed indices and checksums |
 | `scratch/` | the ad-hoc scripts that produced the original finding, kept because the finding doc cites them |

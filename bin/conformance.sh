@@ -50,8 +50,11 @@ echo "==> optimizer lane: backend-jl over the shared corpus"
 if [[ -d ../purescript-backend-optimizer ]]; then
   ( cd backend-jl && ./run_conformance.sh --skip-purejl )
 else
-  echo "    SKIPPED — ../purescript-backend-optimizer not checked out."
+  echo "    NOT RUN — ../purescript-backend-optimizer is not checked out beside this repo."
   echo "    The optimizer lane needs it as a local sibling (see backend-jl/README.md)."
+  if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+    echo "::warning title=Optimizer lane NOT RUN::backend-jl was not tested: ../purescript-backend-optimizer is not checked out. Nothing here vouches for the optimizer lane."
+  fi
 fi
 
 echo "==> no-fork check: backend-jl owns no runtime and no foreign shims"
@@ -63,40 +66,21 @@ if [[ -n "$strays" ]]; then
 fi
 echo "    none, as required"
 
-# The drift gate's baseline (perf/baseline.json) was recorded on an M4 MBP,
-
-# and its ratios do not transfer to other machine classes: the first run on
-
-# GitHub's x86 runners (2026-10-26) put gated JS rows at 2.17x and 0.38x of
-
-# baseline with nothing changed. So the gate runs only where the baseline was
-
-# measured. CI sets PERF_GATE_DRIFT=0: checksums still gate, drift is still
-
-# printed, and an annotation says the drift gate was NOT run. Locally it
-
-# defaults on, exactly as before.
-
-if [[ "${PERF_GATE_DRIFT:-1}" == "1" ]]; then
-
-  perf_drift_flag=(--gate-drift)
-
-else
-
-  perf_drift_flag=()
-
-  echo "::warning title=Perf drift gate NOT RUN::perf/baseline.json is M4-calibrated; on this machine drift is reported, not gated. Checksums still gate."
-
-fi
-
 echo "==> performance canary (perf)"
 # Gates on CHECKSUMS — the shapes must compute the same answers on both
 # backends, and a benchmark that is quietly wrong is how a perf suite stays
 # green while what it measures rots.
 #
-# Timing drift now gates too (--gate-drift), which it did not when the lane
-# was built. What changed is not the tolerance, which is still 2.0x, but the
-# POPULATION it applies to. Six back-to-back runs of all three backends on an
+# Timing drift gates too (--gate-drift), wherever this machine has its own
+# baseline (perf/baselines/<machine>.json). Where it has none, which includes
+# every CI runner, run_perf.py says the drift gate was NOT RUN, in the log and
+# as an annotation; checksums gate everywhere. The canary also runs the
+# backend-jl lane when the optimizer is checked out, and says NOT RUN when
+# it is not.
+#
+# The drift gate did not gate when the lane was built. What changed is not
+# the per-shape tolerance, which is still 2.0x, but the POPULATION it applies
+# to. Six back-to-back runs of all three backends on an
 # idle machine (2026-08-01) put the worst run-to-run spread over ALL measured
 # rows at 5.74x — a 2.0x gate over that would have fired on noise nearly every
 # run. Restricted to rows the runner marks as gated — largest n of each shape,
@@ -105,7 +89,7 @@ echo "==> performance canary (perf)"
 # GATE_MIN_STEADY_US and TOLERANCE in run_perf.py.
 (
   cd perf
-  python3 run_perf.py ${perf_drift_flag[@]+"${perf_drift_flag[@]}"}
+  python3 run_perf.py --gate-drift
 )
 
 # Report, not a gate: regenerating here is what stops the index going stale,

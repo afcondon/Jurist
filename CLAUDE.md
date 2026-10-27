@@ -213,7 +213,12 @@ loop.
   unmodified, and `bin/conformance.sh` fails if a second copy appears.
 
 **Representation** ([ADR-0001](docs/design-decisions/0001-runtime-representation.md)):
-- **Functions:** curried unary closures.
+- **Functions:** a function value is a curried unary closure. A known-arity
+  top-level function is also a method, `_ps_sat_<name>(a, b, ..)`, and a call
+  with enough arguments goes straight to it; `purejl` also inlines purs's JS
+  inliner set (`runFnN`, primitive ops through a known dictionary, saturated
+  constructors)
+  ([ADR-0010](docs/design-decisions/0010-saturated-calls-and-inliner.md)).
 - **ADTs:** tag-tuples, `("Just", x)` and `("Nothing",)`: the tag at `[1]`,
   fields from `[2]`.
 - **Records and dictionaries:** `Dict{String,Any}`.

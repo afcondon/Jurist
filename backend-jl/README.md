@@ -4,6 +4,18 @@ A PureScript program that consumes
 [`purescript-backend-optimizer`](../../purescript-backend-optimizer)'s optimized
 IR (`BackendSyntax` / `NeutralExpr`) and lowers it to Julia.
 
+**Setup.** The optimizer is a sibling checkout, pinned:
+
+```bash
+git clone https://github.com/aristanetworks/purescript-backend-optimizer.git ../../purescript-backend-optimizer
+git -C ../../purescript-backend-optimizer checkout "$(head -1 ../bin/optimizer-pin)"
+```
+
+`bin/conformance.sh` and the perf canary run this lane only at the pinned
+commit, and say NOT RUN, with the reason, at any other. CI checks out the
+pin, so the lane runs there too. Moving the pin is a change to this repo,
+made in a PR that shows the lane green at the new commit.
+
 There are **two implementations in this repo on purpose** — see
 [ADR-0009](../docs/design-decisions/0009-two-implementations.md). `purejl`
 (`../src`, Haskell, raw CoreFn) is the correctness **oracle**; this is the

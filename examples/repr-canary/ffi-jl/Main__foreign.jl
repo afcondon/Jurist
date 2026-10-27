@@ -11,15 +11,16 @@ function _assert(cond, msg)
     "ok"
 end
 
-# Maybe (Just x)  ==  ("Just", x)   — tag at [1], field at [2] (1-based).
+# Maybe (Just x)  ==  PSData("Just", 1, x, …)   — tag at [1], field at [2]
+# (1-based). One non-parametric type at every depth (ADR-0001, 2026-10).
 checkJust(m) = _assert(
-    m isa Base.Tuple && Base.length(m) == 2 && m[1] == "Just" && m[2] == 7,
-    "Just expected (\"Just\", x), got " * Base.repr(m))
+    m isa PSData && Base.length(m) == 2 && m[1] == "Just" && m[2] == 7,
+    "Just expected PSData with tag \"Just\" and one field, got " * Base.repr(m))
 
-# Maybe Nothing  ==  ("Nothing",)   — nullary constructor is a 1-tuple value.
+# Maybe Nothing  ==  PSData("Nothing", 0, …)   — a nullary constructor is a value.
 checkNothing(m) = _assert(
-    m isa Base.Tuple && Base.length(m) == 1 && m[1] == "Nothing",
-    "Nothing expected (\"Nothing\",), got " * Base.repr(m))
+    m isa PSData && Base.length(m) == 1 && m[1] == "Nothing",
+    "Nothing expected PSData with tag \"Nothing\" and no fields, got " * Base.repr(m))
 
 # Record  ==  Dict{String,Any} keyed by field name.
 checkRecord(r) = _assert(
@@ -31,10 +32,12 @@ checkNewtypeErased(w) = n -> _assert(
     w === n,
     "newtype expected identity (no wrapper), got " * Base.repr(w))
 
-# Effect a  ==  a zero-argument thunk (callable, not yet run).
+# Effect a  ==  callable with no arguments, not yet run: a bare 0-arg closure
+# from pure/map/a shim, or a PSEff box from bind (ADR-0001, 2026-10). FFI must
+# run an effect by calling it, never by testing `isa Function`.
 checkEffectThunk(eff) = _assert(
-    eff isa Base.Function && Base.applicable(eff),
-    "Effect expected a 0-arg thunk, got " * Base.repr(eff))
+    (eff isa Base.Function || eff isa PSEff) && Base.applicable(eff),
+    "Effect expected a 0-arg callable, got " * Base.repr(eff))
 
 # Array  ==  a Julia Vector (1-based; FFI bridges the 0-based PS API).
 checkArrayVector(xs) = _assert(

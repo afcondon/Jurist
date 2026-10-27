@@ -11,8 +11,8 @@
 --
 -- Representation choices (v1):
 --
---   * ADT values are tag-tuples: @("Just", x)@, nullary @("Nothing",)@.
---     Tag at index 1, fields from index 2 (Julia is 1-based).
+--   * ADT values are @PSData("Just", 1, x, nothing, nothing, ())@ (one type),
+--     indexed like the tag-tuples they replace: tag at [1], fields from [2].
 --   * Newtype constructors are identity functions.
 --   * Typeclass dictionaries are @Dict{String,Any}@ records keyed by
 --     member name, so CoreFn's @Accessor@ works uniformly.
@@ -172,12 +172,14 @@ generateModuleJl cfModule = T.unlines $ map (generateBinding []) (CoreFn.moduleD
                                          | f <- fields ]
                    <> ")"
         in curriedOver fields dict
-      -- Data constructor: curried tag-tuple builder
+      -- Data constructor: curried PSData builder (tag at [1], fields from [2])
       _ ->
-        let tup = if null fields
-                    then "(\"" <> escapeStringJl ctor <> "\",)"
-                    else "(\"" <> escapeStringJl ctor <> "\", "
-                         <> T.intercalate ", " (map identName fields) <> ")"
+        let n = length fields
+            names = map identName fields
+            slot i = if i < n then names !! i else "nothing"
+            rest = if n > 3 then "(" <> T.concat [ x <> ", " | x <- drop 3 names ] <> ")" else "()"
+            tup = "PSData(\"" <> escapeStringJl ctor <> "\", " <> T.pack (show n) <> ", "
+                  <> T.intercalate ", " [slot 0, slot 1, slot 2, rest] <> ")"
         in curriedOver fields tup
 
     curriedOver :: [P.Ident] -> T.Text -> T.Text

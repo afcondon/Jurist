@@ -36,9 +36,13 @@
 -- |
 -- | DELIBERATE SLICES (each named, none accidental):
 -- |
--- |   * Curried `Abs`/`App` as in `backend-go` and `backend-es`: the optimizer's
+-- |   * ~~Curried `Abs`/`App` as in `backend-go` and `backend-es`: the optimizer's
 -- |     `App f args` is a syntactic spine, not a saturation guarantee, so native
--- |     n-ary emission would be unsound. `Uncurried*` (Fn/EffectFn) nodes DO emit
+-- |     n-ary emission would be unsound.~~ Superseded 2026-10-27 (ADR-0010):
+-- |     true for an unknown head, false for a top-level `Abs` of arity n applied
+-- |     to >= n arguments. Such a binding is also a method `_ps_sat_f(p1, .., pn)`,
+-- |     a call with enough arguments goes straight to it, and the curried `f`
+-- |     wraps it (`knownArities`). `Uncurried*` (Fn/EffectFn) nodes DO emit
 -- |     native multi-arg closures.
 -- |   * TCO is an inline `while` over a tagged pair, the shape `purejl` already
 -- |     uses (ADR-0003) -- so this lane needs NO runtime change for it. The
@@ -57,6 +61,7 @@ module PureScript.Backend.Optimizer.Codegen.Julia
   , ModuleOutput
   , codegenModule
   , lazyIdentsOf
+  , knownArities
   , jlModuleName
   , jlModuleAlias
   , jlForeignFileName
@@ -75,6 +80,8 @@ import Data.Array.NonEmpty as NEA
 import Data.Char (toCharCode)
 import Data.Foldable (foldMap)
 import Data.Int (hexadecimal, toStringAs)
+import Data.Map (Map)
+import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (unwrap)
 import Data.Number as Number
@@ -101,6 +108,9 @@ import PureScript.Backend.Optimizer.Syntax (BackendAccessor(..), BackendEffect(.
 type Env =
   { currentModule :: ModuleName
   , lazyIdents :: Set (Qualified Ident)
+  -- | The arity of every top-level function a call can be saturated against
+  -- | (ADR-0010), over every emitted module; see `knownArities`.
+  , arities :: Map (Qualified Ident) Int
   }
 
 type ModuleOutput =
@@ -219,6 +229,38 @@ lazyIdentsOf mod = foldMap groupLazy mod.bindings
       Set.fromFoldable (map (\(Tuple ident _) -> Qualified (Just mod.name) ident) (NEA.toArray analyzed))
     _ -> Set.empty
 
+-- | The arity map (ADR-0010): every top-level binding that is an `Abs` and is
+-- | emitted plainly or as a loop member. A binding in a lazy group is a thunk,
+-- | not a method, and stays curried; so does every foreign.
+knownArities :: Array BackendModule -> Map (Qualified Ident) Int
+knownArities mods = Map.fromFoldable do
+  mod <- mods
+  grp <- mod.bindings
+  case analyzeGroup mod.name grp of
+    Just { analyzed, plan }
+      | not (isLazy plan) -> do
+          Tuple ident (TcoExpr _ syn) <- NEA.toArray analyzed
+          case syn of
+            Abs params _ -> [ Tuple (Qualified (Just mod.name) ident) (NEA.length params) ]
+            _ -> []
+    _ -> []
+  where
+  isLazy = case _ of
+    PlanLazy -> true
+    _ -> false
+
+-- | The method behind saturated calls of a top-level binding.
+satName :: String -> String
+satName name = genPrefix <> "sat_" <> name
+
+-- | `_ps_sat_f(p..) = e`, then `f` as a curried wrapper over it.
+satLines :: String -> Array String -> String -> Array String
+satLines name params e =
+  let args = map (\i -> genPrefix <> "a" <> show i) (Array.range 0 (Array.length params - 1))
+  in [ satName name <> "(" <> commaSep params <> ") = " <> e
+     , name <> " = " <> lambdaChain args (satName name <> "(" <> commaSep args <> ")")
+     ]
+
 genGroup :: Env -> BackendBindingGroup Ident NeutralExpr -> Gen (Array String)
 genGroup env grp = case analyzeGroup env.currentModule grp of
   Nothing -> pure []
@@ -229,10 +271,15 @@ genGroup env grp = case analyzeGroup env.currentModule grp of
     -- `Let` inside the value is a `let` block, which is an expression AND its own
     -- scope, so the sibling-collision hazard that forced `backend-py` to bury
     -- every top-level binding in an `_init_` function does not arise here.
-    PlanPlain -> traverse
-      ( \(Tuple ident expr) -> do
-          e <- genExpr env expr
-          pure (jlIdent ident <> " = " <> e)
+    PlanPlain -> Array.concat <$> traverse
+      ( \(Tuple ident expr) -> case expr of
+          TcoExpr _ (Abs params body)
+            | Map.member (Qualified (Just env.currentModule) ident) env.arities -> do
+                e <- genExpr env body
+                pure (satLines (jlIdent ident) (map (\(Tuple mbId lvl) -> localName mbId lvl) (NEA.toArray params)) e)
+          _ -> do
+            e <- genExpr env expr
+            pure [ jlIdent ident <> " = " <> e ]
       )
       (NEA.toArray analyzed)
     PlanLazy -> traverse
@@ -484,11 +531,13 @@ genLoopGroup env nameOf refOf members = do
                 <> "[2]...); end; "
                 <> resName
                 <> "[2] end"
-          pure (nameOf ident <> " = " <> lambdaChain ps drive)
+          pure case refOf ident of
+            TcoTopLevel q | Map.member q env.arities -> satLines (nameOf ident) ps drive
+            _ -> [ nameOf ident <> " = " <> lambdaChain ps drive ]
       )
       (Array.mapWithIndex Tuple allMembers)
 
-  pure (dispatch <> wrappers)
+  pure (dispatch <> Array.concat wrappers)
 
 -- | The full register tuple for a jump to member `idx`: that member's parameters
 -- | take their argument expressions, and every other slot carries its local
@@ -737,6 +786,17 @@ genExpr env (TcoExpr ann syn) = case syn of
 
   Lit lit -> genLit env lit
 
+  -- A saturated call of a known top-level function (ADR-0010): its method
+  -- takes the first n arguments, and any extra are applied curried.
+  App (TcoExpr _ (Var q@(Qualified (Just mn) ident))) args
+    | Just n <- Map.lookup q env.arities
+    , NEA.length args >= n -> do
+        as <- traverse (genExpr env) (NEA.toArray args)
+        qual <- if mn == env.currentModule then pure ""
+                else noteModule mn $> (jlModuleAlias mn <> ".")
+        let call = qual <> satName (jlIdent ident) <> "(" <> commaSep (Array.take n as) <> ")"
+        pure (call <> foldMap (\a -> "(" <> a <> ")") (Array.drop n as))
+
   -- Curried spine: `(f)(a)(b)`. Left-associative juxtaposition, so this stays
   -- flat rather than nesting one paren level per argument.
   App f args -> do
@@ -898,6 +958,10 @@ genLit env = case _ of
   LitNumber n
     | Number.isNaN n -> pure "Base.NaN"
     | not (Number.isFinite n) -> pure (if n < 0.0 then "(-Base.Inf)" else "Base.Inf")
+    -- `show (-0.0)` is "0.0" (JS's toString drops the sign of a zero), and the
+    -- optimizer folds `negate 0.0` to exactly that literal. Julia's -0.0 is a
+    -- real negative zero.
+    | n == 0.0 && 1.0 / n < 0.0 -> pure "(-0.0)"
     | otherwise -> pure (parenNeg (floatLit (show n)))
   LitString s -> pure (jlStr s)
   LitChar c -> pure (jlChar c)

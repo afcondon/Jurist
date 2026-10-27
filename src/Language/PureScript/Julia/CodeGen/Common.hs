@@ -17,6 +17,7 @@ module Language.PureScript.Julia.CodeGen.Common
   , jlForeignFileName
   , toJuliaIdent
   , identToJlName
+  , genPrefix
   , runIdent'
   , psStringToText
   , escapeStringJl
@@ -145,7 +146,20 @@ identToJlName ident =
      -- underscore. No 'jlModuleAlias' can produce `_psmod__x`.
      else if moduleAliasPrefix `T.isPrefixOf` name
      then moduleAliasPrefix <> "_" <> T.drop (T.length moduleAliasPrefix) name
+     -- The same for the generated-name namespace (`_ps_sat_f`, ADR-0010),
+     -- exactly as backend-jl's identifier mangling does it: `_ps_x` becomes
+     -- `_ps__x`. The two lanes share the foreign shims, so they must mangle
+     -- alike.
+     else if genPrefix `T.isPrefixOf` name
+     then genPrefix <> "_" <> T.drop (T.length genPrefix) name
      else name
+
+-- | The prefix of every name the code generator invents for itself rather
+-- than takes from the program (the saturated methods of ADR-0010). A
+-- generated name is @_ps_@ followed by a letter; an escaped user identifier
+-- is @_ps_@ followed by an underscore.
+genPrefix :: Text
+genPrefix = "_ps_"
 
 -- | Get the raw text from an Ident, handling internal identifiers
 runIdent' :: Ident -> Text

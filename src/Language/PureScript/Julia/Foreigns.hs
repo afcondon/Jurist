@@ -101,7 +101,9 @@ builtinForeigns =
       [ "# FFI for Data.EuclideanRing"
       , "intDegree(x) = Base.min(Base.abs(x), 2147483647)"
       , "# Euclidean division/mod, matching the JS backend's semantics"
-      , "intDiv(x) = y -> y == 0 ? 0 : Base.fld(x, y)"
+      , "# Euclidean, as the JS foreign: y > 0 ? floor(x/y) : -floor(x/-y). fld is"
+      , "# floor division, which differs when y < 0 (7 div -2 is -3, not -4)."
+      , "intDiv(x) = y -> y == 0 ? 0 : (y > 0 ? Base.fld(x, y) : -Base.fld(x, -y))"
       , "intMod(x) = y -> y == 0 ? 0 : Base.mod(x, Base.abs(y))"
       , "numDiv(n1) = n2 -> n1 / n2"
       ] )

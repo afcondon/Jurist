@@ -93,12 +93,12 @@ is the systematic difference from the Python lane:
 
 | | |
 |---|---|
-| ADT | tag-tuple `("Just", x)`; tag at `[1]`, field *i* at `[i+2]` |
+| ADT | one `PSData` struct for every constructor; tag at `[1]`, fields from `[2]` (a tag-tuple until October 2026) |
 | Record / dictionary | `Dict{String,Any}`, updated with `Base.merge` |
 | Array | `Any[]` vector, indexed from 1 while the PureScript API is 0-based |
-| `Effect a` | zero-argument closure |
+| `Effect a` | callable with zero arguments: a closure, or a `PSEff` box when built by `bind` |
 | `Ref` | one-element `Any[]` |
-| Function | curried unary closure, `(f)(x)(y)` |
+| Function | curried unary closure, `(f)(x)(y)`; a known-arity top-level function is also a method `_ps_sat_<name>(a, b, ..)` (ADR-0010) |
 | `Int` / `Number` | `Int64` / `Float64` |
 | String append | `*` |
 

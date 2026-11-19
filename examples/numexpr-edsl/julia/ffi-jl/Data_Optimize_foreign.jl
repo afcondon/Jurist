@@ -3,8 +3,8 @@
 # PureScript hands across a typed knapsack (item weights, values, capacity).
 # Julia builds a 0/1 MILP with JuMP, solves it with HiGHS's branch-and-bound,
 # and returns the optimal selection together with the *proof* of optimality
-# (termination status OPTIMAL, relative gap 0). The JS/WASM backends have no
-# equivalent — there is no MILP solver to hand a model to.
+# (termination status OPTIMAL, relative gap 0). HiGHS itself also runs as
+# WebAssembly; what the JS backends lack is JuMP, the modelling layer.
 #
 # Macro note: inside the generated module the sense and binary tags must not be
 # written as bare special symbols (`Max`, `Bin`) — use the constant

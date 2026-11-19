@@ -34,8 +34,10 @@
       A 0/1 knapsack described once in PureScript. The obvious <em>greedy</em> heuristic
       (computed in pure PureScript) grabs the best value-per-weight item and stalls.
       Julia's <strong>JuMP/HiGHS</strong> mixed-integer solver doesn't guess — branch-and-bound
-      <strong>proves the global optimum</strong>, closing the gap to zero. There is no MILP
-      solver in the JS/WASM world to hand a model to.
+      <strong>proves the global optimum</strong>, closing the gap to zero. What Julia
+      adds is not the solver alone (HiGHS also runs in the browser as WebAssembly)
+      but <strong>JuMP</strong>, the modelling layer that lets one description
+      reach many solvers.
     </p>
   </header>
 

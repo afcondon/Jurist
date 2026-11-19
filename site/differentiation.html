@@ -58,13 +58,13 @@
   </footer>
 </div>
 
+<script src="data/derivatives.js"></script>
 <script>
-  // The real increment-5 output (Latexify on the Symbolics derivative).
-  const D = {
-    f:  "\\log\\left( x \\right) + \\sin\\left( y \\right) + 10 ~ x^{2} - x ~ y",
-    dx: "20 ~ x - y + \\frac{1}{x}",
-    dy: "- x + \\cos\\left( y \\right)"
-  };
+  // Latexify on the Symbolics derivative, as the example wrote it:
+  // data/derivatives.js is examples/numexpr-edsl/diff-viz/derivatives.js,
+  // and bin/demos.py holds that file to a fresh run.
+  const item = window.DERIVATIVES.items[0];
+  const D = { f: item.expr, dx: item.grad[0], dy: item.grad[1] };
   const sub = (s) => s.replace(/~/g, " ");
   window.addEventListener("DOMContentLoaded", () => {
     katex.render(sub(D.f), document.getElementById("f"), { throwOnError: false, displayMode: true });

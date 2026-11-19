@@ -31,6 +31,12 @@ sumTo = (function ();
 end)()
 ```
 
+> **Note, 2026-11-19.** This listing is the shape as first built, and it is
+> still the shape of a local loop. A top-level function is no longer wrapped
+> this way: since [ADR-0010](0010-saturated-calls-and-inliner.md) its step
+> function is the top-level `_ps_tco_<name>`, and the `while` lives in the
+> saturated method `_ps_sat_<name>`. The decision is unchanged.
+
 The **function-call-per-iteration** shape is deliberate, not an oversight:
 closures created in the loop body capture the per-iteration bindings, and
 in-place mutation of the loop parameters would box and *share* them across

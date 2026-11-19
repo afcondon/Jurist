@@ -40,8 +40,9 @@
       species and reactions, no differential equations. Handed to Julia's
       <strong>AlgebraicPetri</strong>, the mass-action dynamics is produced by a
       <strong>functor</strong> from the category of Petri nets to vector fields (not a
-      hand translation); the derived ODEs are shown, and <code>OrdinaryDiffEq</code>
-      integrates them. The browser draws a trajectory it never computed. There is no
+      hand translation), and <code>OrdinaryDiffEq</code> integrates it. The ODEs
+      shown are a plain mass-action reading of the same stoichiometry, built as
+      strings by this example's own code. The browser draws a trajectory it never computed. There is no
       applied-category-theory stack in the JS/WASM world to hand a description to.
     </p>
   </header>
@@ -138,7 +139,7 @@
 
       const laws = document.createElement("div"); laws.className = "laws";
       item.laws.forEach((tex) => { const l = document.createElement("div"); l.className = "law"; katex.render(tex.replace(/~/g, " "), l, { throwOnError: false, displayMode: true }); laws.appendChild(l); });
-      sec.appendChild(panel("Mass-action ODEs (derived functorially by Julia)", laws));
+      sec.appendChild(panel("Mass-action ODEs (read off the stoichiometry)", laws));
 
       const plotWrap = document.createElement("div");
       plotWrap.appendChild(trajPlot(item));

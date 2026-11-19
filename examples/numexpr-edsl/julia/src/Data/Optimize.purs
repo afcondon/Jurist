@@ -5,8 +5,8 @@
 -- | a mixed-integer program crosses once, Julia's `JuMP` builds and solves it,
 -- | and the optimal selection + the proof of optimality come back.
 -- |
--- | This is whole-engineering-artifact territory the JS/WASM backends have no
--- | answer to: there is no MILP solver to hand a model to. The companion
+-- | HiGHS itself also runs as WebAssembly, so the solver is not what the JS
+-- | backends lack; JuMP, the modelling layer over many solvers, is. The companion
 -- | `greedyValue` (pure PureScript) shows why it matters — the obvious greedy
 -- | heuristic leaves value on the table; only the solver proves the true best.
 module Data.Optimize

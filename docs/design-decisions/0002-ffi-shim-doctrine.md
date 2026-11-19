@@ -114,6 +114,14 @@ message. If `purejl` ever changes an encoding, this fails first and loudly,
 forcing a conscious update of the co-maintained shims rather than letting
 hand-written FFI break silently. It belongs in the CI conformance lane.
 
+> **Note, 2026-11-19.** The shapes listed above are those of June
+> 2026. Since the 2026-10-26 amendment to
+> [ADR-0001](0001-runtime-representation.md) an ADT value is a `PSData`
+> struct and an `Effect` built by `bind` is a `PSEff`. The canary was changed
+> with the representation and asserts the current shapes
+> (`examples/repr-canary/ffi-jl/Main__foreign.jl`). The doctrine is unchanged:
+> a user shim still never builds or inspects either.
+
 ## Alternatives considered
 
 - **Let shims construct tag-tuples / `Dict`s directly.** Rejected: brittle and

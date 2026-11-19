@@ -69,8 +69,8 @@ On top of the mechanical gate, the author owns these judgment calls:
   (`~~…~~`) original plus a dated addendum, never by rewriting history (see the
   [ADR README](./docs/design-decisions/README.md)).
 - **No new divergence smuggled in** — a divergence from the JS reference is
-  either fixed or added to `KNOWN_DIVERGENCES` *with its reason prefix* and the
-  JS value shown, never left to fail silently.
+  either fixed or added to the ledger, `test-suite/divergences.json`, with the
+  JS value, this backend's value and a cause, never left to fail silently.
 
 ## Build & run (reference)
 

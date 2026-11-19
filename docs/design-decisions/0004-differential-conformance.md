@@ -45,6 +45,20 @@ run each module on Node **and** on Julia (via `purejl`), and diff every
   covered by the separate white-box representation canary (see
   [0002](0002-ffi-shim-doctrine.md)).
 
+> **Note, 2026-11-19.** Two things above are as of June 2026 and no longer
+> describe the code.
+>
+> - **The ledger.** `KNOWN_DIVERGENCES`, a set of names whose tests were
+>   "reported but do not fail the run", passed whatever those tests printed.
+>   The October 2026 harness work (X3) replaced it with
+>   `test-suite/divergences.json`: each entry records the JS value, this
+>   backend's value and a cause, `test-suite/ledger.py` judges every lane, a
+>   value that moves is a MISMATCH, an entry no longer needed is STALE, and
+>   both fail the run. The reason is a field, not a name prefix.
+> - **The count.** 422/426 was the figure on 2026-06-10. The corpus and the
+>   ledger have both grown since. The current figure is whatever
+>   `bin/conformance.sh` prints, and no document should quote one.
+
 ## Alternatives considered
 
 - **Port `purs`'s own test corpus as the conformance kit.** A strong future

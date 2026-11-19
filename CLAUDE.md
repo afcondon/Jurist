@@ -112,7 +112,7 @@ the win through it.
   - **STALE** when an entry stops being needed.
 
   Causes include `INT32-WRAP` (JS wraps Int to 32 bits), `REM-ZERO`,
-  `ASTRAL` (UTF-16 code units against code points), `NEGZERO` and `STACK`.
+  `ASTRAL` (UTF-16 code units against code points) and `STACK`.
   The cause is a field, so no rule may depend on a test's name. Before X3
   the ledger was a bare list of names that passed whatever they printed.
   That is the hole X3 closed; don't reintroduce it.
@@ -219,23 +219,30 @@ loop.
   inliner set (`runFnN`, primitive ops through a known dictionary, saturated
   constructors)
   ([ADR-0010](docs/design-decisions/0010-saturated-calls-and-inliner.md)).
-- **ADTs:** tag-tuples, `("Just", x)` and `("Nothing",)`: the tag at `[1]`,
-  fields from `[2]`.
+- **ADTs:** one `PSData` struct for every constructor: the tag at `[1]`,
+  fields from `[2]` (the 2026-10-26 amendment to ADR-0001; tag-tuples before
+  that). The struct's type does not grow with the value.
 - **Records and dictionaries:** `Dict{String,Any}`.
 - **Arrays:** 1-based `Any[...]`. The shims translate PureScript's 0-based
   API.
-- **`Effect`:** a zero-argument thunk.
+- **`Effect`:** callable with zero arguments: a closure, or a `PSEff` box
+  when built by `bind` (same amendment), so a recursive Effect loop does not
+  nest its type either.
+- **`Foreign.Object` and JSON objects:** `PSObject`, a `Dict` with its keys
+  kept in JavaScript's enumeration order
+  ([ADR-0011](docs/design-decisions/0011-foreign-object-and-json.md)). A
+  record coerced to an `Object` has no order to keep and comes out sorted.
 - **`Int`:** `Int64`. This is an argued decision for numerics: keep it, and
-  record its divergences in the ledger as `INT64-`.
+  record its divergences in the ledger under the cause `INT32-WRAP`.
 
 **Performance on Julia is mostly compile time.** Each new type is a new
 specialisation to infer and compile:
-- Values whose *type* grows with the value (nested tag-tuples, `bindE`
-  closures) make Julia compile a fresh specialisation for every list length
-  or loop depth. See `docs/PERFORMANCE-FINDING-2026-08-01-type-nesting.md`.
-  The fix, Jurist#3, replaces tag-tuples with one `PSData` struct and wraps
-  `bind` in `PSEff`, and amends ADR-0001. Once it merges, the
-  representation table above changes with it.
+- Values whose *type* grows with the value make Julia compile a fresh
+  specialisation for every list length or loop depth. Nested tag-tuples and
+  `bindE` closures did this until Jurist#3 (merged 2026-10-26) replaced them
+  with `PSData` and `PSEff`. See
+  `docs/PERFORMANCE-FINDING-2026-08-01-type-nesting.md`, and don't
+  reintroduce a representation whose type depends on depth.
 - Every `case` is emitted as a closure call, and every anonymous function is
   another type to compile. Plausibly the next large share of compile time,
   but unmeasured.
@@ -262,6 +269,15 @@ separately**.
   `perf-seam/run_seam.py`: the canaries.
 - `examples/repr-canary`: pins ADR-0001's representation table; it runs
   inside `bin/conformance.sh`.
+- `bin/demos.py`: **the demo lane** (November 2026). Rebuilds every example
+  and holds the data file it writes to the committed copy the site draws
+  from, exactly or within a stated tolerance; `examples/glassbox`
+  regenerates Glassbox's conformance vectors on Julia and must match them
+  byte for byte. CI runs it with `--strict`. `--record NAME` rewrites a
+  committed copy, which is a deliberate act: say why in the commit message.
+  Until this lane existed nothing gated the examples, and a review found
+  claims on the site the code did not support. An example with no entry in
+  `bin/demos.py` is an example nothing vouches for.
 - `bin/portability-index.py`: which libraries need foreigns Julia doesn't
   supply.
 

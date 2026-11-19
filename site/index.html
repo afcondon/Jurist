@@ -369,8 +369,10 @@ rs <- provenRoots <span class="li">"x"</span> c.lo c.hi c.e
     <p class="why">A 0/1 knapsack described once in PureScript. The obvious <em>greedy</em> heuristic
       (computed in pure PureScript) grabs the best value-per-weight item and stalls.
       Julia's <strong>JuMP/HiGHS</strong> mixed-integer solver doesn't guess — branch-and-bound
-      <strong>proves the global optimum</strong>, closing the gap to zero. There is no MILP
-      solver in the JS/WASM world to hand a model to.</p>
+      <strong>proves the global optimum</strong>, closing the gap to zero. What Julia
+      adds is not the solver alone (HiGHS also runs in the browser as WebAssembly)
+      but <strong>JuMP</strong>, the modelling layer that lets one description
+      reach many solvers.</p>
     <div class="panes">
     <section class="pane left">
       <h2>The PureScript you write</h2>
@@ -530,8 +532,11 @@ fallingBodyBad = system \s p ->
 samples <- solve spec <span class="li">0.0</span> <span class="li">200.0</span> <span class="li">200</span>
 laws    <- odeLaws spec   <span class="cm">-- derived, typeset</span>
 </pre>
-      <p class="seam">The ODE laws on the right were <em>derived functorially</em> by
-        AlgebraicPetri and typeset by Latexify — never written by hand.</p>
+      <p class="seam">The trajectory on the right is integrated from the vector field
+        AlgebraicPetri derives <em>functorially</em> from the net. The typeset laws
+        beside it are a separate, plain mass-action reading of the same
+        stoichiometry, built as strings by this example's own code: they describe
+        what is integrated, they are not its output.</p>
     </section>
 
     <section class="pane">
@@ -770,7 +775,7 @@ agg = aggregate raw
     </div>
     <div class="ibox">
       <code>odeLaws sir</code>
-      <div class="note">mass-action ODEs, by functor — AlgebraicPetri</div>
+      <div class="note">mass-action ODEs, read off the stoichiometry</div>
       <span class="chip def">node</span><span class="chip def">beam</span><span class="chip jl">julia</span>
     </div>
     <div class="ibox">
@@ -815,16 +820,20 @@ agg = aggregate raw
         RowList machinery behind <code>SystemSpec</code> arrive pre-checked</td></tr>
       <tr><th>pipeline</th><td>stock <code>purs</code> → CoreFn → Julia source — the same
         shape as purerl and the JS backend</td></tr>
-      <tr><th>core libraries</th><td><strong>50 built-in FFI shims</strong> — prelude, effect,
+      <tr><th>core libraries</th><td>built-in FFI shims for prelude, effect,
         arrays (incl. ST), strings, records, integers, numbers, …</td></tr>
       <tr><th>known gap</th><td><code>Data.String.Regex</code> ships as a deliberate
         loud-failure stub</td></tr>
       <tr><th>verification</th><td>differential testing against the JS backend as reference
-        semantics: <strong>422 of 426 outputs byte-identical</strong></td></tr>
-      <tr><th>the other 4</th><td>documented representation choices — UTF-16 code units
-        vs. codepoints</td></tr>
-      <tr><th>your FFI</th><td>an <code>ffi-jl/</code> directory of
-        <code>Data_Module_foreign.jl</code> files beside your project; user files win
+        semantics: every line of a shared test corpus must be <strong>byte-identical</strong>
+        on both, or match an entry in a ledger of deliberate divergences exactly</td></tr>
+      <tr><th>the ledger</th><td>a short, enumerated list, each entry with both values and
+        a cause: JS wraps <code>Int</code> to 32 bits where Julia's is 64; JS counts UTF-16
+        code units where Julia counts code points; <code>rem x 0</code>; error stacks.
+        The counts move with the corpus, so the gate's own output is the figure:
+        <code>bin/conformance.sh</code></td></tr>
+      <tr><th>your FFI</th><td>a <code>Foo.jl</code> beside your <code>Foo.purs</code>,
+        as <code>purs</code> finds a co-located <code>Foo.js</code>; user files win
         over the built-ins</td></tr>
     </table>
     <p>
@@ -838,14 +847,18 @@ agg = aggregate raw
   </section>
 
   <footer>
-    Every left-hand pane above is the real eDSL source from its example; every
-    right-hand pane is data computed by the Julia (or Node/BEAM) runtime and
-    committed with the example —
+    Left-hand panes are the eDSL source from each example, lightly condensed.
+    Right-hand figures are drawn from data computed by the Julia (or Node/BEAM)
+    runtime and committed with the example, and a demo lane
+    (<code>bin/demos.py</code>) rebuilds each example and holds that data to a
+    fresh run. The Lorenz receipts are the exception: figures from a June 2026
+    run, typed into the page —
     <a href="https://github.com/afcondon/Jurist">github.com/afcondon/Jurist</a>.
   </footer>
 </div>
 <script src="data/lorenz.js"></script>
 <script src="data/pendulum.js"></script>
+<script src="data/derivatives.js"></script>
 <script src="data/roots.js"></script>
 <script src="data/optimize.js"></script>
 <script src="data/dimensioned.js"></script>
@@ -915,12 +928,11 @@ agg = aggregate raw
 
 // — differentiation —
 (() => {
-  // The real increment-5 output (Latexify on the Symbolics derivative).
-  const D = {
-    f:  "\\log\\left( x \\right) + \\sin\\left( y \\right) + 10 ~ x^{2} - x ~ y",
-    dx: "20 ~ x - y + \\frac{1}{x}",
-    dy: "- x + \\cos\\left( y \\right)"
-  };
+  // Latexify on the Symbolics derivative, as the example wrote it:
+  // data/derivatives.js is examples/numexpr-edsl/diff-viz/derivatives.js,
+  // and bin/demos.py holds that file to a fresh run.
+  const item = window.DERIVATIVES.items[0];
+  const D = { f: item.expr, dx: item.grad[0], dy: item.grad[1] };
   const sub = (s) => s.replace(/~/g, " ");
   window.addEventListener("DOMContentLoaded", () => {
     katex.render(sub(D.f), document.getElementById("differentiation-f"), { throwOnError: false, displayMode: true });
@@ -1167,7 +1179,7 @@ agg = aggregate raw
       const h = document.createElement("h3"); h.textContent = item.title; sec.appendChild(h);
       sec.appendChild(cap("The net"));
       sec.appendChild(netDiagram(item));
-      sec.appendChild(cap("Mass-action ODEs — derived functorially"));
+      sec.appendChild(cap("Mass-action ODEs — read off the stoichiometry"));
       const laws = document.createElement("div"); laws.className = "laws";
       item.laws.forEach((tex) => { const l = document.createElement("div"); l.className = "law"; katex.render(tex.replace(/~/g, " "), l, { throwOnError: false, displayMode: true }); laws.appendChild(l); });
       sec.appendChild(laws);

@@ -49,8 +49,10 @@
       <strong>JuMP/HiGHS</strong> mixed-integer solver. The obvious <em>greedy</em>
       heuristic (computed in pure PureScript) grabs the best value-per-weight item
       and stalls. The solver doesn't guess — its branch-and-bound <strong>proves
-      the global optimum</strong>, closing the gap to zero. There is no MILP solver
-      in the JS/WASM world to hand a model to.
+      the global optimum</strong>, closing the gap to zero. What Julia adds is not
+      the solver alone (HiGHS also runs in the browser as WebAssembly) but
+      <strong>JuMP</strong>, the modelling layer that lets one description reach
+      many solvers.
     </p>
   </header>
   <main id="root"></main>

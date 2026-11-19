@@ -125,6 +125,15 @@ DEMOS = [
              Output("double-pendulum.json", "numexpr-edsl/viz/public/double-pendulum.json",
                     rtol=1e-6, atol=1e-9),
          ]),
+    # Glassbox: a state machine as a data file, and a claim that every runtime
+    # answers it the same way. Its unmodified core, compiled to Julia,
+    # regenerates the conformance table for every machine in the pinned
+    # checkout, and each file must be byte-identical to the one committed
+    # there, which Node generated. No tolerance: it is all text and integers.
+    Demo("glassbox", "glassbox", julia_env=None,
+         checkout="*purescript-glassbox*",
+         args=["{checkout}/core/machines", "vectors"],
+         directories=[("vectors", "{checkout}/conformance/vectors")]),
     Demo("st-number-vector", "st-number-vector", julia_env=None, transcript=True),
     Demo("lorenz-leaf", "lorenz-leaf", julia_env=None, transcript=True),
 ]

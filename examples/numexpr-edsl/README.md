@@ -7,7 +7,7 @@ is slow and opaque to Julia's specializer).
 
 The description is **backend-agnostic** and the denotations are separate, so the
 *same* typed system runs on more than one runtime — "one description, many
-denotations". The example is split into four spago workspaces plus a frontend:
+denotations". The example is split into four spago workspaces, a staging library and a frontend:
 
 ```
 numexpr-edsl/
@@ -15,8 +15,16 @@ numexpr-edsl/
           Data.NumExpr     (the precision ADT, eval, render)
           Data.SystemSpec  (row-typed ODE surface, `system`, + integratePure:
                             a pure-PureScript RK4 that runs on ANY backend)
-  julia/  numexpr-edsl — the Julia (purejl) denotation. Depends on core, adds:
+          Data.NumExpr.Program (expressions flattened to instructions, with
+                            sharing; a pure interpreter)
+          Data.Simulation  (a run with events as a description; the RK4 step
+                            built as a Program; `simulate`, `trajectory`)
+  staging/ numexpr-staging — the Julia denotations that compile a description
+          to native code, as a library other examples can depend on:
           Data.NumExpr.Julia    (JExpr builders, compile, evalBatch)
+          Data.Simulation.Julia (compile, simulate, threaded sweep, trajectory)
+          Each module's Julia foreign file sits beside its .purs.
+  julia/  numexpr-edsl — the Julia (purejl) denotation. Depends on core, adds:
           Data.SystemSpec.Julia (native fused RGF + RK4 — Field/compileField/integrate)
           Data.MTKSystem        (ModelingToolkit: analytic Jacobian, stiff solve)
           Data.DAESystem        (index-1 DAEs: the double pendulum)
@@ -32,7 +40,7 @@ numexpr-edsl/
 (`numSin`, `numPow`, …) the reference interpreter needs — irreducible machine
 math that every backend has under a different name, shimmed one line per backend
 (`NumExpr.js` → `Math.*`, `NumExpr.erl` → `math:*`, and the purejl
-`ffi-jl/Data_NumExpr_foreign.jl` → `Base.*`). Lorenz uses none of them, so the
+`NumExpr.jl` → `Base.*`). Lorenz uses none of them, so the
 pure orbit is identical across runtimes regardless. Everything else in `core` —
 the ADT, the row machinery, `integratePure` — is pure PureScript. Each denotation
 workspace depends on `core` by path (`workspace.extraPackages`), so the *same*

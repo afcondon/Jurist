@@ -2,7 +2,8 @@
 #
 # Build-once-ship: this image bundles the prebuilt output-jl; the PS→Julia
 # compile (spago build + purejl) is a separate lifecycle phase, not done here.
-# Only Julia deps (HTTP.jl, pinned by julia-env/Manifest.toml) are installed.
+# Only Julia deps (HTTP.jl and RuntimeGeneratedFunctions, pinned by
+# julia-env/Manifest.toml) are installed.
 FROM julia:1.10
 
 WORKDIR /app
@@ -12,8 +13,8 @@ WORKDIR /app
 COPY julia-env ./julia-env
 RUN julia --project=julia-env -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
 
-# Prebuilt compiled Julia output: loader.jl + generated modules + the FFI shims
-# (Atlas_Kernel_foreign.jl, Main__foreign.jl) are all baked into output-jl.
+# Prebuilt compiled Julia output: loader.jl, the generated modules and the
+# foreign files are all baked into output-jl.
 COPY output-jl ./output-jl
 
 # WebSocket service. Binds 0.0.0.0:ATLAS_PORT (default 3210). The threaded sweep
@@ -21,7 +22,7 @@ COPY output-jl ./output-jl
 ENV ATLAS_PORT=3210
 EXPOSE 3210
 
-# The service self-tests (kernel vs pure-PS oracle, <1e-12) and warms the JIT at
+# The service self-tests (compiled kernel vs Atlas.Dynamics, exact) and warms the JIT at
 # boot before accepting connections, so give it a long start period.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=5 \
   CMD bash -c 'echo > /dev/tcp/127.0.0.1/3210' || exit 1

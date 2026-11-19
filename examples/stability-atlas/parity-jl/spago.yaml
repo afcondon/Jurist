@@ -12,6 +12,8 @@ workspace:
   extraPackages:
     atlas-core:
       path: ../core
+    numexpr-core:
+      path: ../../numexpr-edsl/core
   packageSet:
     registry: 57.1.0
   backend:

@@ -284,13 +284,25 @@ machine; each file must be byte-identical to the one Node generated. This is
 the family's claim on a real library: one typed model, the same answers on a
 second runtime.
 
+### An integrator written in PureScript — `examples/staged-integrator/`
+
+A Runge-Kutta integrator with events, written once in PureScript over
+expressions, so that running it yields a program. A pure interpreter runs
+that program on any backend; Julia compiles the same instructions to native
+code. The example holds the two to identical results, bit for bit, on three
+systems, and the interpreter on Node to the same numbers. The stability
+atlas's service now runs a kernel made this way in place of its 320-line
+hand-written one: identical on all 9,000 pixels of the default sweep, in
+0.92 of the time (see the example's README for the measurement). The atlas's
+chaos-indicator layer is still hand-written.
+
 ### Compute-leaf example — `examples/lorenz-leaf/`
 
 The earliest example (June 2026), kept as a record: a PureScript contract
 over an RK4 Lorenz integrator **written by hand in the foreign file**. That
 is what the family's seam rule now forbids ("the FFI holds a call into a
 foreign library, never your algorithm"), and it was written before the rule
-was. `examples/numexpr-edsl` is the form to copy.
+was. `examples/staged-integrator` is what replaces it.
 
 ### The demo site — `site/`
 

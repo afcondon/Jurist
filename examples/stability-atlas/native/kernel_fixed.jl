@@ -1,14 +1,18 @@
 """
 The fixed-step CR3BP kernel, as a Julia programmer would keep it.
 
-**This is a deliberate verbatim copy** of the numerics in
-`service/ffi-jl/Atlas_Kernel_foreign.jl`, and that is the point: the native
-reference must differ from the polyglot service in its *harness* — protocol,
-serialization, socket — and nowhere else. Holding the arithmetic fixed is what
-makes `poly_kernel / native_kernel ≈ 1.0` a control on the measurement rather
-than a coincidence, exactly as `structural distortion` is in Grid Explorer.
+**This is the kernel the service ran until November 2026**, copied verbatim
+from its foreign file before that file was replaced. The service's survival
+sweep is now compiled from a PureScript description (`Atlas.Survival`), and
+this file is what that kernel is held to: `service`'s check mode requires the
+two to agree on every pixel. The chaos-indicator half is still what the
+service runs, in `service/src/Atlas/Kernel.jl`.
 
-So do not "improve" anything here. If the shim changes, copy it again.
+It is also the control for the measurements in this directory: the native
+reference must differ from the polyglot service in its *harness* (protocol,
+serialization, socket) and nowhere else.
+
+So do not "improve" anything here.
 
 The independent implementation — the one that could disagree — is
 `atlas_ecosystem.jl`, which solves the same problem with OrdinaryDiffEq.jl and

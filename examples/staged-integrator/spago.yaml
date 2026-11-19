@@ -1,0 +1,29 @@
+package:
+  name: staged-integrator
+  description: >
+    An integrator written once, in PureScript, over expressions: the
+    Runge-Kutta step is built as a program, interpreted here and compiled
+    by Julia, and the two are held to the same outcomes bit for bit.
+  dependencies:
+    - prelude
+    - effect
+    - console
+    - arrays
+    - either
+    - maybe
+    - foldable-traversable
+    - numexpr-core
+    - numexpr-staging
+    - staged-systems
+workspace:
+  extraPackages:
+    atlas-core:
+      path: ../stability-atlas/core
+    numexpr-core:
+      path: ../numexpr-edsl/core
+    numexpr-staging:
+      path: ../numexpr-edsl/staging
+  packageSet:
+    registry: 57.1.0
+  backend:
+    cmd: "true"

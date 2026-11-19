@@ -1,0 +1,15 @@
+package:
+  name: staged-systems
+  description: >
+    The systems the staged-integrator example runs, as descriptions, and the
+    lines it reports about each. No foreign code: the Julia example and the
+    Node one both depend on it.
+  dependencies:
+    - prelude
+    - arrays
+    - integers
+    - maybe
+    - numbers
+    - tuples
+    - numexpr-core
+    - atlas-core

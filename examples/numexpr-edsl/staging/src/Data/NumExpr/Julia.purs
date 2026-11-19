@@ -14,6 +14,15 @@
 module Data.NumExpr.Julia
   ( JExpr
   , toJExpr
+  , jLit
+  , jVar
+  , jAdd
+  , jSub
+  , jMul
+  , jDiv
+  , jNeg
+  , jPow
+  , jApp
   , Compiled
   , compile
   , evalBatch

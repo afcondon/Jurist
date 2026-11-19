@@ -3,18 +3,30 @@ package:
   description: >
     The stability-atlas service (purejl): a PS-on-Julia process serving the
     Atlas.Protocol WebSocket. Depends on atlas-core for the wire contract —
-    the same module the browser compiles to JS. FFI shims in ffi-jl/; Julia
+    the same module the browser compiles to JS. Foreign files beside their modules; Julia
     packages in julia-env/. See docs/stability-atlas-showcase.md.
   dependencies:
     - prelude
     - effect
     - console
     - either
+    - arrays
+    - foldable-traversable
+    - integers
+    - maybe
+    - numbers
+    - refs
     - atlas-core
+    - numexpr-core
+    - numexpr-staging
 workspace:
   extraPackages:
     atlas-core:
       path: ../core
+    numexpr-core:
+      path: ../../numexpr-edsl/core
+    numexpr-staging:
+      path: ../../numexpr-edsl/staging
   packageSet:
     registry: 57.1.0
   backend:

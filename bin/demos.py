@@ -147,6 +147,11 @@ class Demo:
     # (produced directory, committed directory): the same file names, each
     # byte-identical. The produced one is relative to the run directory.
     directories: list[tuple[str, str]] = field(default_factory=list)
+    # A directory, relative to the example's, holding the same computation
+    # for the stock JavaScript backend. It is built and run on Node, and
+    # every line it prints must appear, character for character, in what
+    # the Julia program printed: the two runtimes computed the same values.
+    node: str | None = None
 
 
 # A tolerance is a claim about the example, so each one says where it comes
@@ -203,6 +208,27 @@ DEMOS = [
          checkout="*purescript-glassbox*",
          args=["{checkout}/core/machines", "vectors"],
          directories=[("vectors", "{checkout}/conformance/vectors")]),
+    # An integrator written in PureScript over expressions. The transcript is
+    # a list of exact comparisons between its pure interpreter and the
+    # function Julia compiles from the same program, so every line of it
+    # that says `identical` must say `true`, and the final states it prints
+    # are doubles that any CPU must reproduce: the arithmetic is IEEE
+    # add, subtract, multiply, divide and sqrt, each correctly rounded, in a
+    # fixed order. (The one `pow` computes a constant the transcript does
+    # not print.) The generated kernel is held as text. The interpreter is
+    # also run on Node, which must print the same steps, end time and final
+    # state for the first run of each system.
+    Demo("staged-integrator", "staged-integrator", transcript=True, threads="auto", node="node",
+         outputs=[Output("cr3bp-survival.jl", "staged-integrator/kernel/cr3bp-survival.jl")]),
+    # The atlas's service in check mode: no socket, only what it computes.
+    # Its survival sweep (compiled from the PureScript description) and its
+    # chaos-indicator sweep (still hand-written) must match the reference
+    # kernel in native/ on every pixel, and every frame of two orbits must
+    # be the state Atlas.Dynamics reaches, which is what the browser replays.
+    # The counts are exact comparisons. The transcript also prints a Jacobi
+    # drift per orbit, a double computed by correctly rounded operations.
+    Demo("stability-atlas", "stability-atlas/service", transcript=True, threads="auto",
+         args=["check"]),
     Demo("st-number-vector", "st-number-vector", julia_env=None, transcript=True),
     Demo("lorenz-leaf", "lorenz-leaf", julia_env=None, transcript=True),
 ]
@@ -394,6 +420,26 @@ def check_demo(demo: Demo, record: bool, logs: Path) -> list[str]:
             problems.append(f"{produced}/: differ from the committed files: {', '.join(differ)}")
         if same:
             lines.append(f"{produced}/: {len(same)} of {len(want)} files identical")
+
+    if demo.node:
+        if shutil.which("node") is None:
+            raise NotRun("`node` is not on PATH")
+        node_dir = cwd / demo.node
+        run(["spago", "build"], node_dir, log)
+        on_node = run(["node", "--input-type=module", "-e",
+                       "import { main } from './output/Main/index.js'; main();"],
+                      node_dir, log)
+        printed = [line for line in on_node.splitlines() if line.strip()]
+        on_julia = set(stdout.splitlines())
+        missing = [line for line in printed if line not in on_julia]
+        if not printed:
+            problems.append(f"{demo.node}/: the Node program printed nothing")
+        elif missing:
+            problems.append(f"{demo.node}/: {len(missing)} of {len(printed)} lines Node printed "
+                            f"are not in the Julia output; first: {missing[0]!r}")
+        else:
+            lines.append(f"{demo.node}/: all {len(printed)} lines Node printed "
+                         "are in the Julia output")
 
     if demo.transcript:
         expected = cwd / "expected-output.txt"

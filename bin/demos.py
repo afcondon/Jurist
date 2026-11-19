@@ -48,6 +48,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 import shutil
 import subprocess
@@ -55,12 +56,60 @@ import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Callable
 
 ROOT = Path(__file__).resolve().parent.parent
 EXAMPLES = ROOT / "examples"
 SITE_DATA = ROOT / "site" / "data"
 
+# Seconds of the pendulum run held tightly; see pendulum_check.
+PENDULUM_TIGHT_UNTIL = 5.0
+
 NUMBER = re.compile(r"-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?")
+
+
+def pendulum_check(fresh: str, committed: str) -> tuple[bool, str]:
+    """Hold a double-pendulum trajectory to what is true of it on any CPU.
+
+    The run is chaotic: two machines that differ in the last bit of one
+    step are visibly apart by its end. Measured 2026-11-19 against the M4's
+    committed run, same Julia and Manifest: a Xeon runner ended 1.1e-4
+    relative away, an EPYC runner 9.1e-2. No tolerance on the whole run
+    survives that, and one wide enough to pass would check nothing. So:
+
+      - everything that is not a coordinate (rod lengths, span, variable
+        names, the 1200 sample times) must be equal;
+      - the frames up to PENDULUM_TIGHT_UNTIL seconds, before the
+        divergence has grown, must agree within 1e-6 relative;
+      - every frame, to the end, must keep both rods at their lengths
+        within 1e-6, which is the claim the page makes about the solve.
+    """
+    a, b = json.loads(fresh), json.loads(committed)
+    for key in sorted(set(a) | set(b)):
+        if key != "frames" and a.get(key) != b.get(key):
+            return False, f"`{key}` differs from the committed run"
+    if len(a["frames"]) != len(b["frames"]):
+        return False, f"{len(a['frames'])} frames against {len(b['frames'])} committed"
+    worst_early = 0.0
+    worst_end = 0.0
+    worst_drift = 0.0
+    for t, fa, fb in zip(a["times"], a["frames"], b["frames"]):
+        gap = max(abs(x - y) / (1e-3 + abs(y)) for x, y in zip(fa, fb))
+        worst_end = max(worst_end, gap)
+        if t <= PENDULUM_TIGHT_UNTIL:
+            worst_early = max(worst_early, gap)
+        x1, y1, x2, y2 = fa
+        worst_drift = max(worst_drift,
+                          abs(math.hypot(x1, y1) - a["l1"]),
+                          abs(math.hypot(x2 - x1, y2 - y1) - a["l2"]))
+    found = (f"first {PENDULUM_TIGHT_UNTIL:g} s agree to {worst_early:.3g}, "
+             f"whole run to {worst_end:.3g} (chaotic, not held), "
+             f"largest rod-length drift {worst_drift:.3g}")
+    if worst_early > 1e-6:
+        return False, "the trajectory differs before chaos can explain it: " + found
+    if worst_drift > 1e-6:
+        return False, "a rod changed length: " + found
+    return True, found
 
 
 @dataclass
@@ -76,6 +125,10 @@ class Output:
     # a hash-ordered collection). Both sides have each such list sorted
     # before they are compared; everything else is held as above.
     unordered: str | None = None
+    # A check written for this one file, used in place of the comparison
+    # above when the two texts are not identical: (fresh, committed) ->
+    # (ok, what was found).
+    check: Callable[[str, str], tuple[bool, str]] | None = None
 
 
 @dataclass
@@ -122,13 +175,9 @@ DEMOS = [
     # something this machine needs. If another machine exceeds them on the
     # pendulum, that is chaos and not a fault; say so here and widen it.
     #
-    # It did: the GitHub runner (x86-64 Xeon, Linux, same Julia and Manifest)
-    # ended 1.08e-4 relative from the M4's run on 2026-11-19, first leaving
-    # 1e-6 at a value of -0.0021. The pendulum is therefore held to 1e-3 with
-    # an absolute floor of 1e-6: about ten times what two CPUs were seen to
-    # disagree by, and still far below a change of model, solver or step.
-    # The other four outputs were identical or within 1e-9 there and keep
-    # their tolerances.
+    # It did, twice, and by amounts no tolerance covers: see pendulum_check,
+    # which holds the pendulum to what survives a change of CPU. The other
+    # four outputs were identical or within 1e-9 on both runners.
     Demo("numexpr-edsl", "numexpr-edsl/julia",
          outputs=[
              Output("derivatives.js", "numexpr-edsl/diff-viz/derivatives.js"),
@@ -143,7 +192,7 @@ DEMOS = [
              Output("units.js", "dimensioned/dimensions-viz/units.js",
                     unordered=r"units \[([^\]]*)\] do not match"),
              Output("double-pendulum.json", "numexpr-edsl/viz/public/double-pendulum.json",
-                    rtol=1e-3, atol=1e-6),
+                    check=pendulum_check),
          ]),
     # Glassbox: a state machine as a data file, and a claim that every runtime
     # answers it the same way. Its unmodified core, compiled to Julia,
@@ -313,7 +362,9 @@ def check_demo(demo: Demo, record: bool, logs: Path) -> list[str]:
             problems.append(f"{o.produced}: no committed copy at {committed.relative_to(ROOT)}")
             continue
         fresh_text, committed_text = produced.read_text(), committed.read_text()
-        if o.unordered and fresh_text != committed_text:
+        if o.check and fresh_text != committed_text:
+            ok, found = o.check(fresh_text, committed_text)
+        elif o.unordered and fresh_text != committed_text:
             fresh_text = sort_lists(fresh_text, o.unordered)
             committed_text = sort_lists(committed_text, o.unordered)
             ok, found = compare(fresh_text, committed_text, o.rtol, o.atol)

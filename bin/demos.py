@@ -116,6 +116,14 @@ DEMOS = [
     # output here, so the tolerances below are slack for another CPU, not
     # something this machine needs. If another machine exceeds them on the
     # pendulum, that is chaos and not a fault; say so here and widen it.
+    #
+    # It did: the GitHub runner (x86-64 Xeon, Linux, same Julia and Manifest)
+    # ended 1.08e-4 relative from the M4's run on 2026-11-19, first leaving
+    # 1e-6 at a value of -0.0021. The pendulum is therefore held to 1e-3 with
+    # an absolute floor of 1e-6: about ten times what two CPUs were seen to
+    # disagree by, and still far below a change of model, solver or step.
+    # The other four outputs were identical or within 1e-9 there and keep
+    # their tolerances.
     Demo("numexpr-edsl", "numexpr-edsl/julia",
          outputs=[
              Output("derivatives.js", "numexpr-edsl/diff-viz/derivatives.js"),
@@ -123,7 +131,7 @@ DEMOS = [
              Output("optimize.js", "numexpr-edsl/opt-viz/optimize.js", rtol=1e-9, atol=1e-12),
              Output("units.js", "dimensioned/dimensions-viz/units.js"),
              Output("double-pendulum.json", "numexpr-edsl/viz/public/double-pendulum.json",
-                    rtol=1e-6, atol=1e-9),
+                    rtol=1e-3, atol=1e-6),
          ]),
     # Glassbox: a state machine as a data file, and a claim that every runtime
     # answers it the same way. Its unmodified core, compiled to Julia,
@@ -183,6 +191,20 @@ def run(cmd: list[str], cwd: Path, log: Path, timeout: int = 3600) -> str:
     return done.stdout
 
 
+def first_difference(fresh: str, committed: str, context: int = 80) -> str:
+    """Where two texts part, with enough of each side to read the cause.
+
+    A failure on a machine nobody is sitting at (a CI runner) is only
+    diagnosable from what the lane prints, so it prints the place.
+    """
+    at = next((i for i, (a, b) in enumerate(zip(fresh, committed)) if a != b),
+              min(len(fresh), len(committed)))
+    start = max(0, at - context // 2)
+    return (f"at character {at} (lengths {len(fresh)} / {len(committed)}), "
+            f"fresh {fresh[start:at + context]!r} against committed "
+            f"{committed[start:at + context]!r}")
+
+
 def compare(fresh: str, committed: str, rtol: float, atol: float) -> tuple[bool, str]:
     """Hold a fresh file to its committed copy.
 
@@ -193,9 +215,11 @@ def compare(fresh: str, committed: str, rtol: float, atol: float) -> tuple[bool,
     if fresh == committed:
         return True, "identical"
     if rtol == 0.0 and atol == 0.0:
-        return False, "differs, and this output is held to exact equality"
+        return False, ("differs, and this output is held to exact equality: "
+                       + first_difference(fresh, committed))
     if NUMBER.split(fresh) != NUMBER.split(committed):
-        return False, "the text between the numbers differs"
+        return False, ("the text between the numbers differs: "
+                       + first_difference(fresh, committed))
     worst_rel = 0.0
     worst = None
     for a, b in zip(NUMBER.findall(fresh), NUMBER.findall(committed)):

@@ -71,6 +71,11 @@ class Output:
     committed: str           # relative to examples/
     rtol: float = 0.0        # 0 and 0: the files must be byte-identical
     atol: float = 0.0
+    # A regular expression with one group holding a comma-separated list
+    # whose order the example does not determine (a foreign library printing
+    # a hash-ordered collection). Both sides have each such list sorted
+    # before they are compared; everything else is held as above.
+    unordered: str | None = None
 
 
 @dataclass
@@ -129,7 +134,14 @@ DEMOS = [
              Output("derivatives.js", "numexpr-edsl/diff-viz/derivatives.js"),
              Output("roots.js", "numexpr-edsl/roots-viz/roots.js", rtol=1e-9, atol=1e-12),
              Output("optimize.js", "numexpr-edsl/opt-viz/optimize.js", rtol=1e-9, atol=1e-12),
-             Output("units.js", "dimensioned/dimensions-viz/units.js"),
+             # The last line of the report is ModelingToolkit's own warning,
+             # relayed verbatim, and it lists the two mismatched units in the
+             # order Symbolics holds the sum's terms, which is a hash order:
+             # the x86 runner printed them the other way round from the M4
+             # (2026-11-19). Which units clash is the claim; their order is
+             # not, so that one list is compared as a set.
+             Output("units.js", "dimensioned/dimensions-viz/units.js",
+                    unordered=r"units \[([^\]]*)\] do not match"),
              Output("double-pendulum.json", "numexpr-edsl/viz/public/double-pendulum.json",
                     rtol=1e-3, atol=1e-6),
          ]),
@@ -203,6 +215,14 @@ def first_difference(fresh: str, committed: str, context: int = 80) -> str:
     return (f"at character {at} (lengths {len(fresh)} / {len(committed)}), "
             f"fresh {fresh[start:at + context]!r} against committed "
             f"{committed[start:at + context]!r}")
+
+
+def sort_lists(text: str, pattern: str) -> str:
+    """Sort the comma-separated list in group 1 of every match of `pattern`."""
+    def sort_one(m: re.Match) -> str:
+        items = sorted(item.strip() for item in m.group(1).split(","))
+        return m.group(0).replace(m.group(1), ", ".join(items))
+    return re.sub(pattern, sort_one, text)
 
 
 def compare(fresh: str, committed: str, rtol: float, atol: float) -> tuple[bool, str]:
@@ -292,7 +312,15 @@ def check_demo(demo: Demo, record: bool, logs: Path) -> list[str]:
         if not committed.exists():
             problems.append(f"{o.produced}: no committed copy at {committed.relative_to(ROOT)}")
             continue
-        ok, found = compare(produced.read_text(), committed.read_text(), o.rtol, o.atol)
+        fresh_text, committed_text = produced.read_text(), committed.read_text()
+        if o.unordered and fresh_text != committed_text:
+            fresh_text = sort_lists(fresh_text, o.unordered)
+            committed_text = sort_lists(committed_text, o.unordered)
+            ok, found = compare(fresh_text, committed_text, o.rtol, o.atol)
+            if ok:
+                found = "identical once the unordered list is sorted"
+        else:
+            ok, found = compare(fresh_text, committed_text, o.rtol, o.atol)
         (lines if ok else problems).append(f"{o.produced}: {found}")
 
     for produced, committed in demo.directories:

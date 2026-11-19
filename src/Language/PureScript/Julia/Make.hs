@@ -33,7 +33,7 @@ import qualified Language.PureScript as P
 import qualified Language.PureScript.CoreFn as CoreFn
 import qualified Language.PureScript.CoreFn.FromJSON as CoreFn
 
-import Language.PureScript.Julia.CodeGen (Known, generateModuleJl, knownBindings)
+import Language.PureScript.Julia.CodeGen (Known, aliasImports, generateModuleJl, knownBindings)
 import Language.PureScript.Julia.CodeGen.Common (jlModuleName, jlModuleAlias, jlFileName, jlForeignFileName)
 import Language.PureScript.Julia.Foreigns (builtinForeigns)
 
@@ -117,7 +117,7 @@ moduleFile known cfModule =
       isPrimModule (P.ModuleName n) = T.isPrefixOf "Prim" n
       imports = dedupe
         [ depMn
-        | depMn <- map snd (CoreFn.moduleImports cfModule)
+        | depMn <- map snd (CoreFn.moduleImports cfModule) ++ aliasImports known cfModule
         , depMn /= mn
         , not (isPrimModule depMn)
         ]

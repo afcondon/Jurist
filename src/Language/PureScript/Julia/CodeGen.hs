@@ -65,6 +65,7 @@ module Language.PureScript.Julia.CodeGen
   ( generateModuleJl
   , Known
   , knownBindings
+  , aliasImports
   ) where
 
 import Prelude
@@ -756,6 +757,48 @@ generateModuleJl known cfModule = T.unlines $ map (generateBinding []) (CoreFn.m
           | mn == currentModule -> maybeCallLazyThunk name
           | otherwise -> jlModuleAlias mn <> "." <> name
         P.BySourcePos _ -> maybeCallLazyThunk name
+
+-- | The modules a module's output can name without its source importing
+-- them. A call through a 'KnownAlias' is emitted as a call of the alias's
+-- target (@toNullable x@ becomes @Data.Maybe.maybe null notNull x@), so
+-- the caller's file names the target's module and the modules of the
+-- alias's own arguments. CoreFn's import list knows only what the source
+-- named, so 'moduleFile' adds these. Each is a dependency of the alias's
+-- module, so it is loaded before the caller either way. This is every
+-- module a use of an alias could reach, whether or not that use is
+-- saturated: an import too many costs nothing, one too few is an
+-- UndefVarError at load.
+aliasImports :: Known -> CoreFn.Module CoreFn.Ann -> [P.ModuleName]
+aliasImports known m = Set.toList (foldMap goBind (CoreFn.moduleDecls m))
+  where
+    go :: CoreFn.Expr CoreFn.Ann -> Set.Set P.ModuleName
+    go = \case
+      CoreFn.Literal _ lit -> goLit lit
+      CoreFn.Var _ (P.Qualified (P.ByModuleName mn) ident) ->
+        case Map.lookup (mn, ident) known of
+          Just (KnownAlias amn _ pre) ->
+            Set.fromList (amn : [ pmn | CoreFn.Var _ (P.Qualified (P.ByModuleName pmn) _) <- pre ])
+          _ -> Set.empty
+      CoreFn.Var {} -> Set.empty
+      CoreFn.Abs _ _ body -> go body
+      CoreFn.App _ fn arg -> go fn <> go arg
+      CoreFn.Let _ binds body -> foldMap goBind binds <> go body
+      CoreFn.Case _ exprs alts -> foldMap go exprs <> foldMap goAlt alts
+      CoreFn.Accessor _ _ expr -> go expr
+      CoreFn.ObjectUpdate _ expr _ updates -> go expr <> foldMap (go . snd) updates
+      CoreFn.Constructor {} -> Set.empty
+
+    goLit = \case
+      CoreFn.ArrayLiteral exprs -> foldMap go exprs
+      CoreFn.ObjectLiteral fields -> foldMap (go . snd) fields
+      _ -> Set.empty
+
+    goBind (CoreFn.NonRec _ _ expr) = go expr
+    goBind (CoreFn.Rec bindings) = foldMap (go . snd) bindings
+
+    goAlt (CoreFn.CaseAlternative _ result) = case result of
+      Left guards -> foldMap (\(g, b) -> go g <> go b) guards
+      Right body -> go body
 
 -- | Collect all references to local (same-module or source-pos-qualified)
 -- names from an expression - used for smart Rec partitioning

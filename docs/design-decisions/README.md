@@ -60,6 +60,7 @@ place:
 | 0008 | [Same-seed differential fuzzing](0008-differential-fuzzing.md) | Proposed |
 | 0009 | [Two implementations: `purejl` the oracle, `backend-jl` the optimizer consumer](0009-two-implementations.md) | Accepted |
 | 0010 | [Saturated calls and the purs inliner set](0010-saturated-calls-and-inliner.md) | Accepted (2026-10-27; supersedes 0001's "uncurried rejected" in part) |
+| 0011 | [`Foreign.Object` is an ordered object, and JSON is the backend's own](0011-foreign-object-and-json.md) | Proposed (2026-11-19) |
 
 ## Scope
 
@@ -70,7 +71,9 @@ one Julia `module` per PureScript module plus a topologically-ordered loader.
 Working today: Hello-World through the core libraries (prelude, effect,
 console, refs, st, arrays incl. `Data.Array.ST`, strings, foldable-traversable,
 integers, numbers, unfoldable, enums); self-tail-call TCO; a cross-backend
-differential suite at 422/426 byte-identical with the reference JS backend.
+differential suite against the reference JS backend, whose current figures
+are whatever `bin/conformance.sh` prints (no count is quoted here: they move
+with the corpus).
 
 Since 2026-07-31 the repo holds a **second implementation**, `backend-jl/` — a
 PureScript consumer of `purescript-backend-optimizer`'s IR ([0009](0009-two-implementations.md)).

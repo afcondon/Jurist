@@ -6,6 +6,7 @@
 package:
   name: jurist-tests
   dependencies:
+    - argonaut-core
     - arrays
     - console
     - control
@@ -14,6 +15,7 @@ package:
     - exceptions
     - enums
     - foldable-traversable
+    - foreign-object
     - functions
     - integers
     - lazy

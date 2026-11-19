@@ -68,8 +68,11 @@
 samples <- solve spec <span class="li">0.0</span> <span class="li">200.0</span> <span class="li">200</span>
 laws    <- odeLaws spec   <span class="cm">-- derived, typeset</span>
 </pre>
-      <p class="seam">The ODE laws on the right were <em>derived functorially</em> by
-        AlgebraicPetri and typeset by Latexify — never written by hand.</p>
+      <p class="seam">The trajectory on the right is integrated from the vector field
+        AlgebraicPetri derives <em>functorially</em> from the net. The typeset laws
+        beside it are a separate, plain mass-action reading of the same
+        stoichiometry, built as strings by this example's own code: they describe
+        what is integrated, they are not its output.</p>
     </section>
 
     <section class="pane">
@@ -159,7 +162,7 @@ laws    <- odeLaws spec   <span class="cm">-- derived, typeset</span>
       const h = document.createElement("h3"); h.textContent = item.title; sec.appendChild(h);
       sec.appendChild(cap("The net"));
       sec.appendChild(netDiagram(item));
-      sec.appendChild(cap("Mass-action ODEs — derived functorially"));
+      sec.appendChild(cap("Mass-action ODEs — read off the stoichiometry"));
       const laws = document.createElement("div"); laws.className = "laws";
       item.laws.forEach((tex) => { const l = document.createElement("div"); l.className = "law"; katex.render(tex.replace(/~/g, " "), l, { throwOnError: false, displayMode: true }); laws.appendChild(l); });
       sec.appendChild(laws);

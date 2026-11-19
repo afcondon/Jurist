@@ -9,9 +9,11 @@ backends and diffs their TEST lines:
     TEST <name>: <value>
 
 A test passes when the JS backend (the reference semantics) and the
-Julia backend print byte-identical values. Divergences listed in
-KNOWN_DIVERGENCES are reported but don't fail the run; they document
-deliberate representation differences (UTF-16 code units vs codepoints).
+Julia backend print byte-identical values, or when the line matches an
+entry in the ledger (divergences.json) exactly: both the JS value and this
+backend's value must be the recorded ones. A ledgered value that moves is a
+MISMATCH and an entry that is no longer needed is STALE; both fail the run.
+ledger.py is the judge.
 
 Usage:
     cd test-suite

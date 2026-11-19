@@ -34,10 +34,14 @@ examples/catlab-portable/*/output-erl/
 examples/catlab-portable/*/.spago/
 examples/catlab-portable/*/ebin/
 
-# Julia env: commit Project.toml (reproducible deps), ignore the huge,
-# Julia-version-pinned Manifest (resolved by `Pkg.instantiate`)
-examples/*/julia-env/Manifest.toml
-examples/numexpr-edsl/julia/julia-env/Manifest.toml
+# Julia env: Project.toml AND Manifest.toml are committed. The Manifest was
+# ignored until 2026-11-19, so every run resolved whatever versions were
+# current, and the demo lane (bin/demos.py) found the committed data had
+# drifted from what today's packages compute. A pinned Manifest is what
+# makes "the data on the site is what this code produces" checkable.
+
+# The demo lane's logs
+examples/.demo-logs/
 
 # test-suite
 test-suite/output/

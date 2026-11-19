@@ -87,7 +87,10 @@ jobs:
 
       - uses: julia-actions/setup-julia@v2
         with:
-          version: "1"
+          # Pinned, like GHC, purs and the runner image. The examples' committed
+          # Manifest.toml files are resolved on 1.12, and the local gate runs
+          # 1.12.6 (quartermaster's nixpkgs julia-bin).
+          version: "1.12"
 
       - uses: actions/setup-python@v5
         with:
@@ -119,6 +122,34 @@ jobs:
           [ -f conformance.log ] || exit 0
           tail -n 40 conformance.log | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}' > tail.txt
           echo "::error title=Conformance lane (last 40 lines)::$(cat tail.txt)"
+
+      # The demo lane rebuilds every example and holds the data the site draws
+      # to a fresh run. It needs the examples' Julia packages (Catlab,
+      # ModelingToolkit, ..), pinned by their committed Manifest.toml files;
+      # a cold install is slow, so the depot is cached on those files.
+      - name: Restore the Julia depot (the examples' packages)
+        id: juliadepot
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.julia
+          key: ${{ runner.os }}-julia-1.12-depot-${{ hashFiles('examples/**/Manifest.toml') }}
+          restore-keys: ${{ runner.os }}-julia-1.12-depot-
+
+      - name: Demo lane
+        # --strict: on CI an example that does not run is a failure, not a
+        # NOT RUN. The numeric tolerances in bin/demos.py were measured on an
+        # M4; if this x86 runner exceeds one, read the comment there before
+        # widening anything.
+        run: |
+          set -o pipefail
+          bin/demos.py --strict 2>&1 | tee demos.log
+
+      - name: Save the Julia depot
+        if: always() && steps.juliadepot.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.julia
+          key: ${{ runner.os }}-julia-1.12-depot-${{ hashFiles('examples/**/Manifest.toml') }}
 
       # Save even when the lane fails: the expensive part (the cold stack build
       # of purs-as-library + purejl) has already populated the cache dirs by

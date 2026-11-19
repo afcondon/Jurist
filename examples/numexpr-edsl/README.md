@@ -116,8 +116,9 @@ the Node and BEAM runs (same `lorenz`, maxZ ≈ 47.834 on all three pure runtime
    OPTIMAL, gap 0). The pure-PureScript `greedyValue` baseline shows why it
    matters — greedy grabs the best value/weight item and stalls, leaving value on
    the table. `Main` writes `optimize.js` for `opt-viz/`, which shows greedy vs
-   the proven optimum side by side. There is no MILP solver in the JS/WASM world
-   to hand a model to.
+   the proven optimum side by side. (An earlier version of this text said there is no MILP solver in the JS/WASM
+   world. That was wrong: HiGHS ships as WebAssembly. What Julia adds is JuMP,
+   the modelling layer over many solvers.)
 
 The seam is identical across the Julia denotations (ADR-0007, "descriptions
 across, handles back"): PureScript hands over a typed description; Julia owns the

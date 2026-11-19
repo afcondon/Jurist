@@ -59,6 +59,7 @@ place:
 | 0007 | [Julia-shaped libraries: descriptions across, handles back](0007-julia-shaped-libraries.md) | Proposed |
 | 0008 | [Same-seed differential fuzzing](0008-differential-fuzzing.md) | Proposed |
 | 0009 | [Two implementations: `purejl` the oracle, `backend-jl` the optimizer consumer](0009-two-implementations.md) | Accepted |
+| 0010 | [Saturated calls and the purs inliner set](0010-saturated-calls-and-inliner.md) | Accepted (2026-10-27; supersedes 0001's "uncurried rejected" in part) |
 
 ## Scope
 

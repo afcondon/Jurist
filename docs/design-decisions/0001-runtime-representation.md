@@ -64,11 +64,20 @@ Top-level mutually-recursive value bindings go through a lazy-thunk runtime
 
 ## Alternatives considered
 
-- **Uncurried multi-argument functions by default.** Rejected: CoreFn is
+- ~~**Uncurried multi-argument functions by default.** Rejected: CoreFn is
   curried, the JS backend is curried, and matching it keeps the differential
   suite honest and the FFI convention shared. Saturated multi-arg calls are
   instead recovered selectively (`Fn`/`EffectFn` via `Data.Function.Uncurried`,
-  and the TCO dispatch loop).
+  and the TCO dispatch loop).~~
+
+  > **Superseded in part (2026-10-27) by [0010](0010-saturated-calls-and-inliner.md).**
+  > The stated reasons still hold, and 0010 keeps them: a function *value*
+  > is still a curried closure, foreigns stay curried, and the change is
+  > invisible to the differential suite. What changed is that a call of a
+  > known-arity top-level function with enough arguments is now a direct
+  > call of its n-ary method. "`App` is a spine, not a saturation guarantee"
+  > is true for an unknown head, but not for a top-level lambda chain of
+  > arity n applied to at least n arguments.
 - **Struct/`@enum` ADTs (the wasm backend's approach).** Rejected for v1:
   tag-tuples need no type pre-declaration pass over the whole program and keep
   the generator simple. The cost is that pattern matching indexes tuples

@@ -6,6 +6,10 @@
 # (`AP.vectorfield`) to get the ODE vector field — the dynamics is a functor from
 # the Petri category, not a hand translation — and OrdinaryDiffEq solves it.
 #
+# Every function here is a call into those libraries. The laws shown on the
+# page are written out in PureScript (Data.Petri.massActionLaws); until
+# November 2026 they were built here, as strings, by hand.
+#
 # Qualified library calls throughout — this file is `include`d inside the
 # generated `Data_Petri_Julia` module.
 #
@@ -49,39 +53,17 @@ solveJ(species) = tnames -> inputs -> outputs -> initial -> rates -> t0 -> t1 ->
     out
 end
 
-# Mass-action flux of a transition as LaTeX: rate · ∏ inputᵢ^multiplicity.
-function _flux_latex(tname, inputs_i)
-    counts = Base.Dict{Base.String, Base.Int}()
-    for s in inputs_i
-        counts[s] = Base.get(counts, s, 0) + 1
-    end
-    parts = Base.String["\\mathrm{" * tname * "}"]
-    for s in Base.sort(Base.collect(Base.keys(counts)))
-        c = counts[s]
-        Base.push!(parts, c == 1 ? s : s * "^{" * Base.string(c) * "}")
-    end
-    Base.join(parts, " \\, ")
-end
-
-# odeLawsJ species tnames inputs outputs : Effect (Array String)
-#   -> one LaTeX mass-action ODE per species, derived from the net stoichiometry.
-odeLawsJ(species) = tnames -> inputs -> outputs -> () -> begin
-    laws = Base.String[]
-    for s in species
-        terms = Base.String[]
-        for i in 1:Base.length(tnames)
-            net = Base.count(Base.isequal(s), outputs[i]) - Base.count(Base.isequal(s), inputs[i])
-            if net != 0
-                coef = Base.abs(net) == 1 ? "" : Base.string(Base.abs(net)) * " "
-                sgn = net > 0 ? "+ " : "- "
-                Base.push!(terms, sgn * coef * _flux_latex(tnames[i], inputs[i]))
-            end
-        end
-        body = Base.isempty(terms) ? "0" : Base.join(terms, " ")
-        body = Base.replace(body, r"^\+ " => "")
-        Base.push!(laws, "\\frac{d" * s * "}{dt} = " * body)
-    end
-    laws
+# vectorFieldJ species tnames inputs outputs rates state : Effect (Array Number)
+#   -> AlgebraicPetri's vector field for the net, evaluated at one state:
+#      the rate of change of each species, in species order.
+vectorFieldJ(species) = tnames -> inputs -> outputs -> rates -> state -> () -> begin
+    pn = _build(species, tnames, inputs, outputs)
+    sp = [Base.Symbol(s) for s in species]
+    u = LabelledArrays.LVector(; (sp[i] => Base.Float64(state[i]) for i in 1:Base.length(sp))...)
+    rt = LabelledArrays.LVector(; (Base.Symbol(tnames[i]) => Base.Float64(rates[i]) for i in 1:Base.length(tnames))...)
+    du = Base.zero(u)
+    AlgebraicPetri.vectorfield(pn)(du, u, rt, 0.0)
+    Base.Any[Base.Float64(du[i]) for i in 1:Base.length(sp)]
 end
 
 # writeTextJ path content : Effect Unit

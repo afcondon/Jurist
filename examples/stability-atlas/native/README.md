@@ -21,8 +21,8 @@ exactly one dependency, `HTTP` — so structural distortion there would read
 *Distortion measures how well you call a library, not whether you called one.*
 
 `atlas_native.jl` is the control. `kernel_fixed.jl` is a verbatim copy of
-the hand-written kernel the service ran until November 2026 (its survival
-sweep is now compiled from `Atlas.Survival` and held to this file), so
+the hand-written kernel the service ran until November 2026 (both of its
+sweeps are now compiled from `Atlas.Survival` and held to this file), so
 `poly_kernel / native_kernel ≈ 1.0` is what tells you the two harnesses really
 are running the same arithmetic and the remaining difference is harness.
 

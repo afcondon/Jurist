@@ -20,9 +20,12 @@
       In Cartesian coordinates the rod tensions are <strong>algebraic variables</strong> —
       no time derivative, closed by rigidity constraints. That makes this a
       <strong>differential-algebraic system</strong>, which <code>scipy.solve_ivp</code> and every
-      JS ODE library structurally cannot solve. ModelingToolkit derives the
-      index-1 form symbolically; an implicit stiff solver holds the rods rigid
-      to ~10⁻⁸ through fully chaotic motion.
+      JS ODE library structurally cannot solve. The description states each
+      rigidity constraint already differentiated twice, which is what makes it
+      index-1: that reduction is done by hand, in the PureScript on the left,
+      not by ModelingToolkit. ModelingToolkit simplifies the system, and an
+      implicit stiff solver holds the rods rigid to ~10⁻⁸ through fully chaotic
+      motion.
     </p>
   </header>
 

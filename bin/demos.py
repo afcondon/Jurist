@@ -169,7 +169,7 @@ DEMOS = [
     # points. The committed run and a fresh one differ only if the solver or
     # its dependencies moved; 1e-6 relative is far inside the solver's own
     # 1e-3 default and far outside floating-point noise.
-    Demo("petri-catlab", "petri-catlab",
+    Demo("petri-catlab", "petri-catlab", transcript=True,
          outputs=[Output("petri.js", "petri-catlab/petri-viz/petri.js", rtol=1e-6, atol=1e-9)]),
     Demo("dimensioned", "dimensioned",
          outputs=[Output("dimensioned.js", "dimensioned/dimensions-viz/dimensioned.js")]),
@@ -219,7 +219,8 @@ DEMOS = [
     # also run on Node, which must print the same steps, end time and final
     # state for the first run of each system.
     Demo("staged-integrator", "staged-integrator", transcript=True, threads="auto", node="node",
-         outputs=[Output("cr3bp-survival.jl", "staged-integrator/kernel/cr3bp-survival.jl")]),
+         outputs=[Output("cr3bp-survival.jl", "staged-integrator/kernel/cr3bp-survival.jl"),
+                  Output("cr3bp-chaos.jl", "staged-integrator/kernel/cr3bp-chaos.jl")]),
     # The atlas's service in check mode: no socket, only what it computes.
     # Its survival sweep (compiled from the PureScript description) and its
     # chaos-indicator sweep (still hand-written) must match the reference
@@ -230,7 +231,7 @@ DEMOS = [
     Demo("stability-atlas", "stability-atlas/service", transcript=True, threads="auto",
          args=["check"]),
     Demo("st-number-vector", "st-number-vector", julia_env=None, transcript=True),
-    Demo("lorenz-leaf", "lorenz-leaf", julia_env=None, transcript=True),
+    Demo("lorenz-leaf", "lorenz-leaf", transcript=True),
 ]
 
 # site/data/<file> must be the committed copy named here. `pendulum.js` is

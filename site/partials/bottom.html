@@ -15,7 +15,7 @@
     </div>
     <div class="ibox wide">
       <code>integratePure lorenz s0 ps dt n</code>
-      <div class="note">the orbit, by a pure-PureScript RK4 — no FFI anywhere</div>
+      <div class="note">the orbit, by a pure-PureScript RK4 — no foreign code in the integrator</div>
       <span class="chip on">node</span><span class="chip on">beam</span><span class="chip on">julia</span>
     </div>
   </div>
@@ -54,8 +54,8 @@
     </div>
     <div class="ibox">
       <code>odeLaws sir</code>
-      <div class="note">mass-action ODEs, read off the stoichiometry</div>
-      <span class="chip def">node</span><span class="chip def">beam</span><span class="chip jl">julia</span>
+      <div class="note">mass-action ODEs, read off the stoichiometry in plain PureScript</div>
+      <span class="chip on">node</span><span class="chip on">beam</span><span class="chip on">julia</span>
     </div>
     <div class="ibox">
       <code>matches depGraph motif</code>

@@ -289,20 +289,25 @@ second runtime.
 A Runge-Kutta integrator with events, written once in PureScript over
 expressions, so that running it yields a program. A pure interpreter runs
 that program on any backend; Julia compiles the same instructions to native
-code. The example holds the two to identical results, bit for bit, on three
-systems, and the interpreter on Node to the same numbers. The stability
-atlas's service now runs a kernel made this way in place of its 320-line
-hand-written one: identical on all 9,000 pixels of the default sweep, in
-0.92 of the time (see the example's README for the measurement). The atlas's
-chaos-indicator layer is still hand-written.
+code. A description can also hold variables between steps and update them
+every so many steps, with a choice between two values, which is enough for a
+thermostat or for rescaling a vector that has grown too long. The example
+holds the two denotations to identical results, bit for bit, on four systems,
+and the interpreter on Node to the same numbers. The stability atlas's
+service now runs kernels made this way in place of its hand-written ones:
+identical on all 9,000 pixels of the default sweep for both the survival
+layer and the chaos-indicator layer, in 0.92 and 1.16 of the hand-written
+time (see the example's README for the measurement).
 
 ### Compute-leaf example — `examples/lorenz-leaf/`
 
-The earliest example (June 2026), kept as a record: a PureScript contract
-over an RK4 Lorenz integrator **written by hand in the foreign file**. That
-is what the family's seam rule now forbids ("the FFI holds a call into a
-foreign library, never your algorithm"), and it was written before the rule
-was. `examples/staged-integrator` is what replaces it.
+The earliest example (June 2026). The Lorenz system is a description in
+PureScript, Julia compiles it to a native loop, and PureScript inspects and
+serialises the orbit. The example has no foreign file. Until November 2026
+it had one, holding an RK4 integrator written by hand in Julia, which is what
+the family's seam rule forbids ("the FFI holds a call into a foreign library,
+never your algorithm"). The rewrite prints the same numbers, to the last
+digit, that the hand-written loop did.
 
 ### The demo site — `site/`
 

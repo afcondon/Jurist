@@ -15,7 +15,7 @@ module Main where
 import Prelude
 
 import Atlas.Dynamics (asteroidPeriod, initialState, integrateSteps, stepsPerPeriod)
-import Atlas.Kernel (Kernel, compile, runSweep, runTrajectory, survivalRun)
+import Atlas.Kernel (Kernel, chaosAgrees, compile, runSweep, runTrajectory, survivalRun)
 import Atlas.Protocol (ClientMsg(..), Frame, ServerMsg(..), SweepSpec, decodeClientMsg, encodeServerMsg)
 import Data.Array (concat, filter, length, mapWithIndex, zipWith, (!!))
 import Data.Either (Either(..))
@@ -122,8 +122,10 @@ collectTrajectory kernel orbit = do
 check :: Kernel -> Effect Unit
 check kernel = do
   compareSweep "survival sweep, 120 x 75, 150 periods" atlasDefault
-  compareSweep "chaos-indicator sweep (hand-written kernel), 24 x 12, 30 periods"
-    (atlasDefault { cols = 24, rows = 12, horizonPeriods = 30.0, withFli = true })
+  compareSweep "chaos-indicator sweep, 120 x 75, 150 periods" (atlasDefault { withFli = true })
+  interpreted <- chaosAgrees kernel { a: 0.4806, e: 0.12, mu, horizonPeriods: 6.0 }
+  log "== the chaos-indicator run, interpreted in PureScript =="
+  log ("  identical to the compiled run after " <> show interpreted.steps <> " steps: " <> show interpreted.agree)
   replay "an orbit that survives" { a: 0.4806, e: 0.12, horizonPeriods: 30.0, frameStride: 4 }
   replay "an orbit that is lost" { a: 0.7, e: 0.3, horizonPeriods: 150.0, frameStride: 4 }
   where
@@ -165,7 +167,7 @@ check kernel = do
 
 main :: Effect Unit
 main = compile >>= case _ of
-  Left problem -> log ("atlas-service: the survival kernel did not compile: " <> problem)
+  Left problem -> log ("atlas-service: the kernels did not compile: " <> problem)
   Right kernel -> do
     agreed <- selfTest kernel
     checking <- isCheck

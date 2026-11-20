@@ -66,13 +66,15 @@
   }
 
 samples <- solve spec <span class="li">0.0</span> <span class="li">200.0</span> <span class="li">200</span>
-laws    <- odeLaws spec   <span class="cm">-- derived, typeset</span>
+<span class="kw">let</span> laws = massActionLaws spec   <span class="cm">-- plain PureScript</span>
 </pre>
       <p class="seam">The trajectory on the right is integrated from the vector field
         AlgebraicPetri derives <em>functorially</em> from the net. The typeset laws
-        beside it are a separate, plain mass-action reading of the same
-        stoichiometry, built as strings by this example's own code: they describe
-        what is integrated, they are not its output.</p>
+        beside it are a separate mass-action reading of the same stoichiometry,
+        written out in PureScript: they are not the library's output. The example
+        checks one against the other: at each of the 201 states the solver
+        returns, the rates the written laws give match AlgebraicPetri's vector
+        field.</p>
     </section>
 
     <section class="pane">

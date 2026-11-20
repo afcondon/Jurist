@@ -1,8 +1,8 @@
 -- | The **Julia denotation** of the backend-agnostic `Data.NumExpr` eDSL.
 -- |
 -- | `Data.NumExpr` (in the `core` package) is the pure description — the ADT,
--- | the reference `eval`, and `render` — with no `foreign import`s, so it
--- | compiles on every backend. This module is the Julia-only companion: it
+-- | the reference `eval`, and `render` — with no foreign code beyond six
+-- | one-line math functions, so it compiles on every backend. This module is the Julia-only companion: it
 -- | folds that ADT through Julia *builders* (`jAdd`, `jMul`, …) handed across
 -- | the seam, so Julia assembles its own `Expr` and the shim never destructures
 -- | a PureScript `NumExpr` (ADR-0002: "constructors across, handles back").
@@ -23,6 +23,7 @@ module Data.NumExpr.Julia
   , jNeg
   , jPow
   , jApp
+  , jSelect
   , Compiled
   , compile
   , evalBatch
@@ -43,6 +44,8 @@ foreign import jDiv :: JExpr -> JExpr -> JExpr
 foreign import jNeg :: JExpr -> JExpr
 foreign import jPow :: JExpr -> JExpr -> JExpr
 foreign import jApp :: String -> JExpr -> JExpr
+-- `jSelect a b whenTrue whenFalse`: Julia's `ifelse(a > b, whenTrue, whenFalse)`.
+foreign import jSelect :: JExpr -> JExpr -> JExpr -> JExpr -> JExpr
 
 -- | Replay the PS AST through the Julia builders — the single seam crossing.
 toJExpr :: NumExpr -> JExpr
@@ -56,6 +59,7 @@ toJExpr = case _ of
   Neg a -> jNeg (toJExpr a)
   Pow a b -> jPow (toJExpr a) (toJExpr b)
   Ap f a -> jApp (fnName f) (toJExpr a)
+  IfGreater a b whenTrue whenFalse -> jSelect (toJExpr a) (toJExpr b) (toJExpr whenTrue) (toJExpr whenFalse)
 
 -- | An opaque handle to a native Julia function compiled from a `JExpr`.
 foreign import data Compiled :: Type

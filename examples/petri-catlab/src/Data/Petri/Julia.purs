@@ -8,7 +8,7 @@
 -- | parts'.
 module Data.Petri.Julia
   ( solve
-  , odeLaws
+  , vectorField
   , writeText
   ) where
 
@@ -29,12 +29,14 @@ foreign import solveJ
   -> Int
   -> Effect (Array (Array Number))
 
-foreign import odeLawsJ
+foreign import vectorFieldJ
   :: Array String
   -> Array String
   -> Array (Array String)
   -> Array (Array String)
-  -> Effect (Array String)
+  -> Array Number
+  -> Array Number
+  -> Effect (Array Number)
 
 foreign import writeTextJ :: String -> String -> Effect Unit
 
@@ -46,13 +48,15 @@ solve spec t0 t1 n =
     (map _.inputs spec.transitions) (map _.outputs spec.transitions)
     spec.initial (map _.rate spec.transitions) t0 t1 n
 
--- | The mass-action ODE laws the functorial semantics implies — one LaTeX string
--- | per species, built Julia-side from the net's stoichiometry (the calculus
--- | PureScript never wrote).
-odeLaws :: PetriSpec -> Effect (Array String)
-odeLaws spec =
-  odeLawsJ spec.species (map _.name spec.transitions)
+-- | The vector field AlgebraicPetri derives from the net, evaluated at one
+-- | state: the rate of change of each species, in species order. This is
+-- | what `solve` integrates, and what `Data.Petri.massActionRates` is
+-- | checked against.
+vectorField :: PetriSpec -> Array Number -> Effect (Array Number)
+vectorField spec state =
+  vectorFieldJ spec.species (map _.name spec.transitions)
     (map _.inputs spec.transitions) (map _.outputs spec.transitions)
+    (map _.rate spec.transitions) state
 
 -- | Write a string to a file (the assembled JSON the page reads).
 writeText :: String -> String -> Effect Unit

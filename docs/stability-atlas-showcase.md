@@ -21,8 +21,10 @@ styling.
 ## Why this demo (the criteria it was chosen against)
 
 1. **Only-in-Julia** — a sweep is 10⁴–10⁵ independent ODE integrations,
-   multithreaded native code via the existing fused-RGF path (1.006× of
-   hand-written Julia, `bench/overhead.jl`). No browser does this
+   multithreaded native code via the existing fused-RGF path (~~1.006× of
+   hand-written Julia, `bench/overhead.jl`~~; that script times a shape
+   written by hand, see its README. Measured on the kernel PureScript emits,
+   2026-11-20: 0.92 and 1.16 of the hand-written kernels). No browser does this
    interactively.
 2. **Directly visualizable** — the atlas *is* the computation; the orrery is
    the per-pixel explanation of it.

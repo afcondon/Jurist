@@ -1,0 +1,9 @@
+== Tier-3: Petri nets → functorial mass-action dynamics (AlgebraicPetri) ==
+SIR — Susceptible · Infected · Recovered: solved, 3 mass-action laws
+  the laws as written give AlgebraicPetri's vector field at 201 of 201 solved states
+SEIR — with a latent Exposed compartment: solved, 4 mass-action laws
+  the laws as written give AlgebraicPetri's vector field at 201 of 201 solved states
+wrote petri.js for the petri-viz page
+
+== the verb surface: this runtime's answer ==
+odeLaws sir: \frac{dS}{dt} = - \mathrm{inf} \, I \, S   \frac{dI}{dt} = \mathrm{inf} \, I \, S - \mathrm{rec} \, I   \frac{dR}{dt} = \mathrm{rec} \, I

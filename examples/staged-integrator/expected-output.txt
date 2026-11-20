@@ -4,9 +4,10 @@
   end times identical:  true
   events identical:     true
   step counts identical: true
+  final states identical: true
   first run: 2000 steps to t = 20.000000000000327
   its final state: [13.472905743332278,12.691475056103124,34.39214731917505]
-  final state identical: true
+  the same run alone, identical: true
   frames at stride 7: 287, identical: true
 == falling body, stopped by an event ==
   one step is 41 instructions
@@ -14,18 +15,32 @@
   end times identical:  true
   events identical:     true
   step counts identical: true
+  final states identical: true
   first run: 6070 steps to t = 6.070000000000362
   its final state: [-0.006825726071337697,-21.94353279748438]
-  final state identical: true
+  the same run alone, identical: true
   frames at stride 7: 869, identical: true
+== a room and its thermostat, 12 hours ==
+  one step is 28 instructions
+  runs: 1, ended by an event: 0
+  end times identical:  true
+  events identical:     true
+  step counts identical: true
+  final states identical: true
+  first run: 21600 steps to t = 43200.0
+  its final state: [19.206168649499162,0.0,19.0]
+  the same run alone, identical: true
+  frames at stride 7: 3087, identical: true
 == three-body survival, 4 x 3 orbits, 20 periods ==
   one step is 173 instructions
   runs: 12, ended by an event: 3
   end times identical:  true
   events identical:     true
   step counts identical: true
+  final states identical: true
   first run: 14606 steps to t = 125.66426652389899
   its final state: [-0.29854478078990504,0.04213533742026284,-0.21357955898079029,-1.506768611049344]
-  final state identical: true
+  the same run alone, identical: true
   frames at stride 7: 2088, identical: true
 wrote cr3bp-survival.jl, the function Julia compiled for the three-body run
+wrote cr3bp-chaos.jl, the function Julia compiled for the three-body run with its chaos indicator

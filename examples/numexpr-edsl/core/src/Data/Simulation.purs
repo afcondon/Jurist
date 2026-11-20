@@ -18,13 +18,22 @@
 -- |   2. While the time is below the horizon: take one step, add the time
 -- |      step to the time, then evaluate the events at the new state, in
 -- |      the order they were given. The first event whose value is above
--- |      zero ends the run.
+-- |      zero ends the run, with the state as the step left it.
+-- |   3. If no event fired, apply the updates, in the order they were
+-- |      given: each one whose `every` divides the number of steps taken.
+-- |
+-- | A state variable is either integrated (it has a rate) or held (it keeps
+-- | its value until an update sets it). Held variables and updates are how a
+-- | run does something that is not a differential equation: count, remember
+-- | a maximum, rescale a vector that has grown too long, switch a controller.
 -- |
 -- | The system is autonomous: a rate may name inputs, derived constants and
 -- | state variables, and not the time.
 module Data.Simulation
   ( Spec
   , Variable
+  , Held
+  , Update
   , Simulation
   , Outcome
   , Frame
@@ -37,14 +46,15 @@ module Data.Simulation
   , eventNames
   , startProgram
   , stepProgram
+  , updatePrograms
   ) where
 
 import Prelude
 
-import Data.Array (drop, findIndex, length, take, zip)
+import Data.Array (drop, elem, find, findIndex, foldl, length, take, zip)
 import Data.Array as Array
-import Data.Either (Either)
-import Data.Foldable (foldM)
+import Data.Either (Either(..))
+import Data.Foldable (foldM, for_)
 import Data.List (List(..))
 import Data.List as List
 import Data.Map as Map
@@ -54,22 +64,35 @@ import Data.NumExpr.Program (BinaryOp(..), Build, Instruction(..), Operand(..), 
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..), fst, snd)
 
--- | One state variable: where it starts and how fast it changes.
+-- | One integrated state variable: where it starts and how fast it changes.
 type Variable = { name :: String, initial :: NumExpr, rate :: NumExpr }
+
+-- | One held state variable: where it starts. Only an update changes it.
+type Held = { name :: String, initial :: NumExpr }
+
+-- | New values for some state variables, applied after every `every`th
+-- | step. All of `set` is computed from the state before the update, so
+-- | the order within one update does not matter.
+type Update = { every :: Int, set :: Array (Tuple String NumExpr) }
 
 -- | - `inputs`: the numbers a run is given, constant while it runs (the
 -- |   parameters, and whatever a sweep varies).
 -- | - `derived`: constants computed once from the inputs, in order; each
 -- |   may name the inputs and the ones before it.
--- | - `state`: the variables. An `initial` may name inputs and derived
--- |   constants; a `rate` may also name the state.
+-- | - `state`: the integrated variables. An `initial` may name inputs and
+-- |   derived constants; a `rate` may also name the state, held included.
+-- | - `held`: the variables only an update changes.
 -- | - `timeStep`, `horizon`: over inputs and derived constants.
 -- | - `events`: named conditions over inputs, derived constants and state.
 -- |   An event fires when its expression is above zero.
+-- | - `updates`: over inputs, derived constants and state; each sets
+-- |   integrated or held variables.
 type Spec =
   { inputs :: Array String
   , derived :: Array (Tuple String NumExpr)
   , state :: Array Variable
+  , held :: Array Held
+  , updates :: Array Update
   , timeStep :: NumExpr
   , horizon :: NumExpr
   , events :: Array (Tuple String NumExpr)
@@ -84,6 +107,8 @@ newtype Simulation = Simulation
   , start :: Program
   -- state <> constants <> [time step] -> next state <> event values
   , step :: Program
+  -- each: state <> constants -> state
+  , updates :: Array { every :: Int, program :: Program }
   }
 
 inputNames :: Simulation -> Array String
@@ -104,21 +129,32 @@ startProgram (Simulation s) = s.start
 stepProgram :: Simulation -> Program
 stepProgram (Simulation s) = s.step
 
+updatePrograms :: Simulation -> Array { every :: Int, program :: Program }
+updatePrograms (Simulation s) = s.updates
+
 -- | Build the simulation: the start program, and one classical fourth-order
--- | Runge-Kutta step with the events evaluated at its result. Fails if an
--- | expression names something its position does not allow.
+-- | Runge-Kutta step with the events evaluated at its result, and one
+-- | program for each update. Fails if an expression names something its
+-- | position does not allow.
 simulation :: Spec -> Either String Simulation
 simulation spec = do
+  for_ spec.updates \update -> do
+    when (update.every < 1) (Left "an update's `every` must be at least 1")
+    for_ update.set \(Tuple name _) ->
+      unless (name `elem` stateNames') (Left ("an update sets `" <> name <> "`, which is not a state variable"))
   start <- build spec.inputs \inputs -> do
     scope <- foldM define inputs spec.derived
     dt <- lower scope spec.timeStep
     horizon <- lower scope spec.horizon
-    initial <- traverse (lower scope <<< _.initial) spec.state
+    integrated <- traverse (lower scope <<< _.initial) spec.state
+    held <- traverse (lower scope <<< _.initial) spec.held
+    let initial = integrated <> held
     constants <- traverse (lower scope <<< Var) constantNames'
     pure ([ dt, horizon ] <> initial <> constants)
   step <- build (stateNames' <> constantNames' <> [ timeStepName ]) \scope -> do
     let
-      here = map (operandOf scope) stateNames'
+      here = map (operandOf scope) integratedNames
+      kept = map (operandOf scope) heldNames
       dt = operandOf scope timeStepName
       rates at = traverse (lower (rebind scope at) <<< _.rate) spec.state
     half <- emit (Binary Over dt (Constant 2.0))
@@ -129,7 +165,8 @@ simulation spec = do
     sixth <- emit (Binary Over dt (Constant 6.0))
     next <- traverse (combine sixth) (zip here (zip (zip k1 k2) (zip k3 k4)))
     fired <- traverse (lower (rebind scope next) <<< snd) spec.events
-    pure (next <> fired)
+    pure (next <> kept <> fired)
+  updates <- traverse updateProgram spec.updates
   pure
     ( Simulation
         { inputs: spec.inputs
@@ -138,20 +175,36 @@ simulation spec = do
         , events: map fst spec.events
         , start
         , step
+        , updates
         }
     )
   where
-  stateNames' = map _.name spec.state
+  integratedNames = map _.name spec.state
+  heldNames = map _.name spec.held
+  stateNames' = integratedNames <> heldNames
   constantNames' = spec.inputs <> map fst spec.derived
+
+  -- Every state variable, in order: its new value if the update sets it,
+  -- otherwise the value it had.
+  updateProgram :: Update -> Either String { every :: Int, program :: Program }
+  updateProgram update = do
+    program <- build (stateNames' <> constantNames') \scope ->
+      traverse
+        ( \name -> case find (fst >>> (_ == name)) update.set of
+            Just (Tuple _ expr) -> lower scope expr
+            Nothing -> pure (operandOf scope name)
+        )
+        stateNames'
+    pure { every: update.every, program }
 
   define :: Scope -> Tuple String NumExpr -> Build Scope
   define scope (Tuple name expr) = do
     operand <- lower scope expr
     pure (Map.insert name operand scope)
 
-  -- The scope with the state names bound to the given operands.
+  -- The scope with the integrated variables bound to the given operands.
   rebind :: Scope -> Array Operand -> Scope
-  rebind scope operands = Map.union (Map.fromFoldable (zip stateNames' operands)) scope
+  rebind scope operands = Map.union (Map.fromFoldable (zip integratedNames operands)) scope
 
   -- state + factor * slope, one variable at a time.
   advance :: Array Operand -> Operand -> Array Operand -> Build (Array Operand)
@@ -220,6 +273,14 @@ stepOnce (Simulation s) started state =
   out = run s.step (state <> started.constants <> [ started.dt ])
   states = length s.state
 
+-- The updates due after the given number of steps, applied in order.
+settle :: Simulation -> Started -> Int -> Array Number -> Array Number
+settle (Simulation s) started steps state = foldl apply state s.updates
+  where
+  apply current update =
+    if steps `mod` update.every == 0 then run update.program (current <> started.constants)
+    else current
+
 -- | The pure denotation of a run: the inputs, in the order of `inputNames`,
 -- | to how it ended.
 simulate :: Simulation -> Array Number -> Outcome
@@ -234,7 +295,7 @@ simulate sim inputs = go 0.0 0 started.initial
       in
         case stepped.fired of
           Just event -> { time: time', event: Just event, steps: steps + 1, state: stepped.state }
-          Nothing -> go time' (steps + 1) stepped.state
+          Nothing -> go time' (steps + 1) (settle sim started (steps + 1) stepped.state)
     else { time, event: Nothing, steps, state }
 
 -- | The state at one moment of a run.
@@ -254,12 +315,12 @@ trajectory sim stride inputs =
         stepped = stepOnce sim started state
         time' = time + started.dt
         steps' = steps + 1
-        here = frame time' stepped.state
+        settled = settle sim started steps' stepped.state
       in
         case stepped.fired of
-          Just _ -> Cons here frames
+          Just _ -> Cons (frame time' stepped.state) frames
           Nothing ->
-            if steps' `mod` stride == 0 then go time' steps' stepped.state (Cons here frames)
-            else go time' steps' stepped.state frames
+            if steps' `mod` stride == 0 then go time' steps' settled (Cons (frame time' settled) frames)
+            else go time' steps' settled frames
     else if steps `mod` stride == 0 then frames
     else Cons (frame time state) frames

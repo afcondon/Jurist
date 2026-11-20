@@ -39,7 +39,10 @@ import Halogen.Subscription as HS
 import Web.DOM.Element (getBoundingClientRect)
 import Web.Event.Event (Event)
 import Web.Event.EventTarget (addEventListener, eventListener)
+import Web.HTML (window)
 import Web.HTML.HTMLElement as HTMLElement
+import Web.HTML.Location as Location
+import Web.HTML.Window as Window
 import Web.Socket.Event.EventTypes (onClose, onMessage, onOpen) as WSE
 import Web.Socket.Event.MessageEvent as MessageEvent
 import Web.Socket.WebSocket as WS
@@ -54,8 +57,12 @@ canvasW = 720.0
 canvasH :: Number
 canvasH = 450.0
 
-serviceUrl :: String
-serviceUrl = "ws://localhost:3210"
+-- | The service runs on whichever machine served this page, on port 3210.
+-- | A page opened from a file has no host, and looks on this machine.
+serviceUrl :: Effect String
+serviceUrl = do
+  host <- window >>= Window.location >>= Location.hostname
+  pure ("ws://" <> (if host == "" then "localhost" else host) <> ":3210")
 
 -- Trajectory request parameters, shared by the request and the honesty
 -- meter's lockstep mirror of the service loop.
@@ -334,7 +341,7 @@ render st =
     [ HH.header_
         [ HH.h1_ [ HH.text "The Stability Atlas" ]
         , HH.p [ HP.class_ (HH.ClassName "thesis") ]
-            [ HH.text "Each pixel is a real orbit integration of a test asteroid in the Sun–Jupiter three-body problem, computed by PureScript compiled to Julia and streamed here over a typed WebSocket. Dark means the asteroid was lost — ejected or swept into Jupiter's Hill sphere." ]
+            [ HH.text "Each pixel is a real orbit integration of a test asteroid in the Sun–Jupiter three-body problem, computed by Julia from a description of the physics written in PureScript, and streamed here over a typed WebSocket. Dark means the asteroid was lost — ejected or swept into Jupiter's Hill sphere." ]
         ]
     , HH.div [ HP.class_ (HH.ClassName "key") ]
         [ HH.div [ HP.class_ (HH.ClassName "orrery-head") ]
@@ -430,7 +437,7 @@ render st =
             , HH.span [ HP.class_ (HH.ClassName "drift") ] [ HH.text meterText ]
             ]
         , HH.p [ HP.class_ (HH.ClassName "meter-lede") ]
-            [ HH.text "The orbit above was computed by Julia. This browser re-runs it with the same Atlas.Dynamics module — compiled to JavaScript here, to Julia there. Ink line: Jacobi drift of the Julia stream. Green squares: the browser at the same step size — they sit exactly on the ink when the two runtimes agree to the last bit. Rust line: the browser at 4× the step size, for scale — that gap is what numerical error looks like; the runtimes contribute none." ]
+            [ HH.text "The orbit above was computed by Julia, in a kernel compiled from a PureScript description. This browser re-runs it with Atlas.Dynamics, the same physics as plain PureScript compiled to JavaScript; the service checks, each time it starts, that the two agree exactly. Ink line: Jacobi drift of the Julia stream. Green squares: the browser at the same step size — they sit exactly on the ink when the two runtimes agree to the last bit. Rust line: the browser at 4× the step size, for scale — that gap is what numerical error looks like; the runtimes contribute none." ]
         , HH.canvas
             [ HP.id "meter-canvas"
             , HP.width (floor meterW)
@@ -520,7 +527,8 @@ handleAction = case _ of
         pure { a: 0.30 + (toNumber i + ra) * band, e: re * 0.35 }
       pure (map (\p -> computeMini 9.54e-4 p.a p.e) picks)
     socket <- H.liftEffect do
-      ws <- WS.create serviceUrl []
+      url <- serviceUrl
+      ws <- WS.create url []
       let target = WS.toEventTarget ws
       openL <- eventListener \_ -> HS.notify listener SocketOpened
       msgL <- eventListener (notifyMessage listener)

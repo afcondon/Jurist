@@ -21,3 +21,4 @@ package:
     - foldable-traversable
     - effect
     - console
+    - numexpr-core

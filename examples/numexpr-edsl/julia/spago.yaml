@@ -20,6 +20,7 @@ package:
     - strings
     - foldable-traversable
     - numexpr-core
+    - numexpr-staging
     - answer
 workspace:
   extraPackages:
@@ -27,6 +28,8 @@ workspace:
       path: ../../answer
     numexpr-core:
       path: ../core
+    numexpr-staging:
+      path: ../staging
   packageSet:
     registry: 57.1.0
   backend:

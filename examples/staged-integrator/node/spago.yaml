@@ -1,0 +1,24 @@
+package:
+  name: staged-integrator-node
+  description: >
+    The staged-integrator example's interpreter on the stock JavaScript
+    backend, to be compared line for line with the Julia run.
+  dependencies:
+    - prelude
+    - effect
+    - console
+    - arrays
+    - either
+    - foldable-traversable
+    - numexpr-core
+    - staged-systems
+workspace:
+  extraPackages:
+    atlas-core:
+      path: ../../stability-atlas/core
+    numexpr-core:
+      path: ../../numexpr-edsl/core
+    staged-systems:
+      path: ../systems
+  packageSet:
+    registry: 57.1.0

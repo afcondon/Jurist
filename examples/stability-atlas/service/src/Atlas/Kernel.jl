@@ -1,44 +1,19 @@
-# User FFI shim for module Atlas.Kernel — the hot leaf of the stability
-# atlas. The RK4 here mirrors Atlas.Dynamics.rk4Step OPERATION FOR
-# OPERATION (same IEEE doubles, same association); kernelProbe exposes it
-# so the PS side can verify that claim at boot against integrateSteps.
+# FFI for Atlas.Kernel.
 #
-# Threading: rows within a block run under Threads.@threads — launch the
-# service with `julia -t auto`. Each emit callback fires on the listener
-# task, once per row block (coarse grain, ADR-0007).
+# The plain survival sweep and the single-orbit trajectory are no longer
+# here: they are compiled from the description in Atlas.Survival (see
+# Atlas/Kernel.purs). What remains is the chaos-indicator sweep, which is
+# still written by hand, because the expression language has no conditional
+# yet and its tangent-vector renormalisation needs one. It is a hand-written
+# numerical method in a foreign file, which the family's seam rule forbids,
+# and it is held to native/kernel_fixed.jl by the service's check mode until
+# it can be replaced.
+#
+# Threading: rows within a block run under Threads.@threads; launch the
+# service with `julia -t auto`. Each emit callback fires once per row block.
 
-# --- dynamics (mirror of Atlas.Dynamics; keep in lockstep) -------------------
+# --- the chaos-indicator kernel, by hand -------------------------------------
 
-@inline function _accel(mu::Float64, x::Float64, y::Float64, vx::Float64, vy::Float64)
-    dx1 = x + mu
-    dx2 = x - 1.0 + mu
-    r1sq = dx1 * dx1 + y * y
-    r2sq = dx2 * dx2 + y * y
-    r1c = r1sq * Base.sqrt(r1sq)
-    r2c = r2sq * Base.sqrt(r2sq)
-    ax = x + 2.0 * vy - (1.0 - mu) * dx1 / r1c - mu * dx2 / r2c
-    ay = y - 2.0 * vx - (1.0 - mu) * y / r1c - mu * y / r2c
-    (ax, ay)
-end
-
-@inline function _rk4_step(mu::Float64, dt::Float64, x::Float64, y::Float64, vx::Float64, vy::Float64)
-    h = dt / 2.0
-    a1x, a1y = _accel(mu, x, y, vx, vy)
-    k2x = vx + h * a1x
-    k2y = vy + h * a1y
-    a2x, a2y = _accel(mu, x + h * vx, y + h * vy, k2x, k2y)
-    k3x = vx + h * a2x
-    k3y = vy + h * a2y
-    a3x, a3y = _accel(mu, x + h * k2x, y + h * k2y, k3x, k3y)
-    k4x = vx + dt * a3x
-    k4y = vy + dt * a3y
-    a4x, a4y = _accel(mu, x + dt * k3x, y + dt * k3y, k4x, k4y)
-    ( x + dt / 6.0 * (vx + 2.0 * k2x + 2.0 * k3x + k4x)
-    , y + dt / 6.0 * (vy + 2.0 * k2y + 2.0 * k3y + k4y)
-    , vx + dt / 6.0 * (a1x + 2.0 * a2x + 2.0 * a3x + a4x)
-    , vy + dt / 6.0 * (a1y + 2.0 * a2y + 2.0 * a3y + a4y)
-    )
-end
 
 # Acceleration AND the Jacobian entries of the variational equations
 # (Uxx, Uyy, Uxy of the effective potential), sharing the r¹/r³/r⁵ work.
@@ -144,33 +119,6 @@ function _survival_fli(mu::Float64, a::Float64, e::Float64, horizon::Float64, st
     1.0 + Base.round(Base.min(maxLog, 8.0) / 8.0; digits = 4)
 end
 
-# Survival fraction of the horizon for one pixel: 1.0 = survived, else
-# t_event/horizon. Events: heliocentric escape (r1 > 3) and Jupiter
-# close encounter (r2 < Hill radius).
-function _survival(mu::Float64, a::Float64, e::Float64, horizon::Float64, stepsPerPeriod::Float64)
-    rp = a * (1.0 - e)
-    x = rp - mu
-    y = 0.0
-    vx = 0.0
-    vy = Base.sqrt((1.0 - mu) * (1.0 + e) / rp) - x
-    dt = 2.0 * pi * (a * Base.sqrt(a)) / stepsPerPeriod   # a*sqrt(a), not a^1.5: sqrt is exactly rounded everywhere, pow is not — mirrors Atlas.Dynamics.asteroidPeriod
-    rHillSq = (mu / 3.0)^(2.0 / 3.0)
-    rEscSq = 9.0
-    t = 0.0
-    while t < horizon
-        x, y, vx, vy = _rk4_step(mu, dt, x, y, vx, vy)
-        t += dt
-        dx1 = x + mu
-        dx2 = x - 1.0 + mu
-        r1sq = dx1 * dx1 + y * y
-        r2sq = dx2 * dx2 + y * y
-        if r1sq > rEscSq || r2sq < rHillSq
-            return Base.round(t / horizon; digits = 4)
-        end
-    end
-    1.0
-end
-
 # --- instrumentation ---------------------------------------------------------
 
 # Wall clock of the last sweep, split at the ONE boundary that matters:
@@ -185,14 +133,14 @@ const SWEEP_PERF = Base.Dict{Base.String, Float64}(
 
 # --- foreigns ----------------------------------------------------------------
 
-# runSweepImpl :: SweepSpec -> (RowBlock -> Effect Unit) -> Effect Number
+# runSweepFliImpl :: SweepSpec -> (RowBlock -> Effect Unit) -> Effect Number
 #
 # Function barrier with @nospecialize(emit): every closure definition site
 # is its own Julia TYPE, so without this the whole sweep body (threads
 # machinery included) would re-JIT for each distinct callback — measured
 # as ~4 s on the first real sweep even after a warmup with a different
 # callback. emit fires once per row block; dynamic dispatch there is free.
-runSweepImpl(spec) = emit -> () -> _run_sweep(spec, emit)
+runSweepFliImpl(spec) = emit -> () -> _run_sweep(spec, emit)
 
 function _run_sweep(spec, @nospecialize(emit))
     t0 = Base.time_ns()
@@ -224,9 +172,7 @@ function _run_sweep(spec, @nospecialize(emit))
             rowvals = Base.Vector{Float64}(undef, cols)
             for c in 1:cols
                 a = aMin + da * (c - 1)
-                rowvals[c] = withFli ?
-                    _survival_fli(mu, a, e, horizon, stepsPerPeriod) :
-                    _survival(mu, a, e, horizon, stepsPerPeriod)
+                rowvals[c] = _survival_fli(mu, a, e, horizon, stepsPerPeriod)
             end
             block[r - r0 + 1] = rowvals
         end
@@ -248,73 +194,17 @@ function _run_sweep(spec, @nospecialize(emit))
     return total
 end
 
-# kernelProbe :: Number -> Number -> Int -> State -> State
-kernelProbe(mu) = dt -> steps -> s0 -> begin
-    x = s0["x"]::Float64
-    y = s0["y"]::Float64
-    vx = s0["vx"]::Float64
-    vy = s0["vy"]::Float64
-    for _ in 1:Base.Int(steps)
-        x, y, vx, vy = _rk4_step(mu, dt, x, y, vx, vy)
-    end
-    Base.Dict{Base.String, Any}("x" => x, "y" => y, "vx" => vx, "vy" => vy)
-end
+# nowMs :: Effect Number
+nowMs = () -> Base.time_ns() / 1.0e6
 
-# runTrajectoryImpl :: TrajSpec -> (Array Frame -> Effect Unit) -> Effect Unit
-# Same @nospecialize barrier as the sweep.
-runTrajectoryImpl(spec) = emit -> () -> _run_traj(spec, emit)
-
-const _TRAJ_BLOCK = 256
-
-function _run_traj(spec, @nospecialize(emit))
-    a = spec["a"]::Float64
-    e = spec["e"]::Float64
-    horizon = spec["horizonPeriods"]::Float64 * 2.0 * pi
-    mu = spec["mu"]::Float64
-    stride = Base.max(1, Base.Int(spec["frameStride"]))
-    stepsPerPeriod = 120.0   # mirror of Atlas.Dynamics.stepsPerPeriod
-
-    rp = a * (1.0 - e)
-    x = rp - mu
-    y = 0.0
-    vx = 0.0
-    vy = Base.sqrt((1.0 - mu) * (1.0 + e) / rp) - x
-    dt = 2.0 * pi * (a * Base.sqrt(a)) / stepsPerPeriod   # a*sqrt(a), not a^1.5: sqrt is exactly rounded everywhere, pow is not — mirrors Atlas.Dynamics.asteroidPeriod
-    rHillSq = (mu / 3.0)^(2.0 / 3.0)
-    rEscSq = 9.0
-
-    frame(t) = begin
-        dx1 = x + mu
-        dx2 = x - 1.0 + mu
-        r1 = Base.sqrt(dx1 * dx1 + y * y)
-        r2 = Base.sqrt(dx2 * dx2 + y * y)
-        jac = x * x + y * y + 2.0 * (1.0 - mu) / r1 + 2.0 * mu / r2 - vx * vx - vy * vy
-        Base.Dict{Base.String, Any}(
-            "t" => t, "x" => x, "y" => y, "vx" => vx, "vy" => vy, "jacobi" => jac)
-    end
-
-    block = Any[frame(0.0)]
-    t = 0.0
-    alive = true
-    while alive && t < horizon
-        for _ in 1:stride
-            x, y, vx, vy = _rk4_step(mu, dt, x, y, vx, vy)
-            t += dt
-            dx1 = x + mu
-            dx2 = x - 1.0 + mu
-            if dx1 * dx1 + y * y > rEscSq || dx2 * dx2 + y * y < rHillSq
-                alive = false
-                break
-            end
-        end
-        Base.push!(block, frame(t))
-        if Base.length(block) >= _TRAJ_BLOCK
-            emit(block)()
-            block = Any[]
-        end
-    end
-    if !Base.isempty(block)
-        emit(block)()
-    end
+# reportSweep :: { .. } -> Effect Unit
+# The `sweep-perf` line native/compare.jl reads from stderr.
+reportSweep(r) = () -> begin
+    Base.println(Base.stderr, "sweep-perf cols=", r["cols"], " rows=", r["rows"],
+        " fli=", r["fli"],
+        " total_ms=", r["total"],
+        " kernel_ms=", r["kernel"],
+        " emit_ms=", r["emit"])
+    Base.flush(Base.stderr)
     nothing
 end

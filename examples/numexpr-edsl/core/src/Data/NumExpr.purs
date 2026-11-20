@@ -34,6 +34,8 @@ module Data.NumExpr
   , logE
   , sqrtE
   , eval
+  , applyFn
+  , power
   , render
   , fnName
   ) where
@@ -45,7 +47,7 @@ import Prelude
 -- them, under a different name), shimmed one line per backend: `NumExpr.js`
 -- (Math.*), `NumExpr.erl` (math:* — purerl strands these in the deprecated
 -- `Math` package, not `Data.Number`, so we can't just import them), and the
--- purejl `ffi-jl/Data_NumExpr_foreign.jl` (Base.*). Everything else in core is
+-- purejl `NumExpr.jl` (Base.*). Everything else in core is
 -- pure PureScript, so the description and `integratePure` stay backend-agnostic.
 foreign import numPow :: Number -> Number -> Number
 foreign import numSin :: Number -> Number
@@ -121,6 +123,11 @@ eval env = go
     Neg a -> negate (go a)
     Pow a b -> numPow (go a) (go b)
     Ap f a -> applyFn f (go a)
+
+-- | `pow` as the reference interpreter computes it, for the other
+-- | denotations of an expression that must agree with `eval`.
+power :: Number -> Number -> Number
+power = numPow
 
 applyFn :: UnaryFn -> Number -> Number
 applyFn = case _ of

@@ -1,0 +1,14 @@
+package:
+  name: numexpr-staging
+  description: >
+    The Julia denotations that compile a description to native code:
+    Data.NumExpr.Julia (an expression to a function) and
+    Data.Simulation.Julia (a simulation to its run loop). A library with no
+    Main, so that other examples can depend on it; each module's Julia
+    foreign file sits beside its .purs.
+  dependencies:
+    - prelude
+    - effect
+    - arrays
+    - maybe
+    - numexpr-core

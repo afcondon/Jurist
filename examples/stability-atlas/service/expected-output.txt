@@ -1,0 +1,15 @@
+self-test: the compiled kernel and Atlas.Dynamics agree exactly after 2162 steps
+== survival sweep, 120 x 75, 150 periods ==
+  survivors: 8154 of 9000
+  identical to native/kernel_fixed.jl: 9000 of 9000
+== chaos-indicator sweep (hand-written kernel), 24 x 12, 30 periods ==
+  survivors: 262 of 288
+  identical to native/kernel_fixed.jl: 288 of 288
+== an orbit that survives (a = 0.4806, e = 0.12) ==
+  steps: 10806, frames: 2702
+  frames Atlas.Dynamics reproduces exactly: 2702 of 2702
+  largest relative drift of the Jacobi constant: 4.919448240863173e-7
+== an orbit that is lost (a = 0.7, e = 0.3) ==
+  steps: 3395, frames: 850
+  frames Atlas.Dynamics reproduces exactly: 850 of 850
+  largest relative drift of the Jacobi constant: 7.861813705918356e-7

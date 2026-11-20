@@ -3,12 +3,11 @@
 -- | (−μ, 0), Jupiter (mass μ) at (1−μ, 0), Jupiter's period 2π. For the
 -- | Sun–Jupiter system μ ≈ 9.54·10⁻⁴.
 -- |
--- | This module is PURE PureScript — the develop-anywhere denotation. The
--- | service's threaded Julia sweep kernel mirrors `rk4Step` operation for
--- | operation (same IEEE doubles, same association), is cross-checked
--- | against it at boot, and the browser reuses this exact code for the
--- | honesty meter. One description; the production executor must agree
--- | with it to the last bit.
+-- | This module is pure PureScript, and it is what the browser steps an
+-- | orbit with. The service's kernel is compiled from `Atlas.Survival`,
+-- | which spells the same physics as a description; the two perform the
+-- | same IEEE operations in the same order, and the service checks that
+-- | they reach equal states before it serves anyone.
 module Atlas.Dynamics
   ( State
   , initialState
@@ -57,7 +56,8 @@ accel mu x y vx vy =
     , ay: y - 2.0 * vx - (1.0 - mu) * y / r1c - mu * y / r2c
     }
 
--- | One fixed-step RK4 step. The Julia kernel mirrors this exactly.
+-- | One fixed-step RK4 step. The step `Data.Simulation` builds from
+-- | `Atlas.Survival` performs the same operations in the same order.
 rk4Step :: Number -> Number -> State -> State
 rk4Step mu dt s =
   let

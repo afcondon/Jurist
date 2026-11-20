@@ -527,6 +527,9 @@
     "extra_packages": {
       "atlas-core": {
         "path": "../core"
+      },
+      "numexpr-core": {
+        "path": "../../numexpr-edsl/core"
       }
     }
   },
@@ -565,6 +568,7 @@
         "lists",
         "maybe",
         "numbers",
+        "numexpr-core",
         "prelude",
         "strings",
         "tuples"
@@ -668,6 +672,17 @@
         "prelude",
         "tuples",
         "unfoldable"
+      ]
+    },
+    "exceptions": {
+      "type": "registry",
+      "version": "6.1.0",
+      "integrity": "sha256-nRrr+N0wk0TUFOWLR7e1n1oxcXo/X345bQUtoY9lW6A=",
+      "dependencies": [
+        "effect",
+        "either",
+        "maybe",
+        "prelude"
       ]
     },
     "exists": {
@@ -844,6 +859,45 @@
         "prelude"
       ]
     },
+    "numexpr-core": {
+      "type": "local",
+      "path": "../../numexpr-edsl/core",
+      "dependencies": [
+        "arrays",
+        "either",
+        "foldable-traversable",
+        "lists",
+        "maybe",
+        "ordered-collections",
+        "partial",
+        "prelude",
+        "record",
+        "st",
+        "transformers",
+        "tuples"
+      ]
+    },
+    "ordered-collections": {
+      "type": "registry",
+      "version": "3.2.0",
+      "integrity": "sha256-NaEXc2cz/7lJfxPWEja4XlZbGxuRqJwFKQJjsJf51kQ=",
+      "dependencies": [
+        "arrays",
+        "control",
+        "foldable-traversable",
+        "functions",
+        "gen",
+        "lists",
+        "maybe",
+        "newtype",
+        "partial",
+        "prelude",
+        "safe-coerce",
+        "tailrec",
+        "tuples",
+        "unfoldable"
+      ]
+    },
     "orders": {
       "type": "registry",
       "version": "6.0.0",
@@ -878,6 +932,16 @@
         "newtype",
         "prelude",
         "tuples"
+      ]
+    },
+    "record": {
+      "type": "registry",
+      "version": "4.0.0",
+      "integrity": "sha256-WQ8fqp4X1wTA70J4qUcPW4Z7DCwx6e5KJnT/EuTdWSc=",
+      "dependencies": [
+        "functions",
+        "prelude",
+        "unsafe-coerce"
       ]
     },
     "refs": {
@@ -945,6 +1009,28 @@
         "partial",
         "prelude",
         "refs"
+      ]
+    },
+    "transformers": {
+      "type": "registry",
+      "version": "6.1.0",
+      "integrity": "sha256-QJmgNT/y7ljPHSsXaW4zxF/982BFiQ90KNL1g/NtEOQ=",
+      "dependencies": [
+        "control",
+        "distributive",
+        "effect",
+        "either",
+        "exceptions",
+        "foldable-traversable",
+        "identity",
+        "lazy",
+        "maybe",
+        "newtype",
+        "prelude",
+        "st",
+        "tailrec",
+        "tuples",
+        "unfoldable"
       ]
     },
     "tuples": {

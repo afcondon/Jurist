@@ -15,8 +15,10 @@
 -- | whole expression crosses *once* as a description, and Julia metaprograms
 -- | it into a native function (`docs/julia-shaped-libraries.md`, ADR-0007).
 -- |
--- | This module is **backend-agnostic** — it holds no `foreign import`s, so it
--- | compiles on any PureScript backend (JS/Node, the BEAM, purejl). The Julia
+-- | This module is **backend-agnostic**: it compiles on any PureScript
+-- | backend (JS/Node, the BEAM, purejl, purepy). Its only foreign imports
+-- | are six one-line math functions (`pow`, `sin`, `cos`, `exp`, `log`,
+-- | `sqrt`), which each runtime supplies under its own name. The Julia
 -- | *denotation* of a `NumExpr` (the `JExpr` builders, `compile`, `evalBatch`)
 -- | lives in the companion `Data.NumExpr.Julia`, which folds the AST exported
 -- | here through Julia builders — "constructors across, handles back"
@@ -33,6 +35,9 @@ module Data.NumExpr
   , expE
   , logE
   , sqrtE
+  , ifGreater
+  , larger
+  , smaller
   , eval
   , applyFn
   , power
@@ -43,12 +48,16 @@ module Data.NumExpr
 import Prelude
 
 -- The reference interpreter's transcendental primitives. These are the *only*
--- foreign imports in `core` — the irreducible machine math (every backend has
--- them, under a different name), shimmed one line per backend: `NumExpr.js`
--- (Math.*), `NumExpr.erl` (math:* — purerl strands these in the deprecated
--- `Math` package, not `Data.Number`, so we can't just import them), and the
--- purejl `NumExpr.jl` (Base.*). Everything else in core is
--- pure PureScript, so the description and `integratePure` stay backend-agnostic.
+-- foreign imports in `core`: the machine math every backend has under a
+-- different name, one line per backend in `NumExpr.js` (Math.*),
+-- `NumExpr.erl` (math:*), `NumExpr.jl` (Base.*) and purepy's
+-- `Data_NumExpr_foreign.py` (math.*).
+--
+-- They are not taken from `Data.Number` because the BEAM column cannot: its
+-- package set (purerl erl-0.15.3-20220629) pins `numbers` v8.0.0, from
+-- before these functions moved there out of the `Math` package (checked
+-- 2026-11-20). One source for every backend means the lowest common
+-- denominator, and here that is a foreign line each.
 foreign import numPow :: Number -> Number -> Number
 foreign import numSin :: Number -> Number
 foreign import numCos :: Number -> Number
@@ -70,6 +79,10 @@ data NumExpr
   | Neg NumExpr
   | Pow NumExpr NumExpr
   | Ap UnaryFn NumExpr
+  -- | `IfGreater a b whenTrue whenFalse`: `whenTrue` if `a > b`, otherwise
+  -- | `whenFalse`. Both are numbers, so there is no boolean to carry. If
+  -- | either of `a`, `b` is not a number the comparison is false.
+  | IfGreater NumExpr NumExpr NumExpr NumExpr
 
 -- Ergonomic numeric syntax: `+`, `*`, and (via Ring) `-` build the AST.
 instance semiringNumExpr :: Semiring NumExpr where
@@ -108,6 +121,18 @@ logE = Ap Log
 sqrtE :: NumExpr -> NumExpr
 sqrtE = Ap Sqrt
 
+-- | `ifGreater a b whenTrue whenFalse`: a choice between two values.
+ifGreater :: NumExpr -> NumExpr -> NumExpr -> NumExpr -> NumExpr
+ifGreater = IfGreater
+
+-- | The larger of two values; the second if they are equal or unordered.
+larger :: NumExpr -> NumExpr -> NumExpr
+larger a b = IfGreater a b a b
+
+-- | The smaller of two values; the second if they are equal or unordered.
+smaller :: NumExpr -> NumExpr -> NumExpr
+smaller a b = IfGreater b a a b
+
 -- | Reference interpreter — the structural semantics the staged, compiled
 -- | function must reproduce.
 eval :: (String -> Number) -> NumExpr -> Number
@@ -123,6 +148,7 @@ eval env = go
     Neg a -> negate (go a)
     Pow a b -> numPow (go a) (go b)
     Ap f a -> applyFn f (go a)
+    IfGreater a b whenTrue whenFalse -> if go a > go b then go whenTrue else go whenFalse
 
 -- | `pow` as the reference interpreter computes it, for the other
 -- | denotations of an expression that must agree with `eval`.
@@ -149,6 +175,8 @@ render expr = case expr of
   Neg a -> "(-" <> render a <> ")"
   Pow a b -> bin "^" a b
   Ap f a -> fnName f <> "(" <> render a <> ")"
+  IfGreater a b whenTrue whenFalse ->
+    "(" <> render a <> " > " <> render b <> " ? " <> render whenTrue <> " : " <> render whenFalse <> ")"
   where
   bin op a b = "(" <> render a <> " " <> op <> " " <> render b <> ")"
 

@@ -2,10 +2,14 @@
 -- | placeholders. The production interpreters live in the Julia workspaces
 -- | (petri-catlab, catlab-patterns, catlab-migration), each of which supplies
 -- | a `Data.Verbs` with the same signature wrapping the real Catlab call in
--- | `Computed`. Here the verbs answer `Deferred` with a rendering of the
--- | description they would consume: the host can hold, type-check, display
--- | and pipeline the computation; the answers arrive when the same
--- | description reaches the Julia denotation (ADR-0007).
+-- | `Computed`. Here `matches` and `moduleGraph` answer `Deferred` with a
+-- | rendering of the description they would consume: the host can hold,
+-- | type-check, display and pipeline the computation; the answers arrive
+-- | when the same description reaches the Julia denotation (ADR-0007).
+-- |
+-- | `odeLaws` is `Computed` here too: the laws are read off the net by
+-- | `Data.Petri.massActionLaws`, which is plain PureScript. Until November
+-- | 2026 it was `Deferred`, which claimed a dependence on Julia it never had.
 module Data.Verbs
   ( odeLaws
   , matches
@@ -18,17 +22,11 @@ import Data.Answer (Answer(..))
 import Data.Array (length)
 import Data.Migration (CodeGraph)
 import Data.Pattern (Graph, Motif)
-import Data.Petri (PetriSpec)
+import Data.Petri (PetriSpec, massActionLaws)
 import Effect (Effect)
 
 odeLaws :: PetriSpec -> Effect (Answer (Array String))
-odeLaws spec = pure
-  ( Deferred
-      ( "mass-action ODE laws of the net (" <> show (length spec.species)
-          <> " species, " <> show (length spec.transitions)
-          <> " transitions), derived functorially — AlgebraicPetri, on the Julia runtime"
-      )
-  )
+odeLaws spec = pure (Computed (massActionLaws spec))
 
 matches :: Graph -> Motif -> Effect (Answer (Array (Array Int)))
 matches g p = pure

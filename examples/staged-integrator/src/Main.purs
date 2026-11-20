@@ -28,12 +28,15 @@ foreign import writeText :: String -> String -> Effect Unit
 main :: Effect Unit
 main = do
   traverse_ check cases
-  case simulation Atlas.survival of
-    Left problem -> log ("three-body kernel: " <> problem)
+  write "cr3bp-survival.jl" "the three-body run" Atlas.survival
+  write "cr3bp-chaos.jl" "the three-body run with its chaos indicator" Atlas.chaos
+  where
+  write file what spec = case simulation spec of
+    Left problem -> log (what <> ": " <> problem)
     Right sim -> do
       compiled <- Julia.compile sim
-      writeText "cr3bp-survival.jl" (Julia.source compiled <> "\n")
-      log "wrote cr3bp-survival.jl, the function Julia compiled for the three-body run"
+      writeText file (Julia.source compiled <> "\n")
+      log ("wrote " <> file <> ", the function Julia compiled for " <> what)
 
 -- Run every row of inputs through both denotations and say whether they
 -- agree, exactly, on how each run ended and on every frame of the first.
@@ -56,11 +59,12 @@ check { title, spec, rows } = do
       log ("  end times identical:  " <> show (map _.time interpreted == swept.times))
       log ("  events identical:     " <> show (map eventIndex interpreted == swept.events))
       log ("  step counts identical: " <> show (map _.steps interpreted == swept.steps))
+      log ("  final states identical: " <> show (map _.state interpreted == swept.states))
       for_ (Array.head rows) \inputs -> do
         compiledRun <- Julia.simulate compiled inputs
         let reference = simulate sim inputs
         traverse_ log (report reference)
-        log ("  final state identical: " <> show (reference.state == compiledRun.state))
+        log ("  the same run alone, identical: " <> show (reference.state == compiledRun.state && reference.time == compiledRun.time))
         frames <- Julia.trajectory compiled 7 inputs
         let interpretedFrames = trajectory sim 7 inputs
         log ("  frames at stride 7: " <> show (length interpretedFrames)

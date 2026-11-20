@@ -851,7 +851,13 @@
       "type": "local",
       "path": "../../petri-catlab/core",
       "dependencies": [
-        "prelude"
+        "arrays",
+        "foldable-traversable",
+        "integers",
+        "maybe",
+        "prelude",
+        "strings",
+        "tuples"
       ]
     },
     "prelude": {

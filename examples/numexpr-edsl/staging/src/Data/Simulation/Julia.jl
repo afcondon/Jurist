@@ -11,9 +11,10 @@
 #     run(input::Vector{Float64})            -> (time, event, steps, state...)
 #     record(input::Vector{Float64}, stride) -> Vector of (time, state...)
 #
-# Names: slot i of the start program is a<i>, of the step program b<i>.
-# The step program's inputs are the state, then the constants, then the
-# time step, so b0..b(ns-1) are the state the loop carries.
+# Names: slot i of the start program is a<i>, of the step program b<i>, of
+# the kth update u<k>_<i>. The step program's inputs are the state, then
+# the constants, then the time step, so b0..b(ns-1) are the state the loop
+# carries; an update's inputs are the state and the constants.
 
 import RuntimeGeneratedFunctions
 RuntimeGeneratedFunctions.init(@__MODULE__)
@@ -66,6 +67,21 @@ function _simulation_expr(spec, record::Bool)
             fired = $(k - 1)
         end))
     end
+    for update in spec["updates"]
+        u(i) = Base.Symbol(update["prefix"], i)
+        block = Base.Any[]
+        for j in 1:(ns + nc)
+            Base.push!(block, Base.Expr(:(=), u(j - 1), b(j - 1)))
+        end
+        Base.append!(block, update["body"])
+        Base.push!(block, Base.Expr(:(=),
+            Base.Expr(:tuple, [b(j - 1) for j in 1:ns]...),
+            Base.Expr(:tuple, [float(update["outputs"][j]) for j in 1:ns]...)))
+        every = Base.Int(update["every"])
+        Base.push!(loop, :(if fired < 0 && steps % $every == 0
+            $(Base.Expr(:block, block...))
+        end))
+    end
     if record
         Base.push!(loop, :(if fired >= 0 || steps % stride == 0
             $push(frames, $frame)
@@ -110,23 +126,28 @@ end
 
 # sweepJ :: Compiled -> Array (Array Number) -> Effect Sweep
 # One run per row, across the threads Julia was started with.
-sweepJ(compiled) = rows -> () -> _sweep(compiled[1], [_floats(r) for r in rows])
+sweepJ(compiled) = rows -> () -> _sweep(compiled[1], [_floats(r) for r in rows], compiled[4])
 
-function _sweep(run, rows::Base.Vector{Base.Vector{Float64}})
+function _sweep(run, rows::Base.Vector{Base.Vector{Float64}}, ns::Base.Int)
     n = Base.length(rows)
     times = Base.Vector{Float64}(undef, n)
     events = Base.Vector{Base.Int}(undef, n)
     steps = Base.Vector{Base.Int}(undef, n)
+    states = Base.Matrix{Float64}(undef, ns, n)
     Base.Threads.@threads for i in 1:n
         r = run(rows[i])
         times[i] = r[1]
         events[i] = r[2]
         steps[i] = r[3]
+        for j in 1:ns
+            states[j, i] = r[3 + j]
+        end
     end
     Base.Dict{Base.String, Base.Any}(
         "times" => Base.Any[x for x in times],
         "events" => Base.Any[x for x in events],
-        "steps" => Base.Any[x for x in steps])
+        "steps" => Base.Any[x for x in steps],
+        "states" => Base.Any[Base.Any[states[j, i] for j in 1:ns] for i in 1:n])
 end
 
 # trajectoryJ :: Compiled -> Int -> Array Number -> Effect (Array Frame)

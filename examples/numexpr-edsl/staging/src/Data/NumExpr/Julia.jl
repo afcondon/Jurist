@@ -22,6 +22,10 @@ jDiv(a) = b -> Base.Expr(:call, :/, a, b)
 jNeg(a) = Base.Expr(:call, :-, a)
 jPow(a) = b -> Base.Expr(:call, :^, a, b)
 jApp(name) = a -> Base.Expr(:call, Base.Symbol(name), a)
+# ifelse evaluates both values and has no branch, which is what a
+# straight-line program means by a choice.
+jSelect(a) = b -> t -> f ->
+    Base.Expr(:call, Base.GlobalRef(Base, :ifelse), Base.Expr(:call, :>, a, b), t, f)
 
 # compileJ vars jexpr : Effect Compiled
 # Generate  (v1, v2, …) -> <jexpr>  as a RuntimeGeneratedFunction: native and

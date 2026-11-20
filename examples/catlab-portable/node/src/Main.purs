@@ -1,8 +1,9 @@
 -- | The same descriptions the Julia workspaces compute from — `sir`,
 -- | `depGraph`/`circular`, `codeGraph` are imported from the shared cores, not
--- | copied — run against this runtime's `Data.Verbs`. Every answer here is
--- | `Deferred`: an honest, typed IOU naming the production interpreter that
--- | will compute it (ADR-0007).
+-- | copied — run against this runtime's `Data.Verbs`. `odeLaws` is computed
+-- | here, in plain PureScript. The other two answer `Deferred`: an honest,
+-- | typed IOU naming the production interpreter that will compute it
+-- | (ADR-0007).
 module Main where
 
 import Prelude

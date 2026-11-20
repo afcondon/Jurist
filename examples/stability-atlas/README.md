@@ -69,19 +69,29 @@ performs the same IEEE operations in the same order. `service` checks this
 every time it starts, and `julia output-jl/main.jl check` prints the fuller
 account that `bin/demos.py` holds to `service/expected-output.txt`:
 
-- the survival sweep matches the hand-written kernel, kept as
-  `native/kernel_fixed.jl`, on 9,000 of 9,000 pixels of the default sweep;
+- the survival sweep and the chaos-indicator sweep each match the
+  hand-written kernels, kept as `native/kernel_fixed.jl`, on 9,000 of 9,000
+  pixels of the default sweep;
+- the chaos-indicator run interpreted in PureScript ends an orbit in exactly
+  the state the compiled one does;
 - every frame of two orbits, one that survives and one that is lost, is
   exactly the state `Atlas.Dynamics` reaches after the same number of steps.
 
 "Call `OrdinaryDiffEq.solve`" and "the browser reproduces the kernel bit for
 bit" still cannot both be true, and `native/` is where that choice was priced.
 
-**The chaos-indicator layer is still hand-written.** `withFli` sweeps run
-`service/src/Atlas/Kernel.jl`, a Julia kernel that integrates a tangent
-vector alongside the orbit and renormalises it every 16 steps. That needs a
-conditional, which the expression language does not have yet. It is held to
-`native/kernel_fixed.jl` by the same check until it can be replaced.
+**The chaos-indicator layer is generated too** (since 2026-11-20).
+`Atlas.Survival.chaos` is the survival run with a tangent vector carried
+along the orbit, two held variables and an update every 16 steps that
+remembers the largest length seen and scales the vector back when it passes
+1e12. The service's foreign file for the kernel now holds a clock and a log
+line. One difference from the hand-written kernel is deliberate: it takes
+log10 as the natural logarithm over ln 10, because the expression language
+has no log10. The 9,000 painted values are identical all the same. On an M4
+Mac Mini with 4 threads the generated chaos kernel takes 1.16 of the
+hand-written one's time on the default sweep (4,748 ms against 4,100 ms),
+where the survival kernel takes 0.92; why the chaos one is slower has not
+been looked into.
 
 **The browser still steps with `Atlas.Dynamics`,** a second spelling of the
 same physics in PureScript, and not with the interpreter of the description.

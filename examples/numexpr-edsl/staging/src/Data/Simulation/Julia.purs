@@ -27,9 +27,9 @@ import Prelude
 import Data.Array (length, mapWithIndex)
 import Data.Maybe (Maybe(..))
 import Data.NumExpr (fnName)
-import Data.NumExpr.Julia (JExpr, jAdd, jApp, jDiv, jLit, jMul, jNeg, jPow, jSub, jVar)
+import Data.NumExpr.Julia (JExpr, jAdd, jApp, jDiv, jLit, jMul, jNeg, jPow, jSelect, jSub, jVar)
 import Data.NumExpr.Program (BinaryOp(..), Instruction(..), Operand(..), Program, inputCount, instructions, outputs)
-import Data.Simulation (Frame, Outcome, Simulation, constantNames, eventNames, inputNames, startProgram, stateNames, stepProgram)
+import Data.Simulation (Frame, Outcome, Simulation, constantNames, eventNames, inputNames, startProgram, stateNames, stepProgram, updatePrograms)
 import Effect (Effect)
 
 -- | A simulation compiled to native Julia code.
@@ -47,6 +47,7 @@ type Lowered =
   , startOutputs :: Array JExpr
   , step :: Array JExpr
   , stepOutputs :: Array JExpr
+  , updates :: Array { every :: Int, prefix :: String, body :: Array JExpr, outputs :: Array JExpr }
   }
 
 foreign import compileJ :: Lowered -> Effect Compiled
@@ -63,12 +64,16 @@ foreign import sourceJ :: Compiled -> String
 
 -- The two programs use separate families of names, so that the step can
 -- read what the start computed without either shadowing the other. Slot
--- `i` of the start program is `a<i>`, of the step program `b<i>`.
+-- `i` of the start program is `a<i>`, of the step program `b<i>`, and of
+-- the `k`th update `u<k>_<i>`.
 startPrefix :: String
 startPrefix = "a"
 
 stepPrefix :: String
 stepPrefix = "b"
+
+updatePrefix :: Int -> String
+updatePrefix k = "u" <> show k <> "_"
 
 operand :: String -> Operand -> JExpr
 operand prefix = case _ of
@@ -88,6 +93,7 @@ statements prefix program = mapWithIndex assign (instructions program)
       Binary Power a b -> jPow (at a) (at b)
       Negate a -> jNeg (at a)
       Apply f a -> jApp (fnName f) (at a)
+      Select a b t f -> jSelect (at a) (at b) (at t) (at f)
 
 -- | Compile a simulation, once. The result runs any number of inputs.
 compile :: Simulation -> Effect Compiled
@@ -100,6 +106,15 @@ compile sim = compileJ
   , startOutputs: map (operand startPrefix) (outputs (startProgram sim))
   , step: statements stepPrefix (stepProgram sim)
   , stepOutputs: map (operand stepPrefix) (outputs (stepProgram sim))
+  , updates: mapWithIndex
+      ( \k update ->
+          { every: update.every
+          , prefix: updatePrefix k
+          , body: statements (updatePrefix k) update.program
+          , outputs: map (operand (updatePrefix k)) (outputs update.program)
+          }
+      )
+      (updatePrograms sim)
   }
 
 -- | One run. Same inputs, same outcome as `Data.Simulation.simulate`.
@@ -112,8 +127,14 @@ simulate compiled inputs = simulateJ compiled inputs <#> \raw ->
   }
 
 -- | How each run of a sweep ended, as columns: `events` holds the index of
--- | the event that fired, or -1 where the run reached its horizon.
-type Sweep = { times :: Array Number, events :: Array Int, steps :: Array Int }
+-- | the event that fired, or -1 where the run reached its horizon, and
+-- | `states` the state each run ended in.
+type Sweep =
+  { times :: Array Number
+  , events :: Array Int
+  , steps :: Array Int
+  , states :: Array (Array Number)
+  }
 
 -- | Many runs, one per row of inputs, on every thread Julia was started
 -- | with. The seam is crossed once for the whole batch.

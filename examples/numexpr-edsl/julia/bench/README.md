@@ -1,5 +1,19 @@
 # bench — does starting on the PureScript side cost anything? (ADR-0007)
 
+> **What this does and does not measure (note added 2026-11-20).**
+> `overhead.jl` writes its "staged" variants by hand inside the script, in the
+> shape the foreign file emits. It runs nothing that PureScript produced, so
+> the 1.006× below is a measurement of that shape, not of the shipping path,
+> and the labels "what the FFI emits today" and "the SHIPPING path" claim more
+> than the script does. The figures are from June 2026 and have not been
+> re-run.
+>
+> The measurement of code PureScript actually emitted is
+> `examples/staged-integrator/compare-with-hand-kernel.jl`, which times the
+> recorded kernel text against the stability atlas's hand-written kernels on
+> the atlas's default sweep: 0.92 of the hand-written time for the survival
+> kernel and 1.16 for the chaos-indicator kernel (M4, 4 threads, 2026-11-20).
+
 The keystone performance question for the "descriptions across, handles back"
 doctrine: a computation is *described* in typed PureScript and crosses the FFI
 seam once, then runs on Julia. Does that staging cost anything in the hot loop

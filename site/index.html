@@ -184,7 +184,7 @@
   , z: s.x * s.y - p.beta * s.z
   }
 
-<span class="cm">-- the pure denotation: plain PureScript, no FFI —</span>
+<span class="cm">-- the pure denotation: plain PureScript —</span>
 <span class="cm">-- it compiles on ANY backend</span>
 orbit = integratePure lorenz
   { x: <span class="li">1.0</span>, y: <span class="li">1.0</span>, z: <span class="li">1.0</span> }
@@ -228,9 +228,12 @@ orbit = integratePure lorenz
     <p class="why">In Cartesian coordinates the rod tensions are <strong>algebraic variables</strong> —
       no time derivative, closed by rigidity constraints. That makes this a
       <strong>differential-algebraic system</strong>, which <code>scipy.solve_ivp</code> and every
-      JS ODE library structurally cannot solve. ModelingToolkit derives the
-      index-1 form symbolically; an implicit stiff solver holds the rods rigid
-      to ~10⁻⁸ through fully chaotic motion.</p>
+      JS ODE library structurally cannot solve. The description states each
+      rigidity constraint already differentiated twice, which is what makes it
+      index-1: that reduction is done by hand, in the PureScript on the left,
+      not by ModelingToolkit. ModelingToolkit simplifies the system, and an
+      implicit stiff solver holds the rods rigid to ~10⁻⁸ through fully chaotic
+      motion.</p>
     <div class="panes">
     <section class="pane left">
       <h2>The PureScript you write</h2>
@@ -530,13 +533,15 @@ fallingBodyBad = system \s p ->
   }
 
 samples <- solve spec <span class="li">0.0</span> <span class="li">200.0</span> <span class="li">200</span>
-laws    <- odeLaws spec   <span class="cm">-- derived, typeset</span>
+<span class="kw">let</span> laws = massActionLaws spec   <span class="cm">-- plain PureScript</span>
 </pre>
       <p class="seam">The trajectory on the right is integrated from the vector field
         AlgebraicPetri derives <em>functorially</em> from the net. The typeset laws
-        beside it are a separate, plain mass-action reading of the same
-        stoichiometry, built as strings by this example's own code: they describe
-        what is integrated, they are not its output.</p>
+        beside it are a separate mass-action reading of the same stoichiometry,
+        written out in PureScript: they are not the library's output. The example
+        checks one against the other: at each of the 201 states the solver
+        returns, the rates the written laws give match AlgebraicPetri's vector
+        field.</p>
     </section>
 
     <section class="pane">
@@ -736,7 +741,7 @@ agg = aggregate raw
     </div>
     <div class="ibox wide">
       <code>integratePure lorenz s0 ps dt n</code>
-      <div class="note">the orbit, by a pure-PureScript RK4 — no FFI anywhere</div>
+      <div class="note">the orbit, by a pure-PureScript RK4 — no foreign code in the integrator</div>
       <span class="chip on">node</span><span class="chip on">beam</span><span class="chip on">julia</span>
     </div>
   </div>
@@ -775,8 +780,8 @@ agg = aggregate raw
     </div>
     <div class="ibox">
       <code>odeLaws sir</code>
-      <div class="note">mass-action ODEs, read off the stoichiometry</div>
-      <span class="chip def">node</span><span class="chip def">beam</span><span class="chip jl">julia</span>
+      <div class="note">mass-action ODEs, read off the stoichiometry in plain PureScript</div>
+      <span class="chip on">node</span><span class="chip on">beam</span><span class="chip on">julia</span>
     </div>
     <div class="ibox">
       <code>matches depGraph motif</code>

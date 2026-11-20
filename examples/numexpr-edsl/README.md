@@ -16,9 +16,10 @@ numexpr-edsl/
           Data.SystemSpec  (row-typed ODE surface, `system`, + integratePure:
                             a pure-PureScript RK4 that runs on ANY backend)
           Data.NumExpr.Program (expressions flattened to instructions, with
-                            sharing; a pure interpreter)
-          Data.Simulation  (a run with events as a description; the RK4 step
-                            built as a Program; `simulate`, `trajectory`)
+                            sharing and a branch-free choice; a pure interpreter)
+          Data.Simulation  (a run as a description: rates, events, held
+                            variables and periodic updates; the RK4 step built
+                            as a Program; `simulate`, `trajectory`)
   staging/ numexpr-staging — the Julia denotations that compile a description
           to native code, as a library other examples can depend on:
           Data.NumExpr.Julia    (JExpr builders, compile, evalBatch)
@@ -70,7 +71,8 @@ the Node and BEAM runs (same `lorenz`, maxZ ≈ 47.834 on all three pure runtime
    system of ODEs: state space and parameters are PureScript rows, so the RHS is
    written with typed field access (`s.x`, `p.sigma`; a misspelt `s.q` is a
    compile error). Two denotations of the *same* `lorenz`:
-   - **`integratePure`** (core, no FFI) — a pure-PureScript RK4 that runs on
+   - **`integratePure`** (core; no foreign code but six one-line math
+     functions) — a pure-PureScript RK4 that runs on
      Node, the BEAM, or purejl. The develop-anywhere prototype executor.
    - **`Data.SystemSpec.Julia.integrate`** (julia) — the vector field compiled to
      one fused native RGF and integrated by a native RK4. The production executor.
@@ -93,8 +95,9 @@ the Node and BEAM runs (same `lorenz`, maxZ ≈ 47.834 on all three pure runtime
    `alg` row of *algebraic variables* (the rod tensions, no time derivative) and
    one closing *constraint* per algebraic variable — the constraint lambda
    returns a `Record alg`, so the type system pins exactly one constraint per
-   tension (a well-posed index-1 DAE by construction). MTK denotes it, derives
-   the constraints, and an **implicit stiff solver** (`Rodas5P`) holds the rigid
+   tension (a well-posed index-1 DAE by construction: each constraint is the
+   rigidity condition differentiated twice, by hand, in the description). MTK
+   denotes it and simplifies it, and an **implicit stiff solver** (`Rodas5P`) holds the rigid
    rods to ~1e-8 through fully chaotic motion — something no plain ODE integrator,
    and no `scipy.solve_ivp` (no DAE/algebraic-variable support), can do. The
    trajectory is written to JSON and rendered by a Hylograph frontend (see

@@ -11,6 +11,7 @@
             "effect",
             "foldable-traversable",
             "maybe",
+            "numbers",
             "petri-core",
             "prelude",
             "strings",
@@ -25,7 +26,13 @@
         "path": "core",
         "core": {
           "dependencies": [
-            "prelude"
+            "arrays",
+            "foldable-traversable",
+            "integers",
+            "maybe",
+            "prelude",
+            "strings",
+            "tuples"
           ]
         },
         "test": {

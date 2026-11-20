@@ -1,13 +1,28 @@
 package:
   name: lorenz-leaf
+  description: >
+    The Lorenz system as a description in PureScript, compiled by Julia to a
+    native integration loop. The example has no foreign code of its own.
   dependencies:
+    - argonaut-core
     - arrays
     - console
     - effect
+    - either
     - foldable-traversable
-    - functions
+    - foreign-object
+    - integers
+    - maybe
+    - numexpr-core
+    - numexpr-staging
     - prelude
+    - tuples
 workspace:
+  extraPackages:
+    numexpr-core:
+      path: ../numexpr-edsl/core
+    numexpr-staging:
+      path: ../numexpr-edsl/staging
   packageSet:
     registry: 57.1.0
   backend:

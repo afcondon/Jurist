@@ -17,6 +17,9 @@
 -- | Two instructions that apply the same operation to the same operands are
 -- | merged when the program is built. Nothing is reassociated, folded or
 -- | simplified: `a + b` and `b + a` stay two instructions.
+-- |
+-- | There is no jump. A choice (`Select`) computes both of its values and
+-- | keeps one, so every run of a program performs the same instructions.
 module Data.NumExpr.Program
   ( Program
   , Operand(..)
@@ -67,6 +70,9 @@ data Instruction
   = Binary BinaryOp Operand Operand
   | Negate Operand
   | Apply UnaryFn Operand
+  -- | `Select a b whenTrue whenFalse`: `whenTrue` if `a > b`, otherwise
+  -- | `whenFalse`.
+  | Select Operand Operand Operand Operand
 
 newtype Program = Program
   { inputs :: Int
@@ -134,6 +140,12 @@ lower scope = go
     Pow a b -> binary Power a b
     Neg a -> go a >>= Negate >>> emit
     Ap f a -> go a >>= Apply f >>> emit
+    IfGreater a b whenTrue whenFalse -> do
+      x <- go a
+      y <- go b
+      t <- go whenTrue
+      f <- go whenFalse
+      emit (Select x y t f)
   binary op a b = do
     x <- go a
     y <- go b
@@ -163,6 +175,7 @@ instructionKey = case _ of
   Binary op a b -> opName op <> " " <> operandKey a <> " " <> operandKey b
   Negate a -> "neg " <> operandKey a
   Apply f a -> fnName f <> " " <> operandKey a
+  Select a b t f -> "select " <> operandKey a <> " " <> operandKey b <> " " <> operandKey t <> " " <> operandKey f
 
 operandKey :: Operand -> String
 operandKey = case _ of
@@ -194,6 +207,7 @@ run (Program p) inputs = map (operandIn slots) p.outputs
       Binary op a b -> apply2 op <$> read cells a <*> read cells b
       Negate a -> negate <$> read cells a
       Apply f a -> applyFn f <$> read cells a
+      Select a b t f -> choose <$> read cells a <*> read cells b <*> read cells t <*> read cells f
     unsafePartial (STPartial.poke target value cells)
 
   read :: forall h. STArray h Number -> Operand -> ST h Number
@@ -205,6 +219,9 @@ run (Program p) inputs = map (operandIn slots) p.outputs
   operandIn values = case _ of
     Constant n -> n
     Slot i -> unsafePartial (Array.unsafeIndex values i)
+
+choose :: Number -> Number -> Number -> Number -> Number
+choose a b whenTrue whenFalse = if a > b then whenTrue else whenFalse
 
 apply2 :: BinaryOp -> Number -> Number -> Number
 apply2 = case _ of

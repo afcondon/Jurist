@@ -12,7 +12,7 @@ import Prelude
 import Atlas.Survival as Atlas
 import Data.Array (range)
 import Data.Int (toNumber)
-import Data.NumExpr (num, var)
+import Data.NumExpr (divide, ifGreater, num, var)
 import Data.Simulation (Outcome, Spec)
 import Data.Tuple (Tuple(..))
 
@@ -27,6 +27,10 @@ cases =
   , { title: "falling body, stopped by an event"
     , spec: fall
     , rows: [ [ 100.0, 0.02, 0.001 ] ]
+    }
+  , { title: "a room and its thermostat, 12 hours"
+    , spec: thermostat
+    , rows: [ [ 12.0, 5.0, 19.0, 21.0, 0.004, 7200.0, 2.0, 43200.0 ] ]
     }
   , { title: "three-body survival, 4 x 3 orbits, 20 periods"
     , spec: Atlas.survival
@@ -52,6 +56,8 @@ lorenz =
       , { name: "y", initial: one, rate: x * (var "rho" - z) - y }
       , { name: "z", initial: one, rate: x * y - var "beta" * z }
       ]
+  , held: []
+  , updates: []
   , timeStep: var "dt"
   , horizon: var "until"
   , events: []
@@ -70,12 +76,53 @@ fall =
       [ { name: "y", initial: var "height", rate: v }
       , { name: "v", initial: zero, rate: var "drag" * v * v - num 9.81 }
       ]
+  , held: []
+  , updates: []
   , timeStep: var "dt"
   , horizon: num 60.0
   , events: [ Tuple "landed" (zero - var "y") ]
   }
   where
   v = var "v"
+
+-- A room that leaks heat to the outside, and a heater switched by a
+-- thermostat that looks at the temperature every 30 steps: on below `low`,
+-- off above `high`, unchanged between. `heating` is 1 or 0, and `switchOns`
+-- counts the times it came on. Neither is a differential equation: they
+-- are held between steps and set by the update.
+thermostat :: Spec
+thermostat =
+  { inputs: [ "start", "outside", "low", "high", "power", "leakTime", "dt", "until" ]
+  , derived: []
+  , state:
+      [ { name: "temperature"
+        , initial: var "start"
+        , rate: divide (var "outside" - temperature) (var "leakTime") + heating * var "power"
+        }
+      ]
+  , held:
+      [ { name: "heating", initial: zero }
+      , { name: "switchOns", initial: zero }
+      ]
+  , updates:
+      [ { every: 30
+        , set:
+            [ Tuple "heating" decided
+            , Tuple "switchOns" (ifGreater decided heating (switchOns + one) switchOns)
+            ]
+        }
+      ]
+  , timeStep: var "dt"
+  , horizon: var "until"
+  , events: []
+  }
+  where
+  temperature = var "temperature"
+  heating = var "heating"
+  switchOns = var "switchOns"
+  decided =
+    ifGreater (var "low") temperature one
+      (ifGreater temperature (var "high") zero heating)
 
 -- A corner of the atlas's own sweep.
 grid :: Array (Array Number)

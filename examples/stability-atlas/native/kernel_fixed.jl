@@ -2,11 +2,10 @@
 The fixed-step CR3BP kernel, as a Julia programmer would keep it.
 
 **This is the kernel the service ran until November 2026**, copied verbatim
-from its foreign file before that file was replaced. The service's survival
-sweep is now compiled from a PureScript description (`Atlas.Survival`), and
-this file is what that kernel is held to: `service`'s check mode requires the
-two to agree on every pixel. The chaos-indicator half is still what the
-service runs, in `service/src/Atlas/Kernel.jl`.
+from its foreign file before that file was replaced. The service's sweeps,
+survival and chaos-indicator both, are now compiled from PureScript
+descriptions (`Atlas.Survival`), and this file is what those kernels are held
+to: `service`'s check mode requires them to agree with it on every pixel.
 
 It is also the control for the measurements in this directory: the native
 reference must differ from the polyglot service in its *harness* (protocol,

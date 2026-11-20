@@ -17,6 +17,7 @@ package:
     - tuples
     - strings
     - foldable-traversable
+    - numbers
 workspace:
   extraPackages:
     answer:

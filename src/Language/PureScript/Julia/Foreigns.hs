@@ -155,13 +155,18 @@ builtinForeigns =
       , "unsafeHas(label) = rec -> Base.haskey(rec, label)"
       ] )
   , ( "Record_Builder_foreign.jl", T.unlines
-      [ "# FFI for Record.Builder (records are Dict{String,Any}; copy once,"
-      , "# then mutate the copy, as the JS foreign does)."
+      [ "# FFI for Record.Builder. The JS foreign copies once and then mutates"
+      , "# the copy. A PSRecord is immutable (ADR-0012) and `copy` of one is a"
+      , "# Dict{String,Any}, so `copyRecord` gives the mutable copy the steps"
+      , "# expect. The optimizer lane can reach a step without `copyRecord`"
+      , "# (it rewrites `build`), so each step takes its own copy of a PSRecord."
+      , "import ..PurejlRuntime: PSRecord"
+      , "_mutable(rec) = rec isa PSRecord ? Base.copy(rec) : rec"
       , "copyRecord(rec) = Base.copy(rec)"
-      , "unsafeInsert(l) = a -> rec -> (rec[l] = a; rec)"
-      , "unsafeModify(l) = f -> rec -> (rec[l] = f(rec[l]); rec)"
-      , "unsafeDelete(l) = rec -> (Base.delete!(rec, l); rec)"
-      , "unsafeRename(l1) = l2 -> rec -> (rec[l2] = rec[l1]; Base.delete!(rec, l1); rec)"
+      , "unsafeInsert(l) = a -> rec -> (r = _mutable(rec); r[l] = a; r)"
+      , "unsafeModify(l) = f -> rec -> (r = _mutable(rec); r[l] = f(r[l]); r)"
+      , "unsafeDelete(l) = rec -> (r = _mutable(rec); Base.delete!(r, l); r)"
+      , "unsafeRename(l1) = l2 -> rec -> (r = _mutable(rec); r[l2] = r[l1]; Base.delete!(r, l1); r)"
       ] )
   , ( "Record_Unsafe_Union_foreign.jl", T.unlines
       [ "# FFI for Record.Unsafe.Union — unsafeUnionFn is uncurried (runFn2);"

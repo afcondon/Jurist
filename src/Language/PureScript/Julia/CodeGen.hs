@@ -16,7 +16,8 @@
 --   * Newtype constructors are identity functions.
 --   * Typeclass dictionaries are @Dict{String,Any}@ records keyed by
 --     member name, so CoreFn's @Accessor@ works uniformly.
---   * Records are @Dict{String,Any}@; update is @merge@.
+--   * Records are @PSRecord@ over a NamedTuple (ADR-0012); update is
+--     @_ps_update@, access @_ps_get@.
 --   * Arrays are @Any[...]@ vectors.
 --   * Effects are zero-argument closures (thunks).
 --   * Functions are curried unary closures; application is @(f)(x)(y)@,
@@ -415,13 +416,12 @@ generateModuleJl known cfModule = T.unlines $ map (generateBinding []) (CoreFn.m
         in "((__v__) -> " <> generateAlternatives recNames roots alts <> ")(" <> scrutCode <> ")"
 
       CoreFn.Accessor _ field expr ->
-        "(" <> generateExpr recNames expr <> ")[\"" <> psStringToText field <> "\"]"
+        recGet (generateExpr recNames expr) field
 
       CoreFn.ObjectUpdate _ expr _ updates ->
-        "merge(" <> generateExpr recNames expr <> ", Dict{String,Any}("
-        <> T.intercalate ", " [ "\"" <> psStringToText k <> "\" => " <> generateExpr recNames v
-                              | (k, v) <- updates ]
-        <> "))"
+        "_ps_update(" <> generateExpr recNames expr <> ", "
+        <> recFields [ (k, generateExpr recNames v) | (k, v) <- updates ]
+        <> ")"
 
       CoreFn.Constructor ann _ (P.ProperName ctor) fields ->
         constructorToJl ann ctor fields
@@ -541,7 +541,7 @@ generateModuleJl known cfModule = T.unlines $ map (generateBinding []) (CoreFn.m
         CoreFn.ObjectLiteral fields ->
           let fieldPatterns = map
                 (\(fieldName, binder) ->
-                   generatePattern recNames (scrutinee <> "[\"" <> psKey fieldName <> "\"]") binder)
+                   generatePattern recNames (recGet scrutinee fieldName) binder)
                 fields
               fieldConds = filter (/= "true") $ map fst fieldPatterns
               fieldBindings = concatMap snd fieldPatterns
@@ -737,15 +737,69 @@ generateModuleJl known cfModule = T.unlines $ map (generateBinding []) (CoreFn.m
       CoreFn.ArrayLiteral exprs ->
         "Any[" <> T.intercalate ", " (map (generateExpr recNames) exprs) <> "]"
       CoreFn.ObjectLiteral fields ->
-        "Dict{String,Any}("
-        <> T.intercalate ", " [ "\"" <> psStringToText k <> "\" => " <> generateExpr recNames v
-                              | (k, v) <- fields ]
-        <> ")"
+        "_ps_rec(" <> recFields [ (k, generateExpr recNames v) | (k, v) <- fields ] <> ")"
 
     psKey :: PSString -> T.Text
     psKey s = case decodeString s of
       Just str -> escapeStringJl str
       Nothing -> psStringToText s
+
+    -- Records (ADR-0012). A record literal is a `PSRecord` over a
+    -- NamedTuple, so Julia can see each field's type; a field is read with
+    -- `_ps_get`, which takes the label both as a Symbol (for a PSRecord) and
+    -- as a String (for the Dicts that typeclass dictionaries are, and that a
+    -- foreign may still hand back as a record).
+
+    -- | A label as a Julia Symbol literal. `Nothing` when it cannot be
+    -- written as one (it holds a quote, a backslash or a lone surrogate).
+    labelSymbol :: PSString -> Maybe T.Text
+    labelSymbol s = case decodeString s of
+      Just str
+        | plainLabel str -> Just (":" <> str)
+        | not (T.any (\c -> c == '"' || c == '\\' || c < ' ') str) -> Just (":var\"" <> str <> "\"")
+      _ -> Nothing
+
+    plainLabel :: T.Text -> Bool
+    plainLabel str = case T.uncons str of
+      Just (c, rest) ->
+        (asciiLetter c || c == '_') && T.all (\x -> asciiLetter x || asciiDigit x || x == '_') rest
+          && str `notElem` juliaReserved
+      Nothing -> False
+      where
+        asciiLetter x = (x >= 'a' && x <= 'z') || (x >= 'A' && x <= 'Z')
+        asciiDigit x = x >= '0' && x <= '9'
+
+    juliaReserved :: [T.Text]
+    juliaReserved =
+      [ "baremodule", "begin", "break", "catch", "const", "continue", "do", "else"
+      , "elseif", "end", "export", "false", "finally", "for", "function", "global"
+      , "if", "import", "let", "local", "macro", "module", "quote", "return"
+      , "struct", "true", "try", "using", "while", "where", "in", "isa", "var"
+      , "abstract", "mutable", "primitive", "type", "outer", "public"
+      ]
+
+    labelSymbolOrCall :: PSString -> T.Text
+    labelSymbolOrCall s = case labelSymbol s of
+      Just sym -> sym
+      Nothing -> "Base.Symbol(\"" <> psKey s <> "\")"
+
+    recGet :: T.Text -> PSString -> T.Text
+    recGet rec field =
+      "_ps_get(" <> rec <> ", " <> labelSymbolOrCall field <> ", \"" <> psKey field <> "\")"
+
+    -- | The NamedTuple of some fields: `(; x = a, y = b)` when every label
+    -- is a plain identifier, and the constructor form otherwise.
+    recFields :: [(PSString, T.Text)] -> T.Text
+    recFields fields
+      | Just names <- traverse (plainName . fst) fields =
+          "(; " <> T.intercalate ", " [ n <> " = " <> v | (n, (_, v)) <- zip names fields ] <> ")"
+      | otherwise =
+          "Base.NamedTuple{(" <> T.concat [ labelSymbolOrCall k <> ", " | (k, _) <- fields ] <> ")}(("
+          <> T.concat [ v <> ", " | (_, v) <- fields ] <> "))"
+      where
+        plainName k = case decodeString k of
+          Just str | plainLabel str -> Just str
+          _ -> Nothing
 
     generateQualifiedIdent :: [T.Text] -> P.Qualified P.Ident -> T.Text
     generateQualifiedIdent recNames (P.Qualified qb ident) =

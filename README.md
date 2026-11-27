@@ -71,8 +71,8 @@ what makes "conformant" a checkable claim rather than a hope.
 | Functions | a function *value* is a curried unary closure, applied as `(f)(x)(y)`. A top-level function of known arity is also a method `_ps_sat_<name>(a, b, ..)`, and a call with enough arguments goes straight to it ([ADR-0010](docs/design-decisions/0010-saturated-calls-and-inliner.md)) |
 | ADT values | one struct, `PSData`, for every constructor: tag at `[1]`, fields from `[2]`. Until October 2026 these were tag-tuples, `("Just", x)`; the indexing is unchanged, the type is not ([ADR-0001](docs/design-decisions/0001-runtime-representation.md), 2026-10 amendment) |
 | Newtypes | identity (no wrapper at runtime) |
-| Typeclass dictionaries | `Dict{String,Any}` keyed by member name |
-| Records | `Dict{String,Any}`; update via `merge` |
+| Typeclass dictionaries | `PSRecord`, as records are |
+| Records | `PSRecord`, an immutable struct over a NamedTuple, so a record of numbers is plain bits; readable by field name as an `AbstractDict{String,Any}` ([ADR-0012](docs/design-decisions/0012-records-as-named-tuples.md)) |
 | Arrays | `Any[...]` vectors (1-based; FFI handles the 0-based PS API) |
 | `Effect a` | callable with zero arguments: a closure, or a `PSEff` box when built by `bind` |
 | Char / String | Julia `Char` / `String` |

@@ -42,6 +42,15 @@ grow s = { depth: s.depth + 1, rest: \_ -> s.depth + s.rest unit }
 growN :: Int -> Step -> Step
 growN n s = if n <= 0 then s else growN (n - 1) (grow s)
 
+-- The same record written at top level, with its fields in another order,
+-- and built inside a function. A top-level literal is built by a different
+-- runtime path (`_ps_rec_dyn`), and the two must come out as one type.
+topRecord :: { a :: Int, b :: Int }
+topRecord = { b: 2, a: 1 }
+
+inFunction :: Int -> { a :: Int, b :: Int }
+inFunction n = { a: n, b: 2 }
+
 base :: Step
 base = { depth: 0, rest: \_ -> 0 }
 
@@ -52,6 +61,7 @@ main = do
   log ("repr-record-dict:    " <> checkRecord { a: 1, b: 2 })
   log ("repr-record-bits:    " <> checkRecordBits { p: { x: 1.0, y: 2.0 }, m: 3.0 })
   log ("repr-record-depth:   " <> checkSameType (growN 1 base) (growN 50 base))
+  log ("repr-record-toplevel:" <> " " <> checkSameType topRecord (inFunction 1))
   log ("repr-newtype-erased: " <> checkNewtypeErased (Wrapped 42) 42)
   log ("repr-effect-thunk:   " <> checkEffectThunk (pure unit))
   log ("repr-array-vector:   " <> checkArrayVector [ 10, 20, 30 ])

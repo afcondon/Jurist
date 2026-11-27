@@ -228,12 +228,17 @@ benchmark: see `docs/PERFORMANCE-FINDING-2026-07-30.md`.
   that). The struct's type does not grow with the value.
 - **Records and dictionaries:** `PSRecord`, an immutable struct over a
   NamedTuple, built by `_ps_rec`, read by `_ps_get`, updated by `_ps_update`
-  ([ADR-0012](docs/design-decisions/0012-records-as-named-tuples.md)). A
-  field keeps its concrete type only when it is a scalar, a `String` or a
-  plain-bits record; every other field is `Any`, so the type cannot grow
-  with the value. It is an `AbstractDict{String,Any}` too, so foreigns read
-  `rec["x"]` as before, and a `Dict{String,Any}` is still accepted as a
-  record.
+  ([ADR-0012](docs/design-decisions/0012-records-as-named-tuples.md)).
+  - Fields are held in label order. A field keeps its concrete type only
+    when it is a scalar, a `String` or a plain-bits record; every other
+    field is `Any`, so the type cannot grow with the value.
+  - It is an `AbstractDict{String,Any}` too, so foreigns read `rec["x"]` as
+    before, and a `Dict{String,Any}` is still accepted as a record. It
+    cannot be assigned to: `copy` gives a mutable `Dict`.
+  - A literal at module top level is built by `_ps_rec_dyn`, which compiles
+    nothing for its shape. `_ps_rec` compiles once per tuple of field
+    types, and every closure has its own, so don't route top-level literals
+    back through it: that cost 3 ms per literal at load.
 - **Arrays:** 1-based `Any[...]`. The shims translate PureScript's 0-based
   API.
 - **`Effect`:** callable with zero arguments: a closure, or a `PSEff` box

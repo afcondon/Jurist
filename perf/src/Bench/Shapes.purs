@@ -29,6 +29,7 @@ module Bench.Shapes
   , stringAppend
   , stringJoin
   , recordUpdate
+  , recordNumeric
   , ffiCall
   , ffiArray
   ) where
@@ -168,6 +169,35 @@ recordUpdate n = do
   forE 0 n \_ -> Ref.modify_ (\v -> v { a = v.a + 1 }) r
   v <- Ref.read r
   pure v.a
+
+-- `recordNumeric` is the other record cost, and the one a numerical backend
+-- lives or dies by: a pure loop whose whole state is a record of Numbers,
+-- read and rebuilt at every step. No `Effect`, no `Ref`, no array, so the
+-- only thing it can be measuring is how the backend holds a record. On
+-- Jurist this shape is what moved 30x when records stopped being
+-- `Dict{String,Any}` (ADR-0012 there), and nothing gated it at the time.
+--
+-- The state is a harmonic oscillator stepped by symplectic Euler: only `+`,
+-- `-` and `*`, which every runtime rounds the same way, so the checksum
+-- (how many steps had `x` positive) is the same Int everywhere.
+
+type Oscillator = { x :: Number, y :: Number, vx :: Number, vy :: Number }
+
+oscillate :: Number -> Oscillator -> Oscillator
+oscillate dt s =
+  let
+    vx = s.vx - dt * s.x
+    vy = s.vy - dt * s.y
+  in
+    { x: s.x + dt * vx, y: s.y + dt * vy, vx, vy }
+
+recordNumeric :: Int -> Effect Int
+recordNumeric n = pure (go n 0 { x: 1.0, y: 0.5, vx: 0.0, vy: 0.25 })
+  where
+  go :: Int -> Int -> Oscillator -> Int
+  go k positive s
+    | k <= 0 = positive
+    | otherwise = go (k - 1) (if s.x > 0.0 then positive + 1 else positive) (oscillate 0.01 s)
 
 --------------------------------------------------------------------------
 -- The FFI seam — the second axis

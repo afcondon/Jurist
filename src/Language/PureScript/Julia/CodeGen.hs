@@ -197,7 +197,7 @@ generateModuleJl known cfModule = T.unlines $ map (generateBinding []) (CoreFn.m
     generateBinding _ (CoreFn.NonRec _ ident expr)
       | Just (KnownFn _) <- Map.lookup (currentModule, ident) known =
           satBinding [] ident expr
-      | otherwise = identName ident <> " = " <> generateExpr [] expr
+      | otherwise = identName ident <> " = " <> generateTop expr
     generateBinding _ (CoreFn.Rec bindings) =
       -- Rec handling, in order of preference per binding:
       --   1. TCO: all self-refs are saturated tail calls -> dispatch loop,
@@ -224,7 +224,7 @@ generateModuleJl known cfModule = T.unlines $ map (generateBinding []) (CoreFn.m
           recNames = [identName ident | ((_, ident), _) <- recursive]
           tcoDefs = [ satTco recNames ident ps body | (ident, ps, body) <- tcoBindings ]
                     ++ [ satBinding recNames ident expr | ((_, ident), expr) <- functions ]
-          nonRecDefs = [ identName ident <> " = " <> generateExpr [] expr
+          nonRecDefs = [ identName ident <> " = " <> generateTop expr
                        | ((_, ident), expr) <- nonRecursive
                        ]
           lazyDefs = [ "_lazy_" <> identName ident
@@ -383,6 +383,24 @@ generateModuleJl known cfModule = T.unlines $ map (generateBinding []) (CoreFn.m
     orElse :: Maybe a -> Maybe a -> Maybe a
     orElse (Just x) _ = Just x
     orElse Nothing y = y
+
+    -- | The value of a top-level binding that is not a function. A record
+    -- literal here is evaluated once, at load, where Julia infers nothing,
+    -- so it is built by `_ps_rec_dyn`, which compiles nothing for its shape
+    -- (ADR-0012). That reaches a literal that is the value itself, an
+    -- element of an array literal, or the one argument of an application,
+    -- which is how a typeclass instance (`Show$Dict { .. }`) is written.
+    -- Anything under a lambda is generated as usual.
+    generateTop :: CoreFn.Expr CoreFn.Ann -> T.Text
+    generateTop = \case
+      CoreFn.Literal _ (CoreFn.ObjectLiteral fields) ->
+        "_ps_rec_dyn((" <> T.concat [ labelSymbolOrCall k <> ", " | (k, _) <- fields ] <> "), ("
+        <> T.concat [ generateTop v <> ", " | (_, v) <- fields ] <> "))"
+      CoreFn.Literal _ (CoreFn.ArrayLiteral exprs) ->
+        "Any[" <> T.intercalate ", " (map generateTop exprs) <> "]"
+      CoreFn.App _ fn arg@(CoreFn.Literal _ (CoreFn.ObjectLiteral _)) ->
+        "(" <> generateExpr [] fn <> ")(" <> generateTop arg <> ")"
+      other -> generateExpr [] other
 
     -- | Generate an expression, tracking names in the current top-level
     -- Rec group (references to those go through their lazy thunks)

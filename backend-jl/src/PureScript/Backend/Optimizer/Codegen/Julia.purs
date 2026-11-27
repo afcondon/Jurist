@@ -130,7 +130,7 @@ type ModuleOutput =
 -- | the name has to resolve in the including module's scope.
 runtimeImport :: String
 runtimeImport =
-  "import ..PurejlRuntime: _runtime_lazy, _js_number_string, _int32, _int_div, _zshr, PSData, PSEff, PSRecord, _ps_rec, _ps_get, _ps_update"
+  "import ..PurejlRuntime: _runtime_lazy, _js_number_string, _int32, _int_div, _zshr, PSData, PSEff, PSRecord, _ps_rec, _ps_rec_dyn, _ps_get, _ps_update"
 
 --------------------------------------------------------------------------------
 -- The emit monad
@@ -278,7 +278,7 @@ genGroup env grp = case analyzeGroup env.currentModule grp of
                 e <- genExpr env body
                 pure (satLines (jlIdent ident) (map (\(Tuple mbId lvl) -> localName mbId lvl) (NEA.toArray params)) e)
           _ -> do
-            e <- genExpr env expr
+            e <- genTop env expr
             pure [ jlIdent ident <> " = " <> e ]
       )
       (NEA.toArray analyzed)
@@ -777,6 +777,25 @@ localName mbIdent (Level n) = case mbIdent of
 --------------------------------------------------------------------------------
 -- Expressions
 --------------------------------------------------------------------------------
+
+-- | The value of a top-level binding that is not a function. A record
+-- | literal here is evaluated once, at load, where Julia infers nothing, so it
+-- | is built by `_ps_rec_dyn`, which compiles nothing for its shape (ADR-0012).
+-- | That reaches a literal that is the value itself or an element of an array
+-- | literal; anything under a lambda is generated as usual.
+genTop :: Env -> TcoExpr -> Gen String
+genTop env expr@(TcoExpr _ syn) = case syn of
+  Lit (LitRecord props) -> do
+    vs <- traverse (\(Prop _ v) -> genTop env v) props
+    pure
+      ( "_ps_rec_dyn((" <> foldMap (\(Prop k _) -> labelSymbol k <> ", ") props <> "), ("
+          <> foldMap (_ <> ", ") vs
+          <> "))"
+      )
+  Lit (LitArray as) -> do
+    xs <- traverse (genTop env) as
+    pure ("Any[" <> commaSep xs <> "]")
+  _ -> genExpr env expr
 
 genExpr :: Env -> TcoExpr -> Gen String
 genExpr env (TcoExpr ann syn) = case syn of

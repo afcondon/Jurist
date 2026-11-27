@@ -92,6 +92,7 @@ shapes =
   , { name: "loop-tailrec", sizes: [ 100, 1000, 10000 ], reps: 5, run: S.loopTailRec }
   , { name: "ffi-call", sizes: [ 100, 1000, 10000 ], reps: 5, run: S.ffiCall }
   , { name: "record-update", sizes: [ 100, 1000, 10000 ], reps: 5, run: S.recordUpdate }
+  , { name: "record-numeric", sizes: [ 1000, 10000, 100000 ], reps: 5, run: S.recordNumeric }
   , { name: "map-array", sizes: [ 100, 400, 1600 ], reps: 5, run: S.mapArray }
   , { name: "string-join", sizes: [ 100, 400, 1600, 12800 ], reps: 5, run: S.stringJoin }
   , { name: "string-append", sizes: [ 100, 400, 1600 ], reps: 3, run: S.stringAppend }

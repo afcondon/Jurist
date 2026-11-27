@@ -1,6 +1,6 @@
 # 0003. Tail-call optimization via self-tail-call dispatch loops
 
-- Status: Accepted
+- Status: Accepted; amended 2026-11-27 (how a step says it is done, see the end)
 - Date: 2026-06-08
 
 (Decision made when TCO was implemented, 2026-06-05; this is a backfill.)
@@ -76,3 +76,61 @@ not trampolined** — it matches the JS backend, where `MonadRec` /
   codegen surface, and the JS backend doesn't do it either — `MonadRec` is the
   accepted idiom, so matching it keeps the differential suite honest.
 - **Rely on Julia's own tail calls.** Impossible: Julia gives no TCO guarantee.
+
+## Amendment, 2026-11-27: done is a type, not a tag
+
+**Changed:** a step function returns `_TcoDone(result)` when the loop is
+finished and a plain tuple of the next arguments when it is not. The driver
+is
+
+```julia
+_tco_r = _tco_loop(acc, n)
+while !(_tco_r isa _TcoDone); _tco_r = _tco_loop(_tco_r...); end
+_tco_r.value
+```
+
+in both lanes. `_TcoDone` is a one-field struct in `purejl_runtime.jl`.
+
+**What did not change:** the decision above. There is still one call of the
+step function per iteration, so a closure made in a loop body still
+captures that iteration's own bindings, and the rejected alternative
+(assigning to the loop's parameters in place) is still rejected.
+
+**Why.** The tagged pair was `(1, (args...,))` or `(0, result)`, and the
+driver splatted its second slot into the next call. That slot's type is the
+union of "a tuple of arguments" and "whatever the result is", and Julia
+cannot narrow a union by the *value* of a neighbouring slot. When the
+result was an `Int` the splat was legal either way (a number iterates), so
+it could not be resolved at compile time and every iteration went through a
+dynamic call. `isa` narrows a union by type, so inside the `while` the
+compiler knows it holds the argument tuple.
+
+**Measured** (perf canary, M4 Mini, julia 1.12.6; steady state):
+
+| shape | before | after | Node |
+|---|---:|---:|---:|
+| `record-numeric` @ 100,000, `jl` | 5,369 µs | 241 µs | 759 µs |
+| `record-numeric` @ 100,000, `backend-jl` | 5,322 µs | 238 µs | 759 µs |
+| `fold-list` @ 100, `jl` | 25.3 µs | 8.0 µs | 8.5 µs |
+| `fold-list` @ 100, `backend-jl` | 17.4 µs | 7.5 µs | 8.5 µs |
+
+Speed index against JS: `jl` 4.41 to 3.42, `backend-jl` 1.24 to 0.91 (the
+re-recorded baseline). First-call index: `jl` 48.6 to 41.6, `backend-jl`
+28.7 to 21.3. Start-up did not move.
+
+`Atlas.Bench` (see `docs/PERFORMANCE-FINDING-2026-07-30.md`), marginal cost
+of 2,000,000 RK4 steps, same checksum: 171 ms before, **111 ms** after. The
+hand-written kernel measured 111 ms in the same run and Node 155 ms.
+`loop-tailrec` did not move: that shape is `tailRecM`, which loops inside
+its shim and never reaches this driver.
+
+Found by hand-editing the generated loop three ways: the same step function
+with the typed return ran at 2.4 ns an iteration, the same as assigning in
+place, against 51 to 62 ns for the tagged pair.
+
+**The optimizer lane's mutual-recursion groups** pass a register per local,
+and a slot a branch has not written is `nothing`. So the argument tuple's
+type can differ from branch to branch, and a group with many branches may
+exceed what Julia will union-split. That is correct and no slower than
+before, but it is not measured.
+

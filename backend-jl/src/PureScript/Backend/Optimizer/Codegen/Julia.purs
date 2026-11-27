@@ -130,7 +130,7 @@ type ModuleOutput =
 -- | the name has to resolve in the including module's scope.
 runtimeImport :: String
 runtimeImport =
-  "import ..PurejlRuntime: _runtime_lazy, _js_number_string, _int32, _int_div, _zshr, PSData, PSEff, PSRecord, _ps_rec, _ps_rec_dyn, _ps_get, _ps_update"
+  "import ..PurejlRuntime: _runtime_lazy, _js_number_string, _int32, _int_div, _zshr, PSData, PSEff, PSRecord, _TcoDone, _ps_rec, _ps_rec_dyn, _ps_get, _ps_update"
 
 --------------------------------------------------------------------------------
 -- The emit monad
@@ -519,18 +519,18 @@ genLoopGroup env nameOf refOf members = do
           let entry = (if branching then [ show idx ] else []) <> slotArgs ctx idx ps []
           let
             drive =
-              "begin " <> resName <> " = (1, (" <> commaSep entry <> ",)); "
-                <> "while "
+              "begin " <> resName <> " = " <> loopName <> "(" <> commaSep entry <> "); "
+                <> "while !("
                 <> resName
-                <> "[1] == 1; "
+                <> " isa _TcoDone); "
                 <> resName
                 <> " = "
                 <> loopName
                 <> "("
                 <> resName
-                <> "[2]...); end; "
+                <> "...); end; "
                 <> resName
-                <> "[2] end"
+                <> ".value end"
           pure case refOf ident of
             TcoTopLevel q | Map.member q env.arities -> satLines (nameOf ident) ps drive
             _ -> [ nameOf ident <> " = " <> lambdaChain ps drive ]
@@ -577,8 +577,9 @@ memberBlock env ctx branchName branching (Tuple idx m) = do
     else stmts
 
 -- | Tail-aware statement walk of a loop body. A tail call to a branch of this
--- | group becomes `return (1, (registers...))` -- the continue signal the `while`
--- | reads -- and every other tail position becomes `return (0, value)`.
+-- | group becomes `return (registers...,)` -- the next arguments, which the
+-- | `while` feeds back -- and every other tail position becomes
+-- | `return _TcoDone(value)`. The `while` tells them apart by type (ADR-0003).
 -- |
 -- | `inScope` grows as the walk passes binders, and is what a jump reads to fill
 -- | the slots it is not supplying arguments for.
@@ -612,11 +613,11 @@ genLoopStmts env ctx inScope te@(TcoExpr _ syn) = case syn of
     | Just idx <- findMember ctx hsyn (NEA.length args) -> do
         as <- traverse (genExpr env) (NEA.toArray args)
         let entry = (if ctx.branching then [ show idx ] else []) <> slotArgs ctx idx as inScope
-        pure [ "return (1, (" <> commaSep entry <> ",))" ]
+        pure [ "return (" <> commaSep entry <> ",)" ]
 
   _ -> do
     e <- genExpr env te
-    pure [ "return (0, " <> e <> ")" ]
+    pure [ "return _TcoDone(" <> e <> ")" ]
 
 -- | Every arm of a loop branch ends in a `return`, so the arms can be emitted as
 -- | a flat run of `if` blocks with the default falling through -- no `else`

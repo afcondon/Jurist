@@ -205,8 +205,9 @@ before it runs. That is why "descriptions across, handles back"
 written in PureScript is still not the best thing to hand Julia. On the one
 benchmark measured (`Atlas.Bench`, 2026-11-27) it runs at about Node's speed
 (0.88× to 0.96×) since records became `PSRecord`, where it had been 27× to
-70× slower, but hand-written Julia is still 1.5 to 2.4 times faster than
-that. Prefer
+70× slower, and level with the hand-written kernel since tail-call loops
+stopped dispatching dynamically (ADR-0003, amended). That is one benchmark
+of one kind of loop. Prefer
 a description to an inner loop, and don't quote the figure beyond that
 benchmark: see `docs/PERFORMANCE-FINDING-2026-07-30.md`.
 

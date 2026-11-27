@@ -32,6 +32,14 @@ Suggestion 3 below, emitting concrete types, turned out not to be needed.
 Julia specialises on the values it is given. It needed a record it could
 infer through, not annotations.
 
+**Later the same day**, the tail-call loop stopped going through a dynamic
+call per iteration ([ADR-0003](design-decisions/0003-tco-trampoline.md),
+amendment). On julia 1.12.6 the three then measured 111 ms (hand kernel),
+155 ms (Node) and **111 ms** (`purejl`): generated Julia level with
+hand-written Julia on this loop, and 1.4 times faster than Node. One run of
+three processes each; the hand kernel has measured between 64 and 111 ms
+across this document, so read "level with" as "within the noise of".
+
 What this does **not** show: anything about a loop that is not numeric work
 over records. The perf canary's speed index, whose shapes are closures,
 lists and `Effect` loops, moved from 4.26 to 4.17 × JS on the oracle lane.

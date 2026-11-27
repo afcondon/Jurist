@@ -41,10 +41,10 @@
 -- fully-saturated tail calls are compiled to a dispatch loop:
 --
 -- > f = (function ();
--- >       function _tco_loop(x1, x2); ... end;   # (1, newargs) | (0, result)
--- >       (x1) -> (x2) -> (begin; _tco_r = (1, (x1, x2,));
--- >           while _tco_r[1] == 1; _tco_r = _tco_loop(_tco_r[2]...); end;
--- >           _tco_r[2]; end);
+-- >       function _tco_loop(x1, x2); ... end;   # (newargs...,) | _TcoDone(result)
+-- >       (x1) -> (x2) -> (begin; _tco_r = _tco_loop(x1, x2);
+-- >           while !(_tco_r isa _TcoDone); _tco_r = _tco_loop(_tco_r...); end;
+-- >           _tco_r.value; end);
 -- >     end)()
 --
 -- The function-call-per-iteration shape (rather than rebinding loop
@@ -260,9 +260,9 @@ generateModuleJl known cfModule = T.unlines $ map (generateBinding []) (CoreFn.m
       in "function " <> loopName <> "(" <> T.intercalate ", " names <> "); "
          <> T.intercalate "; " stmts <> "; end\n"
          <> satDef ident names
-              ("(begin; _tco_r = (1, (" <> T.intercalate ", " names <> ",));"
-               <> " while _tco_r[1] == 1; _tco_r = " <> loopName <> "(_tco_r[2]...); end;"
-               <> " _tco_r[2]; end)")
+              ("(begin; _tco_r = " <> loopName <> "(" <> T.intercalate ", " names <> ");"
+               <> " while !(_tco_r isa _TcoDone); _tco_r = " <> loopName <> "(_tco_r...); end;"
+               <> " _tco_r.value; end)")
 
     satDef :: P.Ident -> [T.Text] -> T.Text -> T.Text
     satDef ident names bodyTxt =
@@ -691,22 +691,25 @@ generateModuleJl known cfModule = T.unlines $ map (generateBinding []) (CoreFn.m
           stmts = tailStmts recNames self n 1 body
           loopFn = "function _tco_loop(" <> T.intercalate ", " names <> "); "
                    <> T.intercalate "; " stmts <> "; end"
-          wrapperBody = "(begin; _tco_r = (1, (" <> T.intercalate ", " names <> ",));"
-                        <> " while _tco_r[1] == 1; _tco_r = _tco_loop(_tco_r[2]...); end;"
-                        <> " _tco_r[2]; end)"
+          wrapperBody = "(begin; _tco_r = _tco_loop(" <> T.intercalate ", " names <> ");"
+                        <> " while !(_tco_r isa _TcoDone); _tco_r = _tco_loop(_tco_r...); end;"
+                        <> " _tco_r.value; end)"
           wrapper = foldr (\p acc -> "((" <> p <> ") -> " <> acc <> ")") wrapperBody names
       in "(function (); " <> loopFn <> "; " <> wrapper <> "; end)()"
 
     -- | Compile an expression in tail position of a TCO loop function.
-    -- Every control path ends in @return (1, (args...,))@ (loop again),
-    -- @return (0, value)@ (done), or a raised pattern-match error.
+    -- Every control path ends in @return (args...,)@ (loop again: the next
+    -- arguments, as a tuple), @return _TcoDone(value)@ (done), or a raised
+    -- pattern-match error. The driver tells the two apart by TYPE, which
+    -- Julia can follow; a tag in the first slot of a tuple it could not, and
+    -- every iteration then went through a dynamic call (ADR-0003, 2026-11).
     tailStmts :: [T.Text] -> T.Text -> Int -> Int -> CoreFn.Expr CoreFn.Ann -> [T.Text]
     tailStmts recNames self n depth expr = case expr of
       e@(CoreFn.App {})
         | (fn, args) <- unApp e
         , isSelfVar self fn
         , length args == n ->
-          [ "return (1, (" <> T.intercalate ", " (map (generateExpr recNames) args) <> ",))" ]
+          [ "return (" <> T.intercalate ", " (map (generateExpr recNames) args) <> ",)" ]
       CoreFn.Let _ binds body ->
         concatMap (generateLetBind recNames) binds
         ++ tailStmts recNames self n depth body
@@ -742,7 +745,7 @@ generateModuleJl known cfModule = T.unlines $ map (generateBinding []) (CoreFn.m
            : map altStmts alts
            ++ [ "Base.error(\"Pattern match failed in module "
                 <> escapeStringJl currentModuleText <> "\")" ]
-      other -> [ "return (0, " <> generateExpr recNames other <> ")" ]
+      other -> [ "return _TcoDone(" <> generateExpr recNames other <> ")" ]
 
     generateLiteral :: [T.Text] -> CoreFn.Literal (CoreFn.Expr CoreFn.Ann) -> T.Text
     generateLiteral recNames = \case
@@ -765,8 +768,7 @@ generateModuleJl known cfModule = T.unlines $ map (generateBinding []) (CoreFn.m
     -- Records (ADR-0012). A record literal is a `PSRecord` over a
     -- NamedTuple, so Julia can see each field's type; a field is read with
     -- `_ps_get`, which takes the label both as a Symbol (for a PSRecord) and
-    -- as a String (for the Dicts that typeclass dictionaries are, and that a
-    -- foreign may still hand back as a record).
+    -- as a String (for the Dict a foreign may still hand back as a record).
 
     -- | A label as a Julia Symbol literal. `Nothing` when it cannot be
     -- written as one (it holds a quote, a backslash or a lone surrogate).

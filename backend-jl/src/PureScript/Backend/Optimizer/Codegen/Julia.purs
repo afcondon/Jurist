@@ -27,7 +27,7 @@
 -- | Representation is `purejl`'s (it has to be -- the foreigns are shared), and it
 -- | is 1-BASED throughout, which is the systematic difference from the Python lane:
 -- | ADTs are `PSData` values (one struct, three inline fields), indexed with the tag at 1 and field
--- | *i* at *i+2*; records and dictionaries are `Dict{String,Any}`; arrays are `Any[]`
+-- | *i* at *i+2*; records and dictionaries are `PSRecord` over a NamedTuple (ADR-0012); arrays are `Any[]`
 -- | vectors indexed from 1 while the PureScript API is 0-based; chars are Julia
 -- | `Char`; `Effect a` is a zero-argument closure; a `Ref` is a one-element `Any[]`;
 -- | functions are curried unary closures; `Int` is `Int64` (Jurist ADR-0001's
@@ -130,7 +130,7 @@ type ModuleOutput =
 -- | the name has to resolve in the including module's scope.
 runtimeImport :: String
 runtimeImport =
-  "import ..PurejlRuntime: _runtime_lazy, _js_number_string, _int32, _int_div, _zshr, PSData, PSEff"
+  "import ..PurejlRuntime: _runtime_lazy, _js_number_string, _int32, _int_div, _zshr, PSData, PSEff, PSRecord, _ps_rec, _ps_rec_dyn, _ps_get, _ps_update"
 
 --------------------------------------------------------------------------------
 -- The emit monad
@@ -278,7 +278,7 @@ genGroup env grp = case analyzeGroup env.currentModule grp of
                 e <- genExpr env body
                 pure (satLines (jlIdent ident) (map (\(Tuple mbId lvl) -> localName mbId lvl) (NEA.toArray params)) e)
           _ -> do
-            e <- genExpr env expr
+            e <- genTop env expr
             pure [ jlIdent ident <> " = " <> e ]
       )
       (NEA.toArray analyzed)
@@ -778,6 +778,25 @@ localName mbIdent (Level n) = case mbIdent of
 -- Expressions
 --------------------------------------------------------------------------------
 
+-- | The value of a top-level binding that is not a function. A record
+-- | literal here is evaluated once, at load, where Julia infers nothing, so it
+-- | is built by `_ps_rec_dyn`, which compiles nothing for its shape (ADR-0012).
+-- | That reaches a literal that is the value itself or an element of an array
+-- | literal; anything under a lambda is generated as usual.
+genTop :: Env -> TcoExpr -> Gen String
+genTop env expr@(TcoExpr _ syn) = case syn of
+  Lit (LitRecord props) -> do
+    vs <- traverse (\(Prop _ v) -> genTop env v) props
+    pure
+      ( "_ps_rec_dyn((" <> foldMap (\(Prop k _) -> labelSymbol k <> ", ") props <> "), ("
+          <> foldMap (_ <> ", ") vs
+          <> "))"
+      )
+  Lit (LitArray as) -> do
+    xs <- traverse (genTop env) as
+    pure ("Any[" <> commaSep xs <> "]")
+  _ -> genExpr env expr
+
 genExpr :: Env -> TcoExpr -> Gen String
 genExpr env (TcoExpr ann syn) = case syn of
   Var qi -> genRef env qi
@@ -835,8 +854,8 @@ genExpr env (TcoExpr ann syn) = case syn of
 
   Update base props -> do
     b <- genExpr env base
-    ps <- traverse (\(Prop k v) -> (\s -> jlStr k <> " => " <> s) <$> genExpr env v) props
-    pure ("Base.merge(" <> b <> ", Dict{String,Any}(" <> commaSep ps <> "))")
+    ps <- traverse (\(Prop k v) -> Tuple k <$> genExpr env v) props
+    pure ("_ps_update(" <> b <> ", " <> recFields ps <> ")")
 
   -- PSData (purejl's runtime): tag at index 1, fields from index 2.
   CtorSaturated _ _ _ (Ident tag) fields -> do
@@ -970,8 +989,8 @@ genLit env = case _ of
     xs <- traverse (genExpr env) as
     pure ("Any[" <> commaSep xs <> "]")
   LitRecord props -> do
-    ps <- traverse (\(Prop k v) -> (\s -> jlStr k <> " => " <> s) <$> genExpr env v) props
-    pure ("Dict{String,Any}(" <> commaSep ps <> ")")
+    ps <- traverse (\(Prop k v) -> Tuple k <$> genExpr env v) props
+    pure ("_ps_rec(" <> recFields ps <> ")")
   where
   parenNeg s = if String.take 1 s == "-" then "(" <> s <> ")" else s
   -- A `Number` must stay `Float64`. PureScript's `show` renders an integral
@@ -985,7 +1004,7 @@ genLit env = case _ of
 
 genAccessor :: String -> BackendAccessor -> String
 genAccessor base = case _ of
-  GetProp k -> "(" <> base <> ")[" <> jlStr k <> "]"
+  GetProp k -> "_ps_get(" <> base <> ", " <> labelSymbol k <> ", " <> jlStr k <> ")"
   -- Array positions from the IR are 0-based (the PureScript API's convention);
   -- Julia indexes from 1.
   GetIndex i -> "(" <> base <> ")[" <> show (i + 1) <> "]"
@@ -1118,6 +1137,56 @@ tupleLit xs = "(" <> commaSep xs <> ",)"
 
 commaSep :: Array String -> String
 commaSep = String.joinWith ", "
+
+-- Records (ADR-0012): a record literal is a `PSRecord` over a NamedTuple, and
+-- a field is read with `_ps_get`, which takes the label as a Symbol (for a
+-- PSRecord) and as a String (for a Dict a foreign may still hand back).
+
+-- | Whether a label can stand bare in Julia source, as `x` in `(; x = 1)`.
+plainLabel :: String -> Boolean
+plainLabel label = case Array.uncons (SCU.toCharArray label) of
+  Nothing -> false
+  Just { head, tail } ->
+    (asciiLetter head || head == '_')
+      && Array.all (\c -> asciiLetter c || asciiDigit c || c == '_') tail
+      && not (Array.elem label juliaReserved)
+  where
+  asciiLetter c = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+  asciiDigit c = c >= '0' && c <= '9'
+
+juliaReserved :: Array String
+juliaReserved =
+  [ "baremodule", "begin", "break", "catch", "const", "continue", "do", "else"
+  , "elseif", "end", "export", "false", "finally", "for", "function", "global"
+  , "if", "import", "let", "local", "macro", "module", "quote", "return"
+  , "struct", "true", "try", "using", "while", "where", "in", "isa", "var"
+  , "abstract", "mutable", "primitive", "type", "outer", "public"
+  ]
+
+-- | A label as a Julia Symbol: a literal where one can be written, and a
+-- | call otherwise (the label holds a quote, a backslash, a control character
+-- | or a lone surrogate).
+labelSymbol :: String -> String
+labelSymbol label
+  | plainLabel label = ":" <> label
+  | Array.all quotableChar (SCU.toCharArray label) = ":var\"" <> label <> "\""
+  | otherwise = "Base.Symbol(" <> jlStr label <> ")"
+
+-- | Whether a character can stand inside `var"…"`.
+quotableChar :: Char -> Boolean
+quotableChar c = c /= '"' && c /= '\\' && toCharCode c >= 0x20
+  && not (toCharCode c >= 0xD800 && toCharCode c <= 0xDFFF)
+
+-- | The NamedTuple of some fields: `(; x = a, y = b)` when every label is a
+-- | plain identifier, and the constructor form otherwise.
+recFields :: Array (Tuple String String) -> String
+recFields fields
+  | Array.all (\(Tuple k _) -> plainLabel k) fields =
+      "(; " <> commaSep (map (\(Tuple k v) -> k <> " = " <> v) fields) <> ")"
+  | otherwise =
+      "Base.NamedTuple{(" <> foldMap (\(Tuple k _) -> labelSymbol k <> ", ") fields <> ")}(("
+        <> foldMap (\(Tuple _ v) -> v <> ", ") fields
+        <> "))"
 
 -- | A double-quoted Julia string literal. `$` MUST be escaped -- it is Julia's
 -- | string interpolation sigil, and PureScript identifiers contain it routinely

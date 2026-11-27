@@ -1,6 +1,7 @@
 # 0001. Runtime representation of PureScript values in Julia
 
-- Status: Accepted; amended 2026-10-26 (ADT and Effect boxing, see the end)
+- Status: Accepted; amended 2026-10-26 (ADT and Effect boxing, see the end);
+  superseded in part 2026-11-27 by [0012](0012-records-as-named-tuples.md) (records and dictionaries)
 - Date: 2026-06-08
 
 (The decision was made when the backend was first built, 2026-06-05; this
@@ -29,8 +30,8 @@ constraints simultaneously:
 | Functions | curried unary closures; application is `(f)(x)(y)` |
 | ADT values | tag-tuples: `("Just", x)`, nullary `("Nothing",)` — tag at `[1]`, fields from `[2]` (Julia is 1-based) |
 | Newtypes | identity — no runtime wrapper |
-| Typeclass dictionaries | `Dict{String,Any}` keyed by member name |
-| Records | `Dict{String,Any}`; update via `merge` |
+| Typeclass dictionaries | ~~`Dict{String,Any}` keyed by member name~~ |
+| Records | ~~`Dict{String,Any}`; update via `merge`~~ |
 | Arrays | `Any[...]` vectors; the FFI translates the 0-based PS API to 1-based |
 | `Effect a` / `ST r a` | zero-argument closure (thunk); running is `f()` |
 | Char / String | Julia `Char` / `String` (UTF-8) |
@@ -38,6 +39,11 @@ constraints simultaneously:
 | Number | `Float64` |
 | Unit / undefined | `nothing` |
 | Modules | one Julia `module` per PS module, loaded deps-first by `loader.jl` |
+
+> **Superseded (2026-11-27) by [0012](0012-records-as-named-tuples.md).** A
+> record, and a typeclass dictionary, is a `PSRecord` over a NamedTuple. It
+> is still readable by field name as an `AbstractDict{String,Any}`, and a
+> `Dict{String,Any}` is still accepted wherever a record is read.
 
 Top-level mutually-recursive value bindings go through a lazy-thunk runtime
 (`purejl_runtime.jl`); local recursion uses Julia closure capture.

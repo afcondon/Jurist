@@ -94,7 +94,7 @@ is the systematic difference from the Python lane:
 | | |
 |---|---|
 | ADT | one `PSData` struct for every constructor; tag at `[1]`, fields from `[2]` (a tag-tuple until October 2026) |
-| Record / dictionary | `Dict{String,Any}`, updated with `Base.merge` |
+| Record / dictionary | `PSRecord` over a NamedTuple: `_ps_rec`, `_ps_get`, `_ps_update` (ADR-0012) |
 | Array | `Any[]` vector, indexed from 1 while the PureScript API is 0-based |
 | `Effect a` | callable with zero arguments: a closure, or a `PSEff` box when built by `bind` |
 | `Ref` | one-element `Any[]` |

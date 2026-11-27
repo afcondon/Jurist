@@ -61,6 +61,7 @@ place:
 | 0009 | [Two implementations: `purejl` the oracle, `backend-jl` the optimizer consumer](0009-two-implementations.md) | Accepted |
 | 0010 | [Saturated calls and the purs inliner set](0010-saturated-calls-and-inliner.md) | Accepted (2026-10-27; supersedes 0001's "uncurried rejected" in part) |
 | 0011 | [`Foreign.Object` is an ordered object, and JSON is the backend's own](0011-foreign-object-and-json.md) | Proposed (2026-11-19) |
+| 0012 | [Records are `PSRecord`, a NamedTuple Julia can see through](0012-records-as-named-tuples.md) | Proposed (2026-11-27; supersedes 0001's record and dictionary rows) |
 
 ## Scope
 

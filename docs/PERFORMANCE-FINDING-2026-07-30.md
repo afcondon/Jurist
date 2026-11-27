@@ -1,9 +1,42 @@
 # Generated Julia is ~70× slower than the same PureScript on Node
 
-**Status:** open, measured 2026-07-30
+**Status:** ~~open, measured 2026-07-30~~ closed for this benchmark, 2026-11-27 (see the update below)
 **Severity:** strategic — it inverts the backend's value proposition
 **Measured by:** `examples/stability-atlas/bench-node` and `bench-jl`, which
 compile the *same* `Atlas.Bench` from `atlas-core`
+
+## Update, 2026-11-27: the record was the cause
+
+The cause below names four things. One of them carried almost all of it:
+the state `s` was a `Dict{String,Any}`. With records as `PSRecord`
+([ADR-0012](design-decisions/0012-records-as-named-tuples.md)) the same
+benchmark, same source, same checksum on every row, measures (marginal cost
+of 2,000,000 steps, best of three, julia 1.13.3, M4 Mini):
+
+| implementation | marginal 2M steps | against Node |
+|---|---:|---:|
+| hand-written kernel (`native/kernel_fixed.jl`) | 64 ms | 0.37× |
+| PureScript on Node | 174 ms | 1× |
+| PureScript via `purejl`, ADR-0012 | **153 ms** | **0.88×** |
+| PureScript via `purejl`, the day before | 4,783 ms | 27× |
+
+On julia 1.12.6, the version CI pins, the same three measure 111 ms (hand
+kernel), 180 ms (Node) and 172 ms (`purejl`): 0.96× Node.
+
+So generated Julia now runs this loop at about Node's speed, and 1.5 to 2.4
+times slower than hand-written Julia. The 27× of the day before was already
+down from the 70× below, through saturated calls
+([ADR-0010](design-decisions/0010-saturated-calls-and-inliner.md)).
+
+Suggestion 3 below, emitting concrete types, turned out not to be needed.
+Julia specialises on the values it is given. It needed a record it could
+infer through, not annotations.
+
+What this does **not** show: anything about a loop that is not numeric work
+over records. The perf canary's speed index, whose shapes are closures,
+lists and `Effect` loops, moved from 4.26 to 4.17 × JS on the oracle lane.
+This is one benchmark, measured outside the canary, and nothing gates it
+yet. The gate proposed at the end of this document is still not built.
 
 ## The numbers
 

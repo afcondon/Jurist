@@ -201,10 +201,14 @@ the win through it.
 Julia's strength is its **specialising JIT**, which wants the whole problem
 before it runs. That is why "descriptions across, handles back"
 ([ADR-0007](docs/design-decisions/0007-julia-shaped-libraries.md),
-`docs/julia-shaped-libraries.md`) matters most here. Hot numeric loops
-written in PureScript are *not* the case for Julia: the same source has
-measured ~70× slower than on Node. Hand Julia a description, never an inner
-loop.
+`docs/julia-shaped-libraries.md`) matters most here. A hot numeric loop
+written in PureScript is still not the best thing to hand Julia. On the one
+benchmark measured (`Atlas.Bench`, 2026-11-27) it runs at about Node's speed
+(0.88× to 0.96×) since records became `PSRecord`, where it had been 27× to
+70× slower, but hand-written Julia is still 1.5 to 2.4 times faster than
+that. Prefer
+a description to an inner loop, and don't quote the figure beyond that
+benchmark: see `docs/PERFORMANCE-FINDING-2026-07-30.md`.
 
 **Two implementations** ([ADR-0009](docs/design-decisions/0009-two-implementations.md)):
 - `purejl` (`src/`, Haskell, raw CoreFn) is the oracle.
@@ -222,7 +226,19 @@ loop.
 - **ADTs:** one `PSData` struct for every constructor: the tag at `[1]`,
   fields from `[2]` (the 2026-10-26 amendment to ADR-0001; tag-tuples before
   that). The struct's type does not grow with the value.
-- **Records and dictionaries:** `Dict{String,Any}`.
+- **Records and dictionaries:** `PSRecord`, an immutable struct over a
+  NamedTuple, built by `_ps_rec`, read by `_ps_get`, updated by `_ps_update`
+  ([ADR-0012](docs/design-decisions/0012-records-as-named-tuples.md)).
+  - Fields are held in label order. A field keeps its concrete type only
+    when it is a scalar, a `String` or a plain-bits record; every other
+    field is `Any`, so the type cannot grow with the value.
+  - It is an `AbstractDict{String,Any}` too, so foreigns read `rec["x"]` as
+    before, and a `Dict{String,Any}` is still accepted as a record. It
+    cannot be assigned to: `copy` gives a mutable `Dict`.
+  - A literal at module top level is built by `_ps_rec_dyn`, which compiles
+    nothing for its shape. `_ps_rec` compiles once per tuple of field
+    types, and every closure has its own, so don't route top-level literals
+    back through it: that cost 3 ms per literal at load.
 - **Arrays:** 1-based `Any[...]`. The shims translate PureScript's 0-based
   API.
 - **`Effect`:** callable with zero arguments: a closure, or a `PSEff` box
@@ -231,7 +247,7 @@ loop.
 - **`Foreign.Object` and JSON objects:** `PSObject`, a `Dict` with its keys
   kept in JavaScript's enumeration order
   ([ADR-0011](docs/design-decisions/0011-foreign-object-and-json.md)). A
-  record coerced to an `Object` has no order to keep and comes out sorted.
+  record coerced to an `Object` comes out sorted.
 - **`Int`:** `Int64`. This is an argued decision for numerics: keep it, and
   record its divergences in the ledger under the cause `INT32-WRAP`.
 

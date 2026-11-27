@@ -36,7 +36,7 @@ expr   # ("Mul", ("Lit", 10.0), ("Add", ("Var", "x"), ("Lit", 2.0)))  ← legibl
 
 Calling-convention cheat sheet (from the Julia side): curried unary closures,
 `f(x)(y)`; Effects are zero-arg thunks, force with `()`; ADTs are tag-tuples
-(tag at `[1]`, fields from `[2]`); records are `Dict{String,Any}`; PS `Main`
+(tag at `[1]`, fields from `[2]`); records are `PSRecord` (a NamedTuple, readable as an `AbstractDict{String,Any}`); PS `Main`
 compiles to `Main_`; PS `eval` to `eval_`. Gotcha: lowercase `add`/`mul` in
 generated `Data_NumExpr` are Number-semiring specializations — the
 constructors are the capitalized bindings.
